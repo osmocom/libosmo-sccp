@@ -174,4 +174,9 @@ struct sccp_parse_result {
 int sccp_determine_msg_type(struct msgb *msg);
 int sccp_parse_header(struct msgb *msg, struct sccp_parse_result *result);
 
+/*
+ * osmocore logging features
+ */
+void sccp_set_log_area(int log_area);
+
 #endif

@@ -25,11 +25,13 @@
 #include <string.h>
 
 #include <osmocore/msgb.h>
-#include <openbsc/debug.h>
 #include <osmocore/talloc.h>
+#include <osmocore/logging.h>
 
 #include <sccp/sccp.h>
 
+// Unassigned debug area
+static int DSCCP = 0;
 
 static void *tall_sccp_ctx;
 static LLIST_HEAD(sccp_connections);
@@ -1422,4 +1424,9 @@ static __attribute__((constructor)) void on_dso_load(void)
 static __attribute__((destructor)) void on_dso_unload(void)
 {
 	talloc_report_full(tall_sccp_ctx, stderr);
+}
+
+void sccp_set_log_area(int log_area)
+{
+	DSCCP = log_area;
 }

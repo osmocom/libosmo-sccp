@@ -23,12 +23,13 @@
  */
 
 #include <stdio.h>
+#include <string.h>
 
 #include <arpa/inet.h>
 
-#include <openbsc/gsm_data.h>
-#include <openbsc/debug.h>
+#include <osmocore/logging.h>
 #include <osmocore/msgb.h>
+#include <osmocore/utils.h>
 
 #include <sccp/sccp.h>
 
