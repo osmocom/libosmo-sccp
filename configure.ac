@@ -28,7 +28,7 @@ CFLAGS="$saved_CFLAGS"
 AC_SUBST(SYMBOL_VISIBILITY)
 
 AC_OUTPUT(
-    libsccp.pc
+    libosmo-sccp.pc
     include/sccp/Makefile
     include/Makefile
     src/Makefile
