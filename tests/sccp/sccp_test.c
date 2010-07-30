@@ -329,7 +329,9 @@ static int called  = 0;
 static int matched = 0;
 static int write_called = 0;
 
-#define FAIL(x, args...) printf("FAILURE in %s:%d: " x, __FILE__, __LINE__, ## args)
+#define FAIL(x, args...) do { \
+	printf("FAILURE in %s:%d: " x, __FILE__, __LINE__, ## args); \
+	abort(); } while (0)
 
 /*
  * writing these packets and expecting a result
@@ -345,18 +347,15 @@ int sccp_read_cb(struct msgb *data, unsigned len, void *context)
 	if (msgb_l3len(data) < len) {
 		/* this should never be reached */
 		FAIL("Something horrible happened.. invalid packet..\n");
-		exit(-1);
 	}
 
 	if (len == 0 || len != payload_length) {
 		FAIL("length mismatch: got: %d wanted: %d\n", msgb_l3len(data), payload_length);
-		return -1;
 	}
 
 	if (data->l3h[0] !=  test_data[current_test].first_byte) {
 		FAIL("The first bytes of l3 do not match: 0x%x 0x%x\n",
 			data->l3h[0], test_data[current_test].first_byte);
-		return -1;
 	}
 
 	got = &data->l3h[0];
@@ -366,7 +365,6 @@ int sccp_read_cb(struct msgb *data, unsigned len, void *context)
 		if (got[i] != wanted[i]) {
 			FAIL("Failed to compare byte. Got: 0x%x Wanted: 0x%x at %d\n",
 			     got[i], wanted[i], i);
-			return -1;
 		}
 	}
 
@@ -381,7 +379,6 @@ void sccp_write_cb(struct msgb *data, void *ctx)
 
 	if (test_data[current_test].response == NULL) {
 		FAIL("Didn't expect write callback\n");
-		goto exit;
 	} else if (test_data[current_test].response_length != msgb_l2len(data)) {
 		FAIL("Size does not match. Got: %d Wanted: %d\n",
 		     msgb_l2len(data), test_data[current_test].response_length);
@@ -394,14 +391,10 @@ void sccp_write_cb(struct msgb *data, void *ctx)
 		if (got[i] != wanted[i]) {
 			FAIL("Failed to compare byte. Got: 0x%x Wanted: 0x%x at %d\n",
 			     got[i], wanted[i], i);
-			goto exit;
 		}
 	}
 
 	write_called = 1;
-
-exit:
-	msgb_free(data);
 }
 
 void sccp_c_read(struct sccp_connection *connection, struct msgb *msgb, unsigned int len)
@@ -441,7 +434,6 @@ static void sccp_udt_write_cb(struct msgb *data, void *context)
 	if (send_data[current_test].length != msgb_l2len(data)) {
 		FAIL("Size does not match. Got: %d Wanted: %d\n",
 		     msgb_l2len(data), send_data[current_test].length);
-		goto exit;
 	}
 
 	got = &data->l2h[0];
@@ -451,14 +443,10 @@ static void sccp_udt_write_cb(struct msgb *data, void *context)
 		if (got[i] != wanted[i]) {
 			FAIL("Failed to compare byte. Got: 0x%x Wanted: 0x%x at %d\n",
 			     got[i], wanted[i], i);
-			goto exit;
 		}
 	}
 
 	matched = 1;
-
-exit:
-	msgb_free(data);
 }
 
 static void test_sccp_system(void)
@@ -519,7 +507,6 @@ static int sccp_udt_read(struct msgb *data, unsigned int len, void *context)
 
 	if (len != 4) {
 		FAIL("Wrong size: %d\n", msgb_l3len(data));
-		return -1;
 	}
 
 	val = (unsigned int*)data->l3h;
@@ -588,23 +575,16 @@ static void sccp_conn_in_data(struct sccp_connection *conn, struct msgb *msg, un
 	/* compare the data */
 	if (len != 4) {
 		FAIL("Length of packet is wrong: %u %u\n", msgb_l3len(msg), len);
-		return;
 	}
 
 	if (incoming_data == 1) {
 		if (memcmp(msg->l3h, test_data1->l3h, len) != 0) {
 			FAIL("Comparing the data failed: %d\n", incoming_data);
-			incoming_state = 0;
-			printf("Got:    %s\n", hexdump(msg->l3h, len));
-			printf("Wanted: %s\n", hexdump(test_data1->l3h, len));
 
 		}
 	} else if (incoming_data == 2) {
 		if (memcmp(msg->l3h, test_data2->l3h, len) != 0) {
 			FAIL("Comparing the data failed: %d\n", incoming_data);
-			incoming_state = 0;
-			printf("Got:    %s\n", hexdump(msg->l3h, len));
-			printf("Wanted: %s\n", hexdump(test_data2->l3h, len));
 		}
 	}
 
@@ -652,7 +632,6 @@ static void sccp_conn_out_data(struct sccp_connection *conn, struct msgb *msg, u
 	if (outgoing_data == 1) {
 		if (memcmp(msg->l3h, test_data3->l3h, len) != 0) {
 			FAIL("Comparing the data failed\n");
-			outgoing_state = 0;
 		}
 	}
 }
@@ -667,7 +646,6 @@ static void do_test_sccp_connection(const struct connection_test *test)
 	outgoing_con = sccp_connection_socket();
 	if (!outgoing_con) {
 		FAIL("Connection is NULL\n");
-		return;
 	}
 
 	outgoing_con->state_cb = sccp_conn_out_state;
@@ -797,19 +775,17 @@ static void test_sccp_parsing(void)
 
 		memset(&result, 0, sizeof(result));
 		if (sccp_parse_header(msg, &result) != 0) {
-			fprintf(stderr, "Failed to sccp parse test: %d\n", current_test);
+			FAIL("Failed to sccp parse test: %d\n", current_test);
 		} else {
 			if (parse_result[current_test].wanted_len != result.data_len) {
-				fprintf(stderr, "Unexpected data length.\n");
-				abort();
+				FAIL("Unexpected data length.\n");
 			}
 
 			if (parse_result[current_test].has_src_ref) {
 				if (memcmp(result.source_local_reference,
 					   &parse_result[current_test].src_ref,
 					   sizeof(struct sccp_source_reference)) != 0) {
-					fprintf(stderr, "SRC REF did not match\n");
-					abort();
+					FAIL("SRC REF did not match\n");
 				}
 			}
 
@@ -817,19 +793,16 @@ static void test_sccp_parsing(void)
 				if (memcmp(result.destination_local_reference,
 					   &parse_result[current_test].dst_ref,
 					   sizeof(struct sccp_source_reference)) != 0) {
-					fprintf(stderr, "DST REF did not match\n");
-					abort();
+					FAIL("DST REF did not match\n");
 				}
 			}
 
 			if (parse_result[current_test].src_ssn != -1) {
-				fprintf(stderr, "Not implemented.\n");
-				abort();
+				FAIL("Not implemented.\n");
 			}
 
 			if (parse_result[current_test].dst_ssn != -1) {
-				fprintf(stderr, "Not implemented.\n");
-				abort();
+				FAIL("Not implemented.\n");
 			}
 		}
 
