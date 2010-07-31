@@ -154,21 +154,6 @@ static int copy_address(struct sccp_address *addr, uint8_t offset, struct msgb *
 	return 0;
 }
 
-static int check_address(struct sccp_address *addr)
-{
-	/* ignore point_code_indicator... it should be zero... but */
-	if (addr->address.ssn_indicator != 1
-	    || addr->address.global_title_indicator == 1
-	    || addr->address.routing_indicator != 1) {
-		LOGP(DSCCP, LOGL_ERROR,
-			"Invalid called address according to 08.06: 0x%x 0x%x\n",
-			*(uint8_t *)&addr->address, addr->ssn);
-		return -1;
-	}
-
-	return 0;
-}
-
 static int _sccp_parse_optional_data(const int offset,
 				     struct msgb *msgb, struct sccp_optional_data *data)
 {
@@ -228,12 +213,6 @@ int _sccp_parse_connection_request(struct msgb *msgb, struct sccp_parse_result *
 	/* copy out the calling and called address. Add the offset */
 	if (copy_address(&result->called, called_offset + req->variable_called, msgb) != 0)
 		return -1;
-
-	if (check_address(&result->called) != 0) {
-		LOGP(DSCCP, LOGL_ERROR, "Invalid called address according to 08.06: 0x%x 0x%x\n",
-			*(uint8_t *)&result->called.address, result->called.ssn);
-		return -1;
-	}
 
 	result->source_local_reference = &req->source_local_reference;
 
@@ -443,19 +422,8 @@ int _sccp_parse_udt(struct msgb *msgb, struct sccp_parse_result *result)
 	if (copy_address(&result->called, called_offset + udt->variable_called, msgb) != 0)
 		return -1;
 
-	if (check_address(&result->called) != 0) {
-		LOGP(DSCCP, LOGL_ERROR, "Invalid called address according to 08.06: 0x%x 0x%x\n",
-			*(uint8_t *)&result->called.address, result->called.ssn);
-		return -1;
-	}
-
 	if (copy_address(&result->calling, calling_offset + udt->variable_calling, msgb) != 0)
 		return -1;
-
-	if (check_address(&result->calling) != 0) {
-		LOGP(DSCCP, LOGL_ERROR, "Invalid called address according to 08.06: 0x%x 0x%x\n",
-			*(uint8_t *)&result->called.address, result->called.ssn);
-	}
 
 	/* we don't have enough size for the data */
 	if (msgb_l2len(msgb) < data_offset + udt->variable_data + 1) {
