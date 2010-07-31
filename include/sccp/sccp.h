@@ -51,6 +51,13 @@ struct sockaddr_sccp {
 
 	/* TODO fill in address indicator... if that is ever needed */
 
+	/* optional gti information */
+	uint8_t *gti;
+	int gti_len;
+
+	/* any of SCCP_TITLE_IND_* */
+	uint8_t gti_ind;
+
 	/* not sure about these */
 	/* uint8_t    sccp_class; */
 };

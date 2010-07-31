@@ -512,6 +512,24 @@ static int _sccp_parse_err(struct msgb *msgb, struct sccp_parse_result *result)
 	return 0;
 }
 
+static void create_sccp_addr(struct msgb *msg, const struct sockaddr_sccp *sock)
+{
+	uint8_t *data;
+
+	data = msgb_put(msg, 1 + 2 + sock->gti_len);
+	data[0] = 2;
+
+	if (sock->gti)
+		data[1] = 0 << 6 | (sock->gti_ind & 0x0f) << 2;
+	else
+		data[1] = 1 << 6 | 1 << 1;
+
+	data[2] = sock->sccp_ssn;
+
+	/* copy the gti if it is present */
+	memcpy(&data[3], sock->gti, sock->gti_len);
+}
+
 /*
  * Send UDT. Currently we have a fixed address...
  */
@@ -534,19 +552,12 @@ static int _sccp_send_data(int class, const struct sockaddr_sccp *in,
 	udt->type = SCCP_MSG_TYPE_UDT;
 	udt->proto_class = class;
 	udt->variable_called = 3;
-	udt->variable_calling = 5;
-	udt->variable_data = 7;
+	udt->variable_calling = 5 + out->gti_len;
+	udt->variable_data = 7 + out->gti_len + in->gti_len;
 
 	/* for variable data we start with a size and the data */
-	data = msgb_put(msg, 1 + 2);
-	data[0] = 2;
-	data[1] = 0x42;
-	data[2] = out->sccp_ssn;
-
-	data = msgb_put(msg, 1 + 2);
-	data[0] = 2;
-	data[1] = 0x42;
-	data[2] = in->sccp_ssn;
+	create_sccp_addr(msg, out);
+	create_sccp_addr(msg, in);
 
 	/* copy the payload */
 	data = msgb_put(msg, 1 + msgb_l3len(payload));
