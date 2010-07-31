@@ -810,9 +810,34 @@ static void test_sccp_parsing(void)
 	}
 }
 
+static const struct log_info_cat default_categories[] = {
+	[0] = {
+		.name = "DSCCP",
+		.description = "DSCP",
+		.enabled = 1, .loglevel = LOGL_DEBUG,
+	},
+};
+
+static int null_flt()
+{
+	return 1;
+}
+
+const struct log_info log_info = {
+	.filter_fn = null_flt,
+	.cat = default_categories,
+	.num_cat = ARRAY_SIZE(default_categories),
+};
 
 int main(int argc, char **argv)
 {
+	struct log_target *stderr_target;
+	log_init(&log_info);
+	stderr_target = log_target_create_stderr();
+	log_add_target(stderr_target);
+
+	sccp_set_log_area(0);
+
 	test_sccp_system();
 	test_sccp_send_udt();
 	test_sccp_udt_communication();
