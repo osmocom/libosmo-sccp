@@ -4,4 +4,4 @@ AM_CFLAGS=-Wall $(LIBOSMOCORE_CFLAGS)
 sccpdir = $(libdir)
 sccp_LIBRARIES = libsccp.a
 
-libsccp_a_SOURCES = sccp/sccp.c
+libsccp_a_SOURCES = sccp.c

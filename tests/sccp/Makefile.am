@@ -3,6 +3,6 @@ AM_CFLAGS=-Wall -ggdb3 $(LIBOSMOCORE_CFLAGS)
 
 noinst_PROGRAMS = sccp_test
 
-sccp_test_SOURCES = sccp_test.c $(top_srcdir)/src/sccp/sccp.c
+sccp_test_SOURCES = sccp_test.c $(top_srcdir)/src/sccp.c
 sccp_test_LDADD = $(LIBOSMOCORE_LIBS)
 
