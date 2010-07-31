@@ -143,9 +143,11 @@ static int copy_address(struct sccp_address *addr, uint8_t offset, struct msgb *
 		read += 1;
 	}
 
+	/* copy the GTI over */
 	if (party->global_title_indicator) {
-		LOGP(DSCCP, LOGL_ERROR, "GTI not supported %u\n", *(uint8_t *)party);
-		return -1;
+		addr->gti_ind = party->global_title_indicator;
+		addr->gti_len = length - read - 1;
+		addr->gti_data = &party->data[read];
 	}
 
 	addr->address = *party;

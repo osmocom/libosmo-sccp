@@ -72,6 +72,10 @@ struct sccp_address {
 	struct sccp_called_party_address    address;
 	uint8_t			    ssn;
 	uint8_t			    poi[2];
+
+	uint8_t			    gti_ind;
+	uint8_t			    *gti_data;
+	int			    gti_len;
 };
 
 struct sccp_optional_data {
