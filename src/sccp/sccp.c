@@ -514,6 +514,7 @@ static int _sccp_parse_err(struct msgb *msgb, struct sccp_parse_result *result)
 
 static void create_sccp_addr(struct msgb *msg, const struct sockaddr_sccp *sock)
 {
+	int pos = 2;
 	uint8_t *data;
 
 	data = msgb_put(msg, 1 + 2 + sock->gti_len);
@@ -524,10 +525,19 @@ static void create_sccp_addr(struct msgb *msg, const struct sockaddr_sccp *sock)
 	else
 		data[1] = 1 << 6 | 1 << 1;
 
-	data[2] = sock->sccp_ssn;
+	/* store a point code */
+	if (sock->use_poi) {
+		msgb_put(msg, 2);
+		data[1] |= 0x01;
+		data[pos++] = sock->poi[0];
+		data[pos++] = sock->poi[1];
+	}
+
+
+	data[pos++] = sock->sccp_ssn;
 
 	/* copy the gti if it is present */
-	memcpy(&data[3], sock->gti, sock->gti_len);
+	memcpy(&data[pos++], sock->gti, sock->gti_len);
 }
 
 /*

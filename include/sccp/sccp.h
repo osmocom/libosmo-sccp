@@ -58,6 +58,9 @@ struct sockaddr_sccp {
 	/* any of SCCP_TITLE_IND_* */
 	uint8_t gti_ind;
 
+	int use_poi;
+	uint8_t poi[2];
+
 	/* not sure about these */
 	/* uint8_t    sccp_class; */
 };
