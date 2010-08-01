@@ -513,19 +513,22 @@ static void create_sccp_addr(struct msgb *msg, const struct sockaddr_sccp *sock)
 /*
  * Send UDT. Currently we have a fixed address...
  */
-static int _sccp_send_data(int class, const struct sockaddr_sccp *in,
-			   const struct sockaddr_sccp *out, struct msgb *payload)
+struct msgb *sccp_create_udt(int class, const struct sockaddr_sccp *in,
+			     const struct sockaddr_sccp *out, struct msgb *payload)
 {
 	struct sccp_data_unitdata *udt;
 	uint8_t *data;
 
 	if (msgb_l3len(payload) > 256) {
 		LOGP(DSCCP, LOGL_ERROR, "The payload is too big for one udt\n");
-		return -1;
+		return NULL;
 	}
 
 	struct msgb *msg = msgb_alloc_headroom(SCCP_MSG_SIZE,
 					       SCCP_MSG_HEADROOM, "sccp: udt");
+	if (!msg)
+		return NULL;
+
 	msg->l2h = &msg->data[0];
 	udt = (struct sccp_data_unitdata *)msgb_put(msg, sizeof(*udt));
 
@@ -543,6 +546,18 @@ static int _sccp_send_data(int class, const struct sockaddr_sccp *in,
 	data = msgb_put(msg, 1 + msgb_l3len(payload));
 	data[0] = msgb_l3len(payload);
 	memcpy(&data[1], payload->l3h, msgb_l3len(payload));
+
+	return msg;
+}
+
+static int _sccp_send_data(int class, const struct sockaddr_sccp *in,
+			   const struct sockaddr_sccp *out, struct msgb *payload)
+{
+	struct msgb *msg;
+
+	msg = sccp_create_udt(class, in, out, payload);
+	if (!msg)
+		return -1;
 
 	_send_msg(msg);
 	return 0;
