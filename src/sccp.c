@@ -757,13 +757,10 @@ static int _sccp_send_connection_request(struct sccp_connection *connection,
 	       sizeof(connection->source_local_reference));
 	req->proto_class = 2;
 	req->variable_called = 2;
-	req->optional_start = 4;
+	req->optional_start = 4 + called->gti_len;
 
 	/* write the called party address */
-	data = msgb_put(request, 1 + 2);
-	data[0] = 2;
-	data[1] = 0x42;
-	data[2] = called->sccp_ssn;
+	create_sccp_addr(request, called);
 
 	/* write the payload */
 	if (msg) {
