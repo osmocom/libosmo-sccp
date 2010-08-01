@@ -1,1 +1,1 @@
-SUBDIRS = sccp
+SUBDIRS = sccp mtp

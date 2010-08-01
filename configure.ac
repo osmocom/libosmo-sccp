@@ -29,10 +29,13 @@ AC_SUBST(SYMBOL_VISIBILITY)
 
 AC_OUTPUT(
     libosmo-sccp.pc
+    libosmo-mtp.pc
     include/sccp/Makefile
+    include/mtp/Makefile
     include/Makefile
     src/Makefile
     tests/Makefile
     tests/sccp/Makefile
+    tests/mtp/Makefile
     Makefile)
 
