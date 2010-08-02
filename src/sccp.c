@@ -145,7 +145,6 @@ static int copy_address(struct sccp_address *addr, uint8_t offset, struct msgb *
 
 	/* copy the GTI over */
 	if (party->global_title_indicator) {
-		addr->gti_ind = party->global_title_indicator;
 		addr->gti_len = length - read - 1;
 		addr->gti_data = &party->data[read];
 	}

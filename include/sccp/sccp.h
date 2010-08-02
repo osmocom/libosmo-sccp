@@ -73,7 +73,6 @@ struct sccp_address {
 	uint8_t			    ssn;
 	uint8_t			    poi[2];
 
-	uint8_t			    gti_ind;
 	uint8_t			    *gti_data;
 	int			    gti_len;
 };
