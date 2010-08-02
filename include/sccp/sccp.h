@@ -166,7 +166,7 @@ struct msgb *sccp_create_cc(struct sccp_source_reference *src_ref, struct sccp_s
 struct msgb *sccp_create_rlsd(struct sccp_source_reference *src_ref, struct sccp_source_reference *dst_ref, int cause);
 struct msgb *sccp_create_dt1(struct sccp_source_reference *dst_ref, uint8_t *data, uint8_t len);
 struct msgb *sccp_create_udt(int _class, const struct sockaddr_sccp *sock_sender,
-			     const struct sockaddr_sccp *sock_target, struct msgb *msg);
+			     const struct sockaddr_sccp *sock_target, uint8_t *data, int len);
 
 /**
  * Below this are helper functions and structs for parsing SCCP messages
