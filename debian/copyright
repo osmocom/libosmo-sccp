@@ -1,0 +1,36 @@
+This work was packaged for Debian by:
+
+    Harald Welte <laforge@gnumonks.org> on Tue, 24 Aug 2010 10:55:04 +0200
+
+It was downloaded from:
+
+    git://git.osmocom.org/libosmo-sccp.git
+
+Upstream Author(s):
+
+    Holger Hans Peter Freyther <zecke@selfish.org>
+
+Copyright:
+
+    Copyright (C) 2009-2010 Holger Hans Peter Freyther <zecke@selfish.org>
+    Copyright (C) 2009-2010 On-Waves
+
+License:
+
+    GNU General Public License, Version 2 or later
+
+The Debian packaging is:
+
+    Copyright (C) 2010 Harald Welte <laforge@gnumonks.org>
+
+# Please chose a license for your packaging work. If the program you package
+# uses a mainstream license, using the same license is the safest choice.
+# Please avoid to pick license terms that are more restrictive than the
+# packaged work, as it may make Debian's contributions unacceptable upstream.
+# If you just want it to be GPL version 3, leave the following lines in.
+
+and is licensed under the GPL version 3,
+see "/usr/share/common-licenses/GPL-3".
+
+# Please also look if there are files or directories which have a
+# different copyright/license attached and list them here.
