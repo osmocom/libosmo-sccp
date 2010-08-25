@@ -427,7 +427,7 @@ int sccp_read_cb(struct msgb *data, unsigned len, void *context)
 	return 0;
 }
 
-void sccp_write_cb(struct msgb *data, void *ctx)
+void sccp_write_cb(struct sccp_connection *conn, struct msgb *data, void *ctx)
 {
 	int i = 0;
 	const uint8_t *got, *wanted;
@@ -479,7 +479,7 @@ int sccp_accept_cb(struct sccp_connection *connection, void *user_data)
 	return 0;
 }
 
-static void sccp_udt_write_cb(struct msgb *data, void *context)
+static void sccp_udt_write_cb(struct sccp_connection *conn, struct msgb *data, void *context)
 {
 	const uint8_t *got, *wanted;
 	int i;
@@ -570,7 +570,7 @@ static int sccp_udt_read(struct msgb *data, unsigned int len, void *context)
 	return 0;
 }
 
-static void sccp_write_loop(struct msgb *data, void *context)
+static void sccp_write_loop(struct sccp_connection *conn, struct msgb *data, void *context)
 {
 	/* send it back to us */
 	sccp_system_incoming(data);
