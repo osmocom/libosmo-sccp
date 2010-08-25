@@ -1,7 +1,7 @@
 Source: libosmo-sccp
-Priority: extra
+Priority: optional
 Maintainer: Harald Welte <laforge@gnumonks.org>
-Build-Depends: debhelper (>= 7.0.50~), autotools-dev, libosmocore-dev
+Build-Depends: debhelper (>= 7.0.50~), autotools-dev, pkg-config, libosmocore-dev
 Standards-Version: 3.8.4
 Section: libs
 #Homepage: <insert the upstream URL, if relevant>
