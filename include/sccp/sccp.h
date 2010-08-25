@@ -106,8 +106,9 @@ struct sccp_connection {
  * system functionality to implement on top of any other transport layer:
  *   call sccp_system_incoming for incoming data (from the network)
  *   sccp will call outgoing whenever outgoing data exists
+ *   The conn is NULL for UDT and other messages without a connection
  */
-int sccp_system_init(void (*outgoing)(struct msgb *data, void *ctx), void *context);
+int sccp_system_init(void (*outgoing)(struct sccp_connection *conn, struct msgb *data, void *ctx), void *context);
 int sccp_system_incoming(struct msgb *data);
 
 /**
