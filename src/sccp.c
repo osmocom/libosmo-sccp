@@ -525,6 +525,7 @@ struct msgb *sccp_create_udt(int class, const struct sockaddr_sccp *in,
 {
 	struct sccp_data_unitdata *udt;
 	uint8_t *data;
+	int out_len, inp_len;
 
 	if (len > 256) {
 		LOGP(DSCCP, LOGL_ERROR, "The payload is too big for one udt\n");
@@ -541,13 +542,15 @@ struct msgb *sccp_create_udt(int class, const struct sockaddr_sccp *in,
 
 	udt->type = SCCP_MSG_TYPE_UDT;
 	udt->proto_class = class;
-	udt->variable_called = 3;
-	udt->variable_calling = 5 + out->gti_len;
-	udt->variable_data = 7 + out->gti_len + in->gti_len;
 
 	/* for variable data we start with a size and the data */
-	sccp_create_sccp_addr(msg, out);
-	sccp_create_sccp_addr(msg, in);
+	out_len = sccp_create_sccp_addr(msg, out);
+	inp_len = sccp_create_sccp_addr(msg, in);
+
+	/* update the offsets now */
+	udt->variable_called = 3;
+	udt->variable_calling = 2 + out_len;
+	udt->variable_data = 1 + out_len + inp_len;
 
 	/* copy the payload */
 	data = msgb_put(msg, 1 + len);
@@ -752,6 +755,7 @@ static int _sccp_send_connection_request(struct sccp_connection *connection,
 	struct sccp_connection_request *req;
 	uint8_t *data;
 	uint8_t extra_size = 3 + 1;
+	int called_len;
 
 
 	if (msg && (msgb_l3len(msg) < 3 || msgb_l3len(msg) > 130)) {
@@ -778,11 +782,13 @@ static int _sccp_send_connection_request(struct sccp_connection *connection,
 	memcpy(&req->source_local_reference, &connection->source_local_reference,
 	       sizeof(connection->source_local_reference));
 	req->proto_class = 2;
-	req->variable_called = 2;
-	req->optional_start = 4 + called->gti_len;
 
 	/* write the called party address */
-	sccp_create_sccp_addr(request, called);
+	called_len = sccp_create_sccp_addr(request, called);
+
+	/* update the offsets */
+	req->variable_called = 2;
+	req->optional_start = 1 + called_len;
 
 	/* write the payload */
 	if (msg) {
