@@ -481,7 +481,7 @@ static int _sccp_parse_err(struct msgb *msgb, struct sccp_parse_result *result)
 	return 0;
 }
 
-static void create_sccp_addr(struct msgb *msg, const struct sockaddr_sccp *sock)
+int sccp_create_sccp_addr(struct msgb *msg, const struct sockaddr_sccp *sock)
 {
 	int pos = 2;
 	uint8_t *data;
@@ -538,8 +538,8 @@ struct msgb *sccp_create_udt(int class, const struct sockaddr_sccp *in,
 	udt->variable_data = 7 + out->gti_len + in->gti_len;
 
 	/* for variable data we start with a size and the data */
-	create_sccp_addr(msg, out);
-	create_sccp_addr(msg, in);
+	sccp_create_sccp_addr(msg, out);
+	sccp_create_sccp_addr(msg, in);
 
 	/* copy the payload */
 	data = msgb_put(msg, 1 + len);
@@ -774,7 +774,7 @@ static int _sccp_send_connection_request(struct sccp_connection *connection,
 	req->optional_start = 4 + called->gti_len;
 
 	/* write the called party address */
-	create_sccp_addr(request, called);
+	sccp_create_sccp_addr(request, called);
 
 	/* write the payload */
 	if (msg) {
