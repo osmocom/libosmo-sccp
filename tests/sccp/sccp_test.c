@@ -887,6 +887,48 @@ static void test_sccp_parsing(void)
 	}
 }
 
+/*
+ * Test the creation of SCCP addresses
+ */
+int sccp_create_sccp_addr(struct msgb *msg, const struct sockaddr_sccp *sock);
+
+struct sccp_addr_tst {
+	const struct sockaddr_sccp *addr;
+
+	const uint8_t *output;
+	const int output_len;
+};
+
+static uint8_t ssn_out[] = {
+	0x02, 0x42, 0xfe,
+};
+
+static struct sccp_addr_tst sccp_addr_tst[] = {
+	{
+		.addr		= &sccp_ssn_bssap,
+		.output		= ssn_out,
+		.output_len	= ARRAY_SIZE(ssn_out),
+	},
+};
+
+static void test_sccp_address()
+{
+	int i, ret;
+	struct msgb *msg = msgb_alloc(128, "sccp-addr");
+
+	for (i = 0; i < ARRAY_SIZE(sccp_addr_tst); ++i) {
+		msgb_reset(msg);
+		ret = sccp_create_sccp_addr(msg, sccp_addr_tst[i].addr);
+		if (ret != sccp_addr_tst[i].output_len) {
+			FAIL("Length is from for %d\n", i);
+		}
+
+		if (memcmp(msg->data, sccp_addr_tst[i].output, ret) != 0) {
+			FAIL("Unexpected data for %d\n", i);
+		}
+	}
+}
+
 static const struct log_info_cat default_categories[] = {
 	[0] = {
 		.name = "DSCCP",
@@ -921,6 +963,7 @@ int main(int argc, char **argv)
 	test_sccp_connection();
 	test_sccp_system_crash();
 	test_sccp_parsing();
+	test_sccp_address();
 	return 0;
 }
 

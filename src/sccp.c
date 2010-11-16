@@ -26,6 +26,7 @@
 
 #include <osmocore/msgb.h>
 #include <osmocore/talloc.h>
+#include <osmocore/tlv.h>
 #include <osmocore/logging.h>
 
 #include <sccp/sccp.h>
@@ -483,30 +484,37 @@ static int _sccp_parse_err(struct msgb *msgb, struct sccp_parse_result *result)
 
 int sccp_create_sccp_addr(struct msgb *msg, const struct sockaddr_sccp *sock)
 {
-	int pos = 2;
-	uint8_t *data;
+	uint8_t *len, *ai, *gti;
 
-	data = msgb_put(msg, 1 + 2 + sock->gti_len);
-	data[0] = 2;
+	len = msgb_put(msg, 1);
+	ai = msgb_put(msg, 1);
+
 
 	if (sock->gti)
-		data[1] = 0 << 6 | (sock->gti_ind & 0x0f) << 2;
+		ai[0] = 0 << 6 | (sock->gti_ind & 0x0f) << 2;
 	else
-		data[1] = 1 << 6 | 1 << 1;
+		ai[0] = 1 << 6 | 1 << 1;
 
 	/* store a point code */
 	if (sock->use_poi) {
-		msgb_put(msg, 2);
-		data[1] |= 0x01;
-		data[pos++] = sock->poi[0];
-		data[pos++] = sock->poi[1];
+		uint8_t *poi;
+
+		ai[0] |= 0x01;
+		poi = msgb_put(msg, 2);
+		poi[0] = sock->poi[0];
+		poi[1] = sock->poi[1];
 	}
 
-
-	data[pos++] = sock->sccp_ssn;
+	/* copy the SSN */
+	msgb_v_put(msg, sock->sccp_ssn);
 
 	/* copy the gti if it is present */
-	memcpy(&data[pos++], sock->gti, sock->gti_len);
+	gti = msgb_put(msg, sock->gti_len);
+	memcpy(gti, sock->gti, sock->gti_len);
+
+	/* update the length now */
+	len[0] = msg->tail - len - 1;
+	return len[0] + 1;
 }
 
 /*
