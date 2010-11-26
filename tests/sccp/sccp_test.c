@@ -903,11 +903,27 @@ static uint8_t ssn_out[] = {
 	0x02, 0x42, 0xfe,
 };
 
+const struct sockaddr_sccp sccp_poi_bssap = {
+	.sccp_family	= 0,
+	.sccp_ssn	= SCCP_SSN_BSSAP,
+	.poi            = {0x01, 0x00},
+	.use_poi        = 1,
+};
+
+static uint8_t poi_out[] = {
+	0x04, 0x43, 0x01, 0x00, 0xfe,
+};
+
 static struct sccp_addr_tst sccp_addr_tst[] = {
 	{
 		.addr		= &sccp_ssn_bssap,
 		.output		= ssn_out,
 		.output_len	= ARRAY_SIZE(ssn_out),
+	},
+	{
+		.addr		= &sccp_poi_bssap,
+		.output		= poi_out,
+		.output_len	= ARRAY_SIZE(poi_out),
 	},
 };
 
