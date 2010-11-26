@@ -491,7 +491,7 @@ int sccp_create_sccp_addr(struct msgb *msg, const struct sockaddr_sccp *sock)
 
 
 	if (sock->gti)
-		ai[0] = 0 << 6 | (sock->gti_ind & 0x0f) << 2;
+		ai[0] = 0 << 6 | (sock->gti_ind & 0x0f) << 2 | 1 << 1;
 	else
 		ai[0] = 1 << 6 | 1 << 1;
 

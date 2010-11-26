@@ -914,6 +914,22 @@ static uint8_t poi_out[] = {
 	0x04, 0x43, 0x01, 0x00, 0xfe,
 };
 
+static uint8_t gti_dat[] = {
+	0x00, 0x12, 0x04, 0x53, 0x84, 0x09, 0x00, 0x17,
+};
+
+const struct sockaddr_sccp sccp_gti_bssap = {
+	.sccp_family	= 0,
+	.sccp_ssn	= 7,
+	.gti_ind	= 4,
+	.gti_len	= ARRAY_SIZE(gti_dat),
+	.gti		= gti_dat,
+};
+
+static uint8_t gti_out[] = {
+	0x0a, 0x12, 0x07, 0x00, 0x12, 0x04, 0x53, 0x84, 0x09, 0x00, 0x17,
+};
+
 static struct sccp_addr_tst sccp_addr_tst[] = {
 	{
 		.addr		= &sccp_ssn_bssap,
@@ -924,6 +940,11 @@ static struct sccp_addr_tst sccp_addr_tst[] = {
 		.addr		= &sccp_poi_bssap,
 		.output		= poi_out,
 		.output_len	= ARRAY_SIZE(poi_out),
+	},
+	{
+		.addr		= &sccp_gti_bssap,
+		.output		= gti_out,
+		.output_len	= ARRAY_SIZE(gti_out),
 	},
 };
 
