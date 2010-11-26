@@ -961,7 +961,8 @@ static void test_sccp_address()
 		}
 
 		if (memcmp(msg->data, sccp_addr_tst[i].output, ret) != 0) {
-			FAIL("Unexpected data for %d\n", i);
+			FAIL("Unexpected data for %d '%s'\n", i,
+				hexdump(msg->data, ret));
 		}
 	}
 }
