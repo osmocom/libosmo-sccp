@@ -5,4 +5,4 @@ sccpdir = $(libdir)
 sccp_LIBRARIES = libsccp.a libmtp.a
 
 libsccp_a_SOURCES = sccp.c
-libmtp_a_SOURCES = mtp_pcap.c mtp_level3.c
+libmtp_a_SOURCES = mtp_pcap.c 
