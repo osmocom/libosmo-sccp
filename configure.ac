@@ -38,5 +38,6 @@ AC_OUTPUT(
     tests/Makefile
     tests/sccp/Makefile
     tests/mtp/Makefile
+    tests/m2ua/Makefile
     Makefile)
 
