@@ -50,5 +50,8 @@ int main(int argc, char **argv)
 		FAIL("Wrong memory");
 	}
 
+	m2ua_msg_free(m2u);
+	msgb_free(msg);
+
 	return 0;
 }
