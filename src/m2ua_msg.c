@@ -73,6 +73,17 @@ int m2ua_msg_add_data(struct m2ua_msg *msg, uint16_t tag,
 	return 0;
 }
 
+struct m2ua_msg_part *m2ua_msg_find_tag(struct m2ua_msg *m2ua, uint16_t tag)
+{
+	struct m2ua_msg_part *part;
+
+	llist_for_each_entry(part, &m2ua->headers, entry)
+		if (part->tag == tag)
+			return part;
+
+	return NULL;
+}
+
 struct m2ua_msg *m2ua_from_msg(uint16_t len, uint8_t *data)
 {
 	struct m2ua_parameter_hdr *par;

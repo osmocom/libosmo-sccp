@@ -37,8 +37,10 @@ static uint8_t asp_up[] = {
 
 int main(int argc, char **argv)
 {
+	struct m2ua_msg_part *part;
 	struct m2ua_msg *m2u = m2ua_from_msg(ARRAY_SIZE(asp_up), asp_up);
 	struct msgb *msg = m2ua_to_msg(m2u);
+	const uint8_t res[] = { 0xac, 0x10, 0x01, 0x51 };
 
 	if (msg->len != ARRAY_SIZE(asp_up)) {
 		printf("Got %d wanted %d\n", msg->len, ARRAY_SIZE(asp_up));
@@ -49,6 +51,14 @@ int main(int argc, char **argv)
 		printf("Got '%s'\n", hexdump(msg->data, msg->len));
 		FAIL("Wrong memory");
 	}
+
+	part = m2ua_msg_find_tag(m2u, 0x11);
+	if (!part)
+		FAIL("Could not find part");
+	if (part->len != 4)
+		FAIL("Part is not of length four\n");
+	if (memcmp(part->dat, res, 4) != 0)
+		FAIL("Wrong result for the tag\n");
 
 	m2ua_msg_free(m2u);
 	msgb_free(msg);
