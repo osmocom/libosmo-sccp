@@ -89,7 +89,7 @@ struct m2ua_msg *m2ua_from_msg(uint16_t len, uint8_t *data)
 	struct m2ua_parameter_hdr *par;
 	struct m2ua_common_hdr *hdr;
 	struct m2ua_msg *msg;
-	uint16_t pos, par_len;
+	uint16_t pos, par_len, padding;
 	int rc;
 
 	msg = m2ua_msg_alloc();
@@ -121,6 +121,10 @@ struct m2ua_msg *m2ua_from_msg(uint16_t len, uint8_t *data)
 			goto fail;
 
 		pos += par_len;
+
+		/* move over the padding */
+		padding = par_len % 4;
+		pos += padding;
 	}
 
 	/* TODO: parse */
@@ -137,6 +141,8 @@ struct msgb *m2ua_to_msg(struct m2ua_msg *m2ua)
 	struct m2ua_msg_part *part;
 	struct m2ua_common_hdr *hdr;
 	struct msgb *msg;
+	uint8_t rest;
+
 	msg = msgb_alloc_headroom(512, 2048, "m2ua msg");
 	if (!msg) {
 		LOGP(DM2UA, LOGL_ERROR, "Failed to allocate.\n");
@@ -157,6 +163,13 @@ struct msgb *m2ua_to_msg(struct m2ua_msg *m2ua)
 		if (part->dat) {
 			uint8_t *dat = msgb_put(msg, part->len);
 			memcpy(dat, part->dat, part->len);
+
+			/* padding */
+			rest = part->len % 4;
+			if (rest > 0) {
+				dat = msgb_put(msg, rest);
+				memset(dat, 0, rest);
+			}
 		}
 	}
 

@@ -35,6 +35,15 @@ static uint8_t asp_up[] = {
 	0x00, 0x11, 0x00, 0x08, 0xac, 0x10, 0x01, 0x51,
 };
 
+static uint8_t data[] = {
+	0x01, 0x00, 0x06, 0x01, 0x00, 0x00, 0x00, 0x2c,
+	0x00, 0x01, 0x00, 0x08, 0x00, 0x00, 0x00, 0x00,
+	0x03, 0x00, 0x00, 0x1a, 0x81, 0x5c, 0x00, 0x07,
+	0x00, 0x11, 0xf0, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa,
+	0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa,
+	0xaa, 0xaa, 0x00, 0x00
+};
+
 static void test_asp_up()
 {
 	struct m2ua_msg_part *part;
@@ -62,11 +71,39 @@ static void test_asp_up()
 
 	m2ua_msg_free(m2u);
 	msgb_free(msg);
+}
 
+static void test_data()
+{
+	struct m2ua_msg_part *part;
+	struct m2ua_msg *m2u = m2ua_from_msg(ARRAY_SIZE(data), data);
+	struct msgb *msg = m2ua_to_msg(m2u);
+
+	if (msg->len != ARRAY_SIZE(data)) {
+		printf("Got %d wanted %d\n", msg->len, ARRAY_SIZE(data));
+		FAIL("Wrong size");
+	}
+
+	if (memcmp(msg->data, data, msg->len) != 0) {
+		printf("Got '%s'\n", hexdump(msg->data, msg->len));
+		FAIL("Wrong memory");
+	}
+
+	part = m2ua_msg_find_tag(m2u, 0x300);
+	if (!part)
+		FAIL("Could not find part");
+	if (part->len != 22) {
+		printf("Got the length %d\n", part->len);
+		FAIL("Part is not of length 22\n");
+	}
+
+	m2ua_msg_free(m2u);
+	msgb_free(msg);
 }
 
 int main(int argc, char **argv)
 {
 	test_asp_up();
+	test_data();
 	return 0;
 }
