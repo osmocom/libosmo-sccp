@@ -143,7 +143,7 @@ struct msgb *m2ua_to_msg(struct m2ua_msg *m2ua)
 	struct msgb *msg;
 	uint8_t rest;
 
-	msg = msgb_alloc_headroom(512, 2048, "m2ua msg");
+	msg = msgb_alloc_headroom(2048, 512, "m2ua msg");
 	if (!msg) {
 		LOGP(DM2UA, LOGL_ERROR, "Failed to allocate.\n");
 		return NULL;
