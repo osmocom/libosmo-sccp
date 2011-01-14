@@ -35,7 +35,7 @@ static uint8_t asp_up[] = {
 	0x00, 0x11, 0x00, 0x08, 0xac, 0x10, 0x01, 0x51,
 };
 
-int main(int argc, char **argv)
+static void test_asp_up()
 {
 	struct m2ua_msg_part *part;
 	struct m2ua_msg *m2u = m2ua_from_msg(ARRAY_SIZE(asp_up), asp_up);
@@ -63,5 +63,10 @@ int main(int argc, char **argv)
 	m2ua_msg_free(m2u);
 	msgb_free(msg);
 
+}
+
+int main(int argc, char **argv)
+{
+	test_asp_up();
 	return 0;
 }
