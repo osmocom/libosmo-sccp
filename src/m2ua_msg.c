@@ -151,7 +151,7 @@ struct msgb *m2ua_to_msg(struct m2ua_msg *m2ua)
 
 	msg->l2h = msgb_put(msg, sizeof(*hdr));
 	hdr = (struct m2ua_common_hdr *) msg->l2h;
-	*hdr = m2ua->hdr;
+	memcpy(hdr, &m2ua->hdr, sizeof(*hdr));
 
 	/* make sure that is right */
 	hdr->version = M2UA_VERSION;
