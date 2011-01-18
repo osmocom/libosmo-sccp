@@ -123,7 +123,7 @@ struct m2ua_msg *m2ua_from_msg(uint16_t len, uint8_t *data)
 		pos += par_len;
 
 		/* move over the padding */
-		padding = par_len % 4;
+		padding = (4 - (par_len % 4)) & 0x3;
 		pos += padding;
 	}
 
@@ -165,7 +165,7 @@ struct msgb *m2ua_to_msg(struct m2ua_msg *m2ua)
 			memcpy(dat, part->dat, part->len);
 
 			/* padding */
-			rest = part->len % 4;
+			rest = (4 - (part->len % 4)) & 0x3;
 			if (rest > 0) {
 				dat = msgb_put(msg, rest);
 				memset(dat, 0, rest);
