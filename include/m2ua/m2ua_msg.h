@@ -53,4 +53,6 @@ struct m2ua_msg_part *m2ua_msg_find_tag(struct m2ua_msg *msg, uint16_t tag);
 struct m2ua_msg *m2ua_from_msg(uint16_t len, uint8_t *data);
 struct msgb *m2ua_to_msg(struct m2ua_msg *msg);
 
+void m2ua_set_log_area(int log_area);
+
 #endif

@@ -177,3 +177,8 @@ struct msgb *m2ua_to_msg(struct m2ua_msg *m2ua)
 	hdr->msg_length = htonl(msgb_l2len(msg));
 	return msg;
 }
+
+void m2ua_set_log_area(int log_area)
+{
+	DM2UA = log_area;
+}
