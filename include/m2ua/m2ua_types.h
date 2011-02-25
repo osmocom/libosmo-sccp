@@ -67,7 +67,7 @@ enum {
 	M2UA_ASPTM_ACTIV,	/* ASP Active (ACTIVE) */
 	M2UA_ASPTM_INACTIV,	/* ASP Inactive (INACTIVE) */
 	M2UA_ASPTM_ACTIV_ACK,	/* ASP Active Ack (ACTIVE ACK) */
-	M2uA_ASPTM_INACTIV_ACK,	/* ASP Inactive Ack (INACTIVE ACK) */
+	M2UA_ASPTM_INACTIV_ACK,	/* ASP Inactive Ack (INACTIVE ACK) */
 };
 
 /**
@@ -147,7 +147,7 @@ enum {
 	M2UA_TAG_REG_RES,	/* Registration Result */
 	M2UA_TAG_RES_STATUS,	/* Registration Status */
 	M2UA_TAG_DEREG_RES,	/* De-Registration Result */
-	M2UA_TAG_DEREG_STATIS,	/* De-Registration Status */
+	M2UA_TAG_DEREG_STATUS,	/* De-Registration Status */
 };
 
 struct m2ua_parameter_hdr {
