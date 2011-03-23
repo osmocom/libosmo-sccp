@@ -22,7 +22,7 @@
 
 #include "m2ua_types.h"
 
-#include <osmocore/linuxlist.h>
+#include <osmocom/core/linuxlist.h>
 
 struct msgb;
 

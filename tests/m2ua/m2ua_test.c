@@ -17,8 +17,8 @@
 
 #include <m2ua/m2ua_msg.h>
 
-#include <osmocore/utils.h>
-#include <osmocore/msgb.h>
+#include <osmocom/core/utils.h>
+#include <osmocom/core/msgb.h>
 
 #include <stdio.h>
 #include <stdlib.h>

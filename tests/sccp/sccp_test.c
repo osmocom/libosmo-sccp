@@ -27,9 +27,9 @@
 
 #include <arpa/inet.h>
 
-#include <osmocore/logging.h>
-#include <osmocore/msgb.h>
-#include <osmocore/utils.h>
+#include <osmocom/core/logging.h>
+#include <osmocom/core/msgb.h>
+#include <osmocom/core/utils.h>
 
 #include <sccp/sccp.h>
 

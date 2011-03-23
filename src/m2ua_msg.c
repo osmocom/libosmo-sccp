@@ -18,9 +18,9 @@
 
 #include <m2ua/m2ua_msg.h>
 
-#include <osmocore/msgb.h>
-#include <osmocore/logging.h>
-#include <osmocore/talloc.h>
+#include <osmocom/core/msgb.h>
+#include <osmocom/core/logging.h>
+#include <osmocom/core/talloc.h>
 
 #include <arpa/inet.h>
 

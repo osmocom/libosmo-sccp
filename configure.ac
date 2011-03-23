@@ -14,7 +14,7 @@ AC_PROG_CC
 AC_PROG_INSTALL
 AC_PROG_RANLIB
 
-PKG_CHECK_MODULES(LIBOSMOCORE, libosmocore >= 0.1.13)
+PKG_CHECK_MODULES(LIBOSMOCORE, libosmocore >= 0.2.0)
 
 # The following test is taken from WebKit's webkit.m4
 saved_CFLAGS="$CFLAGS"
