@@ -57,7 +57,7 @@ static void test_asp_up()
 	}
 
 	if (memcmp(msg->data, asp_up, msg->len) != 0) {
-		printf("Got '%s'\n", hexdump(msg->data, msg->len));
+		printf("Got '%s'\n", osmo_hexdump(msg->data, msg->len));
 		FAIL("Wrong memory");
 	}
 
@@ -85,7 +85,7 @@ static void test_data()
 	}
 
 	if (memcmp(msg->data, data, msg->len) != 0) {
-		printf("Got '%s'\n", hexdump(msg->data, msg->len));
+		printf("Got '%s'\n", osmo_hexdump(msg->data, msg->len));
 		FAIL("Wrong memory");
 	}
 

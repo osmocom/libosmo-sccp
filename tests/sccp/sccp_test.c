@@ -874,7 +874,7 @@ static void test_sccp_parsing(void)
 				   result.called.gti_data, result.called.gti_len) != 0) {
 				FAIL("GTI data is wrong: %d '%s'\n",
 				     result.called.gti_len,
-				     hexdump(result.called.gti_data, result.called.gti_len));
+				     osmo_hexdump(result.called.gti_data, result.called.gti_len));
 			}
 
 			if (memcmp(&parse_result[current_test].src_gti_data[0],
@@ -962,7 +962,7 @@ static void test_sccp_address()
 
 		if (memcmp(msg->data, sccp_addr_tst[i].output, ret) != 0) {
 			FAIL("Unexpected data for %d '%s'\n", i,
-				hexdump(msg->data, ret));
+				osmo_hexdump(msg->data, ret));
 		}
 	}
 }
