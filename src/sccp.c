@@ -1366,7 +1366,7 @@ int sccp_set_read(const struct sockaddr_sccp *sock,
 	return 0;
 }
 
-static_assert(sizeof(struct sccp_source_reference) <= sizeof(uint32_t), enough_space);
+osmo_static_assert(sizeof(struct sccp_source_reference) <= sizeof(uint32_t), enough_space);
 
 uint32_t sccp_src_ref_to_int(struct sccp_source_reference *ref)
 {
