@@ -391,7 +391,7 @@ static int write_called = 0;
 /*
  * writing these packets and expecting a result
  */
-int sccp_read_cb(struct msgb *data, unsigned len, void *context)
+int sccp_read_cb(struct msgb *data, unsigned len, void *gctx)
 {
 	uint16_t payload_length = test_data[current_test].payload_length;
 	const uint8_t *got, *wanted;
@@ -427,7 +427,7 @@ int sccp_read_cb(struct msgb *data, unsigned len, void *context)
 	return 0;
 }
 
-void sccp_write_cb(struct sccp_connection *conn, struct msgb *data, void *ctx)
+void sccp_write_cb(struct sccp_connection *conn, struct msgb *data, void *gctx, void *ctx)
 {
 	int i = 0;
 	const uint8_t *got, *wanted;
@@ -479,7 +479,7 @@ int sccp_accept_cb(struct sccp_connection *connection, void *user_data)
 	return 0;
 }
 
-static void sccp_udt_write_cb(struct sccp_connection *conn, struct msgb *data, void *context)
+static void sccp_udt_write_cb(struct sccp_connection *conn, struct msgb *data, void *gtx, void *ctx)
 {
 	const uint8_t *got, *wanted;
 	int i;
@@ -544,7 +544,7 @@ static void test_sccp_send_udt(void)
 
 		matched = write_called = 0;
 		printf("Testing packet: %d\n", current_test);
-		sccp_write(msg, &sccp_ssn_bssap, &sccp_ssn_bssap, 0);
+		sccp_write(msg, &sccp_ssn_bssap, &sccp_ssn_bssap, 0, NULL);
 
 		if (!matched || !write_called)
 			FAIL("current test: %d matched: %d write: %d\n",
@@ -556,7 +556,7 @@ static void test_sccp_send_udt(void)
 
 /* send udt from one end to another */
 static unsigned int test_value = 0x2442;
-static int sccp_udt_read(struct msgb *data, unsigned int len, void *context)
+static int sccp_udt_read(struct msgb *data, unsigned int len, void *gctx)
 {
 	unsigned int *val;
 
@@ -570,7 +570,7 @@ static int sccp_udt_read(struct msgb *data, unsigned int len, void *context)
 	return 0;
 }
 
-static void sccp_write_loop(struct sccp_connection *conn, struct msgb *data, void *context)
+static void sccp_write_loop(struct sccp_connection *conn, struct msgb *data, void *gctx, void *ctx)
 {
 	/* send it back to us */
 	sccp_system_incoming(data);
@@ -593,7 +593,7 @@ static void test_sccp_udt_communication(void)
 	*val = test_value;
 
 	matched = 0;
-	sccp_write(data, &sccp_ssn_bssap, &sccp_ssn_bssap, 0);
+	sccp_write(data, &sccp_ssn_bssap, &sccp_ssn_bssap, 0, NULL);
 
 	if (!matched)
 	    FAIL("Talking with us didn't work\n");

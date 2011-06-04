@@ -108,7 +108,7 @@ struct sccp_connection {
  *   sccp will call outgoing whenever outgoing data exists
  *   The conn is NULL for UDT and other messages without a connection
  */
-int sccp_system_init(void (*outgoing)(struct sccp_connection *conn, struct msgb *data, void *ctx), void *context);
+int sccp_system_init(void (*outgoing)(struct sccp_connection *conn, struct msgb *data, void *gctx, void *ctx), void *context);
 int sccp_system_incoming(struct msgb *data);
 
 /**
@@ -150,7 +150,8 @@ int sccp_connection_set_incoming(const struct sockaddr_sccp *sock,
  */
 int sccp_write(struct msgb *data,
 	       const struct sockaddr_sccp *sock_sender,
-	       const struct sockaddr_sccp *sock_target, int class);
+	       const struct sockaddr_sccp *sock_target,
+	       int class, void *ctx);
 int sccp_set_read(const struct sockaddr_sccp *sock,
 		  int (*read_cb)(struct msgb *msgb, unsigned int, void *user_data),
 		  void *user_data);

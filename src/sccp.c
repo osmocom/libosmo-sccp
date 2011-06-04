@@ -48,7 +48,8 @@ const struct sockaddr_sccp sccp_ssn_bssap = {
 
 struct sccp_system {
 	/* layer3 -> layer2 */
-	void (*write_data)(struct sccp_connection *conn, struct msgb *data, void *context);
+	void (*write_data)(struct sccp_connection *conn, struct msgb *data,
+			   void *gctx, void *ctx);
 	void *write_context;
 };
 
@@ -94,9 +95,9 @@ static struct sccp_data_callback *_find_ssn(uint8_t ssn)
 }
 
 
-static void _send_msg(struct sccp_connection *conn, struct msgb *msg)
+static void _send_msg(struct sccp_connection *conn, struct msgb *msg, void *ctx)
 {
-	sccp_system.write_data(conn, msg, sccp_system.write_context);
+	sccp_system.write_data(conn, msg, sccp_system.write_context, ctx);
 }
 
 /*
@@ -561,7 +562,8 @@ struct msgb *sccp_create_udt(int class, const struct sockaddr_sccp *in,
 }
 
 static int _sccp_send_data(int class, const struct sockaddr_sccp *in,
-			   const struct sockaddr_sccp *out, struct msgb *payload)
+			   const struct sockaddr_sccp *out,
+			   struct msgb *payload, void *ctx)
 {
 	struct msgb *msg;
 
@@ -569,7 +571,7 @@ static int _sccp_send_data(int class, const struct sockaddr_sccp *in,
 	if (!msg)
 		return -1;
 
-	_send_msg(NULL, msg);
+	_send_msg(NULL, msg, ctx);
 	return 0;
 }
 
@@ -696,7 +698,7 @@ static int _sccp_send_refuse(struct sccp_source_reference *src_ref, int cause)
 	if (!msgb)
 		return -1;
 
-	_send_msg(NULL, msgb);
+	_send_msg(NULL, msgb, NULL);
 	return 0;
 }
 
@@ -743,7 +745,7 @@ static int _sccp_send_connection_confirm(struct sccp_connection *connection)
 	if (!response)
 		return -1;
 
-	_send_msg(connection, response);
+	_send_msg(connection, response, NULL);
 	_sccp_set_connection_state(connection, SCCP_CONNECTION_STATE_ESTABLISHED);
 	return 0;
 }
@@ -804,7 +806,7 @@ static int _sccp_send_connection_request(struct sccp_connection *connection,
 	llist_add_tail(&connection->list, &sccp_connections);
 	_sccp_set_connection_state(connection, SCCP_CONNECTION_STATE_REQUEST);
 
-	_send_msg(connection, request);
+	_send_msg(connection, request, NULL);
 	return 0;
 }
 
@@ -852,7 +854,7 @@ static int _sccp_send_connection_data(struct sccp_connection *conn, struct msgb 
 	if (!msgb)
 		return -1;
 
-	_send_msg(conn, msgb);
+	_send_msg(conn, msgb, NULL);
 	return 0;
 }
 
@@ -875,7 +877,7 @@ static int _sccp_send_connection_it(struct sccp_connection *conn)
 	it->sequencing[0] = it->sequencing[1] = 0;
 	it->credit = 0;
 
-	_send_msg(conn, msgb);
+	_send_msg(conn, msgb, NULL);
 	return 0;
 }
 
@@ -920,7 +922,7 @@ static int _sccp_send_connection_released(struct sccp_connection *conn, int caus
 		return -1;
 
 	_sccp_set_connection_state(conn, SCCP_CONNECTION_STATE_RELEASE);
-	_send_msg(conn, msg);
+	_send_msg(conn, msg, NULL);
 	return 0;
 }
 
@@ -1080,7 +1082,7 @@ static int _sccp_send_connection_release_complete(struct sccp_connection *connec
 	memcpy(&rlc->source_local_reference,
 	       &connection->source_local_reference, sizeof(struct sccp_source_reference));
 
-	_send_msg(connection, msgb);
+	_send_msg(connection, msgb, NULL);
 
 	/*
 	 * Remove from the list of active connections and set the state. User code
@@ -1201,7 +1203,7 @@ found:
 }
 
 
-int sccp_system_init(void (*outgoing)(struct sccp_connection *conn, struct msgb *data, void *ctx), void *ctx)
+int sccp_system_init(void (*outgoing)(struct sccp_connection *conn, struct msgb *data, void *, void *), void *ctx)
 {
 	sccp_system.write_data = outgoing;
 	sccp_system.write_context = ctx;
@@ -1344,9 +1346,9 @@ int sccp_connection_set_incoming(const struct sockaddr_sccp *sock,
 }
 
 int sccp_write(struct msgb *data, const struct sockaddr_sccp *in,
-	       const struct sockaddr_sccp *out, int class)
+	       const struct sockaddr_sccp *out, int class, void *ctx)
 {
-	return _sccp_send_data(class, in, out, data);
+	return _sccp_send_data(class, in, out, data, ctx);
 }
 
 int sccp_set_read(const struct sockaddr_sccp *sock,
