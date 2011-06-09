@@ -9,5 +9,18 @@
 # Uncomment this to turn on verbose mode.
 #export DH_VERBOSE=1
 
+DEB_VERSION ?= $(shell dpkg-parsechangelog | egrep '^Version:' | cut -f 2 -d ' ')
+DEB_NOEPOCH_VERSION ?= $(shell echo $(DEB_VERSION) | cut -d: -f2-)
+DEB_UPSTREAM_VERSION ?= $(shell echo $(DEB_NOEPOCH_VERSION) | sed 's/+[^-]*-[^-]*$$//')
+
 %:
 	dh --with autoreconf $@ 
+
+override_dh_autoreconf:
+	echo $(DEB_UPSTREAM_VERSION) > .version
+	dh_autoreconf
+
+override_dh_clean:
+	rm -f .version
+	dh_clean
+
