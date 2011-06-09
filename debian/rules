@@ -14,11 +14,6 @@ DEB_UPSTREAM_VERSION=$(shell dpkg-parsechangelog | sed -rne 's,^Version: ([^-]+)
 %:
 	dh --with autoreconf $@ 
 
-override_dh_autoreconf:
-	echo $(DEB_UPSTREAM_VERSION) > .version
-	dh_autoreconf
-
-override_dh_clean:
-	rm -f .version
-	dh_clean
+tarball-version:
+	git describe --abbrev=4 --match '*.*.*' $(DEB_UPSTREAM_VERSION) | sed 's/-/./;s/\(.*\)-g/\1-/' > .tarball-version
 
