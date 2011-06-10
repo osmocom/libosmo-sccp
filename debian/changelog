@@ -1,3 +1,9 @@
+libosmo-sccp (0.0.6-2) osmo-experimental; urgency=low
+
+  * Rebuild against newer libosmocore
+
+ -- Jan Lübbe <jluebbe@debian.org>  Fri, 10 Jun 2011 09:41:53 +0200
+
 libosmo-sccp (0.0.6-1) osmo-experimental; urgency=low
 
   * New upstream release 0.0.6
