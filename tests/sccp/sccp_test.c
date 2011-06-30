@@ -989,7 +989,7 @@ const struct log_info log_info = {
 int main(int argc, char **argv)
 {
 	struct log_target *stderr_target;
-	log_init(&log_info);
+	log_init(&log_info, NULL);
 	stderr_target = log_target_create_stderr();
 	log_add_target(stderr_target);
 
