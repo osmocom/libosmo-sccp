@@ -44,7 +44,7 @@ static uint8_t data[] = {
 	0xaa, 0xaa, 0x00, 0x00
 };
 
-static void test_asp_up()
+static void test_asp_up(void)
 {
 	struct m2ua_msg_part *part;
 	struct m2ua_msg *m2u = m2ua_from_msg(ARRAY_SIZE(asp_up), asp_up);
@@ -73,7 +73,7 @@ static void test_asp_up()
 	msgb_free(msg);
 }
 
-static void test_data()
+static void test_data(void)
 {
 	struct m2ua_msg_part *part;
 	struct m2ua_msg *m2u = m2ua_from_msg(ARRAY_SIZE(data), data);

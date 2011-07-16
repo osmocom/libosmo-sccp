@@ -948,7 +948,7 @@ static struct sccp_addr_tst sccp_addr_tst[] = {
 	},
 };
 
-static void test_sccp_address()
+static void test_sccp_address(void)
 {
 	int i, ret;
 	struct msgb *msg = msgb_alloc(128, "sccp-addr");
@@ -975,7 +975,7 @@ static const struct log_info_cat default_categories[] = {
 	},
 };
 
-static int null_flt()
+static int null_flt(void)
 {
 	return 1;
 }
@@ -1005,4 +1005,4 @@ int main(int argc, char **argv)
 	return 0;
 }
 
-void db_store_counter() {}
+void db_store_counter(void) {}
