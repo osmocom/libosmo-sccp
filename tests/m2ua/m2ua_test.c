@@ -51,6 +51,8 @@ static void test_asp_up(void)
 	struct msgb *msg = m2ua_to_msg(m2u);
 	const uint8_t res[] = { 0xac, 0x10, 0x01, 0x51 };
 
+	printf("Testing ASP UP parsing.\n");
+
 	if (msg->len != ARRAY_SIZE(asp_up)) {
 		printf("Got %d wanted %d\n", msg->len, ARRAY_SIZE(asp_up));
 		FAIL("Wrong size");
@@ -79,6 +81,8 @@ static void test_data(void)
 	struct m2ua_msg *m2u = m2ua_from_msg(ARRAY_SIZE(data), data);
 	struct msgb *msg = m2ua_to_msg(m2u);
 
+	printf("Testing parsing of data.\n");
+
 	if (msg->len != ARRAY_SIZE(data)) {
 		printf("Got %d wanted %d\n", msg->len, ARRAY_SIZE(data));
 		FAIL("Wrong size");
@@ -105,5 +109,7 @@ int main(int argc, char **argv)
 {
 	test_asp_up();
 	test_data();
+
+	printf("All tests passed.\n");
 	return 0;
 }

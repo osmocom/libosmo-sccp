@@ -583,6 +583,8 @@ int main(int argc, char **argv)
 	uint32_t addr;
 	int i;
 
+	printf("Basic MTP Structure testing.\n");
+
         /* set the addresses here due big endian MTP_ADDRESS macro */
 	tests[0].hdr.addr = MTP_ADDR(0x00, 136, 91);
 	tests[1].hdr.addr = MTP_ADDR(0x00, 136, 91);
@@ -624,6 +626,6 @@ int main(int argc, char **argv)
 		}
 	}
 
-	fprintf(stderr, "SUCCESS\n");
+	printf("All tests passed.\n");
 	return 0;
 }

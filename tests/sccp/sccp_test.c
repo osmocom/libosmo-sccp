@@ -1,8 +1,8 @@
 /*
  * SCCP testing code
  *
- * (C) 2009 by Holger Hans Peter Freyther <zecke@selfish.org>
- * (C) 2009 by On-Waves
+ * (C) 2009,2011 by Holger Hans Peter Freyther <zecke@selfish.org>
+ * (C) 2009,2011 by On-Waves
  *
  * All Rights Reserved
  *
@@ -506,6 +506,8 @@ static void sccp_udt_write_cb(struct sccp_connection *conn, struct msgb *data, v
 
 static void test_sccp_system(void)
 {
+	printf("Testing SCCP System\n");
+
 	sccp_system_init(sccp_write_cb, NULL);
 	sccp_set_read(&sccp_ssn_bssap, sccp_read_cb, NULL);
 	sccp_connection_set_incoming(&sccp_ssn_bssap, sccp_accept_cb, NULL);
@@ -531,6 +533,8 @@ static void test_sccp_system(void)
 /* test sending of udt */
 static void test_sccp_send_udt(void)
 {
+	printf("Testing send UDT\n");
+
 	sccp_system_init(sccp_udt_write_cb, NULL);
 	sccp_set_read(NULL, NULL, NULL);
 	sccp_connection_set_incoming(NULL, NULL, NULL);
@@ -581,6 +585,8 @@ static void test_sccp_udt_communication(void)
 {
 	struct msgb *data;
 	unsigned int *val;
+
+	printf("Testing UDT Communication.\n");
 
 	sccp_system_init(sccp_write_loop, NULL);
 	sccp_set_read(&sccp_ssn_bssap, sccp_udt_read, NULL);
@@ -652,7 +658,8 @@ static void sccp_conn_in_data(struct sccp_connection *conn, struct msgb *msg, un
 
 static int sccp_conn_accept(struct sccp_connection *conn, void *ctx)
 {
-	printf("\taccept: %p\n", conn);
+	printf("\taccept: srcref(%u)\n",
+		sccp_src_ref_to_int(&conn->source_local_reference));
 	conn->state_cb = sccp_conn_in_state;
 	conn->data_cb = sccp_conn_in_data;
 
@@ -666,7 +673,9 @@ static int sccp_conn_accept(struct sccp_connection *conn, void *ctx)
 /* callbacks for the outgoing side */
 static void sccp_conn_out_state(struct sccp_connection *conn, int old_state)
 {
-	printf("\toutgoing: %p %d -> %d\n", conn, old_state, conn->connection_state);
+	printf("\toutgoing: dstref(%u) %d -> %d\n",
+		sccp_src_ref_to_int(&conn->destination_local_reference),
+		old_state, conn->connection_state);
 
 	if (conn->connection_state >= SCCP_CONNECTION_STATE_RELEASE_COMPLETE) {
 		if (conn == outgoing_con) {
@@ -679,7 +688,8 @@ static void sccp_conn_out_state(struct sccp_connection *conn, int old_state)
 static void sccp_conn_out_data(struct sccp_connection *conn, struct msgb *msg, unsigned int len)
 {
 	++outgoing_data;
-	printf("\toutgoing data: %p %d\n", conn, len);
+	printf("\toutgoing data: dstref(%u) %d\n",
+		sccp_src_ref_to_int(&conn->destination_local_reference), len);
 
 	if (len != 4)
 		FAIL("Length of packet is wrong: %u %u\n", msgb_l3len(msg), len);
@@ -761,6 +771,8 @@ static void do_test_sccp_connection(const struct connection_test *test)
 
 static void test_sccp_connection(void)
 {
+	printf("Testing SCCP connection.\n");
+
 	sccp_system_init(sccp_write_loop, NULL);
 	sccp_set_read(NULL, NULL, NULL);
 	sccp_connection_set_incoming(&sccp_ssn_bssap, sccp_conn_accept, NULL);
@@ -819,6 +831,8 @@ static void test_sccp_system_crash(void)
 
 static void test_sccp_parsing(void)
 {
+	printf("Test SCCP Parsing.\n");
+
 	for (current_test = 0; current_test < ARRAY_SIZE(parse_result); ++current_test) {
 		struct msgb *msg;
 		struct sccp_parse_result result;
@@ -953,6 +967,8 @@ static void test_sccp_address(void)
 	int i, ret;
 	struct msgb *msg = msgb_alloc(128, "sccp-addr");
 
+	printf("Test SCCP Address\n");
+
 	for (i = 0; i < ARRAY_SIZE(sccp_addr_tst); ++i) {
 		msgb_reset(msg);
 		ret = sccp_create_sccp_addr(msg, sccp_addr_tst[i].addr);
@@ -993,6 +1009,8 @@ int main(int argc, char **argv)
 	stderr_target = log_target_create_stderr();
 	log_add_target(stderr_target);
 
+	printf("Testing SCCP handling.\n");
+
 	sccp_set_log_area(0);
 
 	test_sccp_system();
@@ -1002,6 +1020,7 @@ int main(int argc, char **argv)
 	test_sccp_system_crash();
 	test_sccp_parsing();
 	test_sccp_address();
+	printf("All tests passed.\n");
 	return 0;
 }
 

@@ -1,0 +1,20 @@
+AT_INIT
+AT_BANNER([Regression tests.])
+
+AT_SETUP([m2ua])
+AT_KEYWORDS([m2ua])
+cat $abs_srcdir/m2ua/m2ua_test.ok > expout
+AT_CHECK([$abs_top_builddir/tests/m2ua/m2ua_test], [], [expout], [ignore])
+AT_CLEANUP
+
+AT_SETUP([mtp])
+AT_KEYWORDS([mtp])
+cat $abs_srcdir/mtp/mtp_parse_test.ok > expout
+AT_CHECK([$abs_top_builddir/tests/mtp/mtp_parse_test], [], [expout], [ignore])
+AT_CLEANUP
+
+AT_SETUP([sccp])
+AT_KEYWORDS([sccp])
+cat $abs_srcdir/sccp/sccp_test.ok > expout
+AT_CHECK([$abs_top_builddir/tests/sccp/sccp_test], [], [expout], [ignore])
+AT_CLEANUP

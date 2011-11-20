@@ -18,6 +18,7 @@ autom4te.cache/
 config.log
 config.status
 configure
+configure.lineno
 depcomp
 install-sh
 missing
@@ -50,6 +51,11 @@ tests/mtp/mtp_parse_test
 tests/sccp/sccp_test
 tests/sms/sms_test
 tests/timer/timer_test
+
+tests/atconfig
+tests/package.m4
+tests/testsuite
+tests/testsuite.log
 
 
 *.pc
