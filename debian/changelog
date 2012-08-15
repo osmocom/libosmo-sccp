@@ -1,3 +1,9 @@
+libosmo-sccp (0.0.6.2+git2) precise; urgency=low
+
+  * Update debian package.
+
+ -- Eric Butler <eric@codebutler.com>  Tue, 14 Aug 2012 17:08:14 -0700
+
 libosmo-sccp (0.0.5) unstable; urgency=low
 
   * New upstream release 0.0.5 
