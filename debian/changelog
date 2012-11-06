@@ -1,3 +1,9 @@
+libosmo-sccp (0.0.6.3) unstable; urgency=low
+
+  * New upstream release 0.0.6.3.
+
+ -- Holger Hans Peter Freyther <holger@freyther.de>  Tue, 06 Nov 2012 13:24:14 +0100
+
 libosmo-sccp (0.0.6.2+git2-1) precise; urgency=low
 
   * Fix version issue.
