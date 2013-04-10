@@ -238,8 +238,8 @@ int _sccp_parse_connection_request(struct msgb *msgb, struct sccp_parse_result *
 
 int _sccp_parse_connection_released(struct msgb *msgb, struct sccp_parse_result *result)
 {
-	static int header_size = sizeof(struct sccp_connection_released);
-	static int optional_offset = offsetof(struct sccp_connection_released, optional_start);
+	static size_t header_size = sizeof(struct sccp_connection_released);
+	static size_t optional_offset = offsetof(struct sccp_connection_released, optional_start);
 
 	struct sccp_optional_data optional_data;
 	struct sccp_connection_released *rls = (struct sccp_connection_released *) msgb->l2h;
@@ -346,7 +346,7 @@ int _sccp_parse_connection_confirm(struct msgb *msgb, struct sccp_parse_result *
 
 int _sccp_parse_connection_release_complete(struct msgb *msgb, struct sccp_parse_result *result)
 {
-	static int header_size = sizeof(struct sccp_connection_release_complete);
+	static size_t header_size = sizeof(struct sccp_connection_release_complete);
 
 	struct sccp_connection_release_complete *cmpl;
 
@@ -366,8 +366,8 @@ int _sccp_parse_connection_release_complete(struct msgb *msgb, struct sccp_parse
 
 int _sccp_parse_connection_dt1(struct msgb *msgb, struct sccp_parse_result *result)
 {
-	static int header_size = sizeof(struct sccp_data_form1);
-	static int variable_offset = offsetof(struct sccp_data_form1, variable_start);
+	static size_t header_size = sizeof(struct sccp_data_form1);
+	static size_t variable_offset = offsetof(struct sccp_data_form1, variable_start);
 
 	struct sccp_data_form1 *dt1 = (struct sccp_data_form1 *)msgb->l2h;
 
