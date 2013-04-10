@@ -991,7 +991,7 @@ static const struct log_info_cat default_categories[] = {
 	},
 };
 
-static int null_flt(void)
+static int null_flt(const struct log_context *ctx, struct log_target *target)
 {
 	return 1;
 }
