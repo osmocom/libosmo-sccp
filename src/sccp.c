@@ -1,8 +1,8 @@
 /*
  * SCCP management code
  *
- * (C) 2009, 2010 by Holger Hans Peter Freyther <zecke@selfish.org>
- * (C) 2009, 2010 by On-Waves
+ * (C) 2009, 2010, 2013 by Holger Hans Peter Freyther <zecke@selfish.org>
+ * (C) 2009, 2010, 2013 by On-Waves
  *
  * All Rights Reserved
  *
@@ -750,8 +750,9 @@ static int _sccp_send_connection_confirm(struct sccp_connection *connection)
 	return 0;
 }
 
-static int _sccp_send_connection_request(struct sccp_connection *connection,
-					 const struct sockaddr_sccp *called, struct msgb *msg)
+struct msgb *sccp_create_cr(const struct sccp_source_reference *src_ref,
+				const struct sockaddr_sccp *called,
+				const uint8_t *l3_data, size_t l3_length)
 {
 	struct msgb *request;
 	struct sccp_connection_request *req;
@@ -759,30 +760,20 @@ static int _sccp_send_connection_request(struct sccp_connection *connection,
 	uint8_t extra_size = 3 + 1;
 	int called_len;
 
-
-	if (msg && (msgb_l3len(msg) < 3 || msgb_l3len(msg) > 130)) {
-		LOGP(DSCCP, LOGL_ERROR, "Invalid amount of data... %d\n", msgb_l3len(msg));
-		return -1;
+	if (l3_data && (l3_length < 3 || l3_length > 130)) {
+		LOGP(DSCCP, LOGL_ERROR, "Invalid amount of data... %zu\n", l3_length);
+		return NULL;
 	}
 
-	/* try to find a id */
-	if (assign_source_local_reference(connection) != 0) {
-		LOGP(DSCCP, LOGL_ERROR, "Assigning a local reference failed.\n");
-		_sccp_set_connection_state(connection, SCCP_CONNECTION_STATE_SETUP_ERROR);
-		return -1;
-	}
-
-
-	if (msg)
-		extra_size += 2 + msgb_l3len(msg);
+	if (l3_data)
+		extra_size += 2 + l3_length;
 	request = msgb_alloc_headroom(SCCP_MSG_SIZE,
 				      SCCP_MSG_HEADROOM, "sccp connection request");
 	request->l2h = &request->data[0];
 	req = (struct sccp_connection_request *) msgb_put(request, sizeof(*req));
 
 	req->type = SCCP_MSG_TYPE_CR;
-	memcpy(&req->source_local_reference, &connection->source_local_reference,
-	       sizeof(connection->source_local_reference));
+	memcpy(&req->source_local_reference, src_ref, sizeof(*src_ref));
 	req->proto_class = 2;
 
 	/* write the called party address */
@@ -793,15 +784,38 @@ static int _sccp_send_connection_request(struct sccp_connection *connection,
 	req->optional_start = 1 + called_len;
 
 	/* write the payload */
-	if (msg) {
-	    data = msgb_put(request, 2 + msgb_l3len(msg));
+	if (l3_data) {
+	    data = msgb_put(request, 2 + l3_length);
 	    data[0] = SCCP_PNC_DATA;
-	    data[1] = msgb_l3len(msg);
-	    memcpy(&data[2], msg->l3h, msgb_l3len(msg));
+	    data[1] = l3_length;
+	    memcpy(&data[2], l3_data, l3_length);
 	}
 
 	data = msgb_put(request, 1);
 	data[0] = SCCP_PNC_END_OF_OPTIONAL;
+
+	return request;
+}
+
+static int _sccp_send_connection_request(struct sccp_connection *connection,
+					 const struct sockaddr_sccp *called, struct msgb *msg)
+{
+	struct msgb *request;
+
+	/* try to find an id */
+	if (assign_source_local_reference(connection) != 0) {
+		LOGP(DSCCP, LOGL_ERROR, "Assigning a local reference failed.\n");
+		_sccp_set_connection_state(connection, SCCP_CONNECTION_STATE_SETUP_ERROR);
+		return -1;
+	}
+
+	request = sccp_create_cr(&connection->source_local_reference, called,
+				msg ? msg->l3h : NULL,
+				msg ? msgb_l3len(msg) : 0);
+	if (!request) {
+		_sccp_set_connection_state(connection, SCCP_CONNECTION_STATE_SETUP_ERROR);
+		return -1;
+	}
 
 	llist_add_tail(&connection->list, &sccp_connections);
 	_sccp_set_connection_state(connection, SCCP_CONNECTION_STATE_REQUEST);
