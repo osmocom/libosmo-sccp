@@ -1,8 +1,8 @@
 Source: libosmo-sccp
 Priority: optional
 Maintainer: Harald Welte <laforge@gnumonks.org>
-Build-Depends: debhelper (>= 7.0.50~), autotools-dev, pkg-config, libosmocore-dev, autoconf, automake, libtool, dh-autoreconf, git, libdpkg-perl
-Standards-Version: 3.8.4
+Build-Depends: debhelper (>= 9), autotools-dev, pkg-config, libosmocore-dev, autoconf, automake, libtool, dh-autoreconf, git, libdpkg-perl
+Standards-Version: 3.9.6
 Section: libs
 #Homepage: <insert the upstream URL, if relevant>
 Vcs-Git: git://git.osmocom.org/libosmo-sccp.git
@@ -12,16 +12,19 @@ Package: libosmo-sccp-dev
 Section: libdevel
 Architecture: any
 Depends: libosmo-sccp (= ${binary:Version})
+Multi-Arch: same
 Description: Development files for Osmcoom SCCP library
 
 Package: libosmo-sccp
 Section: libs
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
+Multi-Arch: same
 Description: Osmocom SCCP library
 
 Package: libosmo-sccp-dbg
 Section: debug
 Architecture: any
 Depends: libosmo-sccp (= ${binary:Version}), ${misc:Depends}
+Multi-Arch: same
 Description: Debug symbols for Osmocom SCCP library
