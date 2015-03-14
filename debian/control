@@ -11,20 +11,5 @@ Vcs-Browser: http://git.osmocom.org/gitweb?p=libosmo-sccp.git;a=summary
 Package: libosmo-sccp-dev
 Section: libdevel
 Architecture: any
-Depends: libosmo-sccp (= ${binary:Version})
 Multi-Arch: same
 Description: Development files for Osmcoom SCCP library
-
-Package: libosmo-sccp
-Section: libs
-Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}
-Multi-Arch: same
-Description: Osmocom SCCP library
-
-Package: libosmo-sccp-dbg
-Section: debug
-Architecture: any
-Depends: libosmo-sccp (= ${binary:Version}), ${misc:Depends}
-Multi-Arch: same
-Description: Debug symbols for Osmocom SCCP library
