@@ -1,3 +1,9 @@
+libosmo-sccp (0.0.6.4) UNRELEASED; urgency=medium
+
+  * Bump the version due the package changes.
+
+ -- Holger Hans Peter Freyther <holger@freyther.de>  Sat, 14 Mar 2015 19:47:20 +0100
+
 libosmo-sccp (0.0.6.3) unstable; urgency=low
 
   * New upstream release 0.0.6.3.
