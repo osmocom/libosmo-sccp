@@ -24,7 +24,7 @@
 #ifndef SCCP_TYPES_H
 #define SCCP_TYPES_H
 
-#include <endian.h>
+#include <osmocom/core/endian.h>
 
 /* Table 1/Q.713 - SCCP message types */
 enum sccp_message_types {
@@ -89,13 +89,13 @@ enum {
 };
 
 struct sccp_called_party_address {
-#if __BYTE_ORDER == __LITTLE_ENDIAN
+#if OSMO_IS_LITTLE_ENDIAN
 	uint8_t	point_code_indicator : 1,
 			ssn_indicator	     : 1,
 			global_title_indicator : 4,
 			routing_indicator    : 1,
 			reserved	     : 1;
-#elif __BYTE_ORDER == __BIG_ENDIAN
+#elif OSMO_IS_BIG_ENDIAN
 	uint8_t	reserved	     : 1,
 			routing_indicator    : 1,
 			global_title_indicator : 4,
@@ -110,10 +110,10 @@ struct sccp_called_party_address {
 /* Figure 6/Q.713 */
 struct sccp_signalling_point_code {
 	uint8_t	lsb;
-#if __BYTE_ORDER == __LITTLE_ENDIAN
+#if OSMO_IS_LITTLE_ENDIAN
 	uint8_t	msb : 6,
 			reserved : 2;
-#elif __BYTE_ORDER == __BIG_ENDIAN
+#elif OSMO_IS_BIG_ENDIAN
 	uint8_t	reserved : 2,
 			msb : 6;
 #endif
@@ -152,10 +152,10 @@ enum {
 };
 
 struct sccp_global_title {
-#if __BYTE_ORDER == __LITTLE_ENDIAN
+#if OSMO_IS_LITTLE_ENDIAN
 	uint8_t	nature_of_addr_ind : 7,
 			odd_even : 1;
-#elif __BYTE_ORDER == __BIG_ENDIAN
+#elif OSMO_IS_BIG_ENDIAN
 	uint8_t	odd_even : 1,
 			nature_of_addr_ind : 7;
 #endif

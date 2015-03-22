@@ -23,7 +23,8 @@
 #ifndef mtp_level3_h
 #define mtp_level3_h
 
-#include <endian.h>
+#include <osmocom/core/endian.h>
+
 #include <stdint.h>
 #include <sys/types.h>
 
@@ -62,7 +63,7 @@
 #define MTP_APOC_MASK 0x3f
 
 
-#if __BYTE_ORDER == __LITTLE_ENDIAN
+#if OSMO_IS_LITTLE_ENDIAN
 #define MTP_LINK_SLS(addr) ((addr >>28) & MTP_LINK_MASK)
 #define MTP_ADDR(link, dpc, opc) \
 	(((dpc)  & MTP_ADDR_MASK) << 0 |  \
@@ -70,7 +71,7 @@
 	 ((link) & MTP_LINK_MASK) << 28)
 #define MTP_MAKE_APOC(apoc) \
 	(apoc & 0x3fff)
-#elif __BYTE_ORDER == __BIG_ENDIAN
+#elif OSMO_IS_BIG_ENDIAN
 static inline uint32_t c_swap_32(uint32_t in)
 {
 	return 	(((in & 0x000000ff) << 24) |
@@ -108,11 +109,11 @@ struct mtp_addr {
  * wireshark dissectors too
  */
 struct mtp_level_3_hdr {
-#if __BYTE_ORDER == __LITTLE_ENDIAN
+#if OSMO_IS_LITTLE_ENDIAN
 	uint8_t ser_ind : 4,
 		 spare : 2,
 		 ni : 2;
-#elif __BYTE_ORDER == __BIG_ENDIAN
+#elif OSMO_IS_BIG_ENDIAN
 	uint8_t ni : 2,
 		 spare : 2,
 		 ser_ind : 4;
@@ -122,10 +123,10 @@ struct mtp_level_3_hdr {
 } __attribute__((packed));
 
 struct mtp_level_3_cmn {
-#if __BYTE_ORDER == __LITTLE_ENDIAN
+#if OSMO_IS_LITTLE_ENDIAN
 	uint8_t h0 : 4,
 		 h1 : 4;
-#elif __BYTE_ORDER == __BIG_ENDIAN
+#elif OSMO_IS_BIG_ENDIAN
 	uint8_t h1 : 4,
 		 h0 : 4;
 #endif
@@ -133,10 +134,10 @@ struct mtp_level_3_cmn {
 
 struct mtp_level_3_mng {
 	struct mtp_level_3_cmn  cmn;
-#if __BYTE_ORDER == __LITTLE_ENDIAN
+#if OSMO_IS_LITTLE_ENDIAN
 	uint8_t spare : 4,
 		 length : 4;
-#elif __BYTE_ORDER == __BIG_ENDIAN
+#elif OSMO_IS_BIG_ENDIAN
 	uint8_t length : 4,
 		 spare : 4;
 #endif
@@ -153,10 +154,10 @@ struct sccp_con_ctrl_prt_mgt {
 	uint8_t sst;
 	uint8_t assn; /* affected sub system number */
 	uint16_t apoc;
-#if __BYTE_ORDER == __LITTLE_ENDIAN
+#if OSMO_IS_LITTLE_ENDIAN
 	uint8_t mul_ind : 2,
 		 spare : 6;
-#elif __BYTE_ORDER == __BIG_ENDIAN
+#elif OSMO_IS_BIG_ENDIAN
 	uint8_t spare : 6,
 		 mul_ind : 2;
 #endif
