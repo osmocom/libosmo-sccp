@@ -16,7 +16,7 @@
  *
  */
 
-#include <m2ua/m2ua_msg.h>
+#include <sigtran/m2ua_msg.h>
 
 #include <osmocom/core/msgb.h>
 #include <osmocom/core/logging.h>

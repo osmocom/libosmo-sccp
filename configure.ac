@@ -33,7 +33,7 @@ AC_OUTPUT(
     libosmo-mtp.pc
     include/sccp/Makefile
     include/mtp/Makefile
-    include/m2ua/Makefile
+    include/sigtran/Makefile
     include/Makefile
     src/Makefile
     tests/Makefile
