@@ -16,7 +16,7 @@
  *
  */
 
-#include <sigtran/m2ua_msg.h>
+#include <sigtran/xua_msg.h>
 
 #include <osmocom/core/msgb.h>
 #include <osmocom/core/logging.h>
@@ -26,16 +26,16 @@
 
 #include <string.h>
 
-static void *tall_m2ua;
-static int DM2UA = -1;
+static void *tall_xua;
+static int DXUA = -1;
 
-struct m2ua_msg *m2ua_msg_alloc(void)
+struct xua_msg *xua_msg_alloc(void)
 {
-	struct m2ua_msg *msg;
+	struct xua_msg *msg;
 
-	msg = talloc_zero(tall_m2ua, struct m2ua_msg);
+	msg = talloc_zero(tall_xua, struct xua_msg);
 	if (!msg) {
-		LOGP(DM2UA, LOGL_ERROR, "Failed to allocate.\n");
+		LOGP(DXUA, LOGL_ERROR, "Failed to allocate.\n");
 		return NULL;
 	}
 
@@ -43,17 +43,17 @@ struct m2ua_msg *m2ua_msg_alloc(void)
 	return msg;
 }
 
-void m2ua_msg_free(struct m2ua_msg *msg)
+void xua_msg_free(struct xua_msg *msg)
 {
 	talloc_free(msg);
 }
 
-int m2ua_msg_add_data(struct m2ua_msg *msg, uint16_t tag,
+int xua_msg_add_data(struct xua_msg *msg, uint16_t tag,
 		      uint16_t len, uint8_t *dat)
 {
-	struct m2ua_msg_part *part;
+	struct xua_msg_part *part;
 
-	part = talloc_zero(msg, struct m2ua_msg_part);
+	part = talloc_zero(msg, struct xua_msg_part);
 	if (!part)
 		return -1;
 
@@ -73,34 +73,34 @@ int m2ua_msg_add_data(struct m2ua_msg *msg, uint16_t tag,
 	return 0;
 }
 
-struct m2ua_msg_part *m2ua_msg_find_tag(struct m2ua_msg *m2ua, uint16_t tag)
+struct xua_msg_part *xua_msg_find_tag(struct xua_msg *xua, uint16_t tag)
 {
-	struct m2ua_msg_part *part;
+	struct xua_msg_part *part;
 
-	llist_for_each_entry(part, &m2ua->headers, entry)
+	llist_for_each_entry(part, &xua->headers, entry)
 		if (part->tag == tag)
 			return part;
 
 	return NULL;
 }
 
-struct m2ua_msg *m2ua_from_msg(uint16_t len, uint8_t *data)
+struct xua_msg *xua_from_msg(const int version, uint16_t len, uint8_t *data)
 {
-	struct m2ua_parameter_hdr *par;
-	struct m2ua_common_hdr *hdr;
-	struct m2ua_msg *msg;
+	struct xua_parameter_hdr *par;
+	struct xua_common_hdr *hdr;
+	struct xua_msg *msg;
 	uint16_t pos, par_len, padding;
 	int rc;
 
-	msg = m2ua_msg_alloc();
+	msg = xua_msg_alloc();
 	if (!msg)
 		return NULL;
 
 	if (len < sizeof(*hdr))
 		goto fail;
 
-	hdr = (struct m2ua_common_hdr *) data;
-	if (hdr->version != M2UA_VERSION)
+	hdr = (struct xua_common_hdr *) data;
+	if (hdr->version != version)
 		goto fail;
 	if (ntohl(hdr->msg_length) > len)
 		goto fail;
@@ -109,13 +109,13 @@ struct m2ua_msg *m2ua_from_msg(uint16_t len, uint8_t *data)
 	pos = sizeof(*hdr);
 
 	while (pos + sizeof(*par) < len) {
-		par = (struct m2ua_parameter_hdr *) &data[pos];
+		par = (struct xua_parameter_hdr *) &data[pos];
 		par_len = ntohs(par->len);
 
 		if (pos + par_len > len || par_len < 4) 
 			goto fail;
 
-		rc = m2ua_msg_add_data(msg, ntohs(par->tag),
+		rc = xua_msg_add_data(msg, ntohs(par->tag),
 				       par_len - 4, par->data);
 		if (rc != 0)
 			goto fail;
@@ -131,33 +131,33 @@ struct m2ua_msg *m2ua_from_msg(uint16_t len, uint8_t *data)
 	return msg;
 
 fail:
-	LOGP(DM2UA, LOGL_ERROR, "Failed to parse.\n");
-	m2ua_msg_free(msg);
+	LOGP(DXUA, LOGL_ERROR, "Failed to parse.\n");
+	xua_msg_free(msg);
 	return NULL;
 }
 
-struct msgb *m2ua_to_msg(struct m2ua_msg *m2ua)
+struct msgb *xua_to_msg(const int version, struct xua_msg *xua)
 {
-	struct m2ua_msg_part *part;
-	struct m2ua_common_hdr *hdr;
+	struct xua_msg_part *part;
+	struct xua_common_hdr *hdr;
 	struct msgb *msg;
 	uint8_t rest;
 
-	msg = msgb_alloc_headroom(2048, 512, "m2ua msg");
+	msg = msgb_alloc_headroom(2048, 512, "xua msg");
 	if (!msg) {
-		LOGP(DM2UA, LOGL_ERROR, "Failed to allocate.\n");
+		LOGP(DXUA, LOGL_ERROR, "Failed to allocate.\n");
 		return NULL;
 	}
 
 	msg->l2h = msgb_put(msg, sizeof(*hdr));
-	hdr = (struct m2ua_common_hdr *) msg->l2h;
-	memcpy(hdr, &m2ua->hdr, sizeof(*hdr));
+	hdr = (struct xua_common_hdr *) msg->l2h;
+	memcpy(hdr, &xua->hdr, sizeof(*hdr));
 
 	/* make sure that is right */
-	hdr->version = M2UA_VERSION;
+	hdr->version = version;
 	hdr->spare = 0;
 
-	llist_for_each_entry(part, &m2ua->headers, entry) {
+	llist_for_each_entry(part, &xua->headers, entry) {
 		msgb_put_u16(msg, part->tag);
 		msgb_put_u16(msg, part->len + 4);
 		if (part->dat) {
@@ -178,7 +178,7 @@ struct msgb *m2ua_to_msg(struct m2ua_msg *m2ua)
 	return msg;
 }
 
-void m2ua_set_log_area(int log_area)
+void xua_set_log_area(int log_area)
 {
-	DM2UA = log_area;
+	DXUA = log_area;
 }

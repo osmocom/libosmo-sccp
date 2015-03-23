@@ -89,16 +89,6 @@ enum {
 	M2UA_IIM_DEREG_RSP,	/* Deregistration Response (DEREG RSP) */
 };
 
-struct m2ua_common_hdr {
-	uint8_t version;
-	uint8_t spare;
-	uint8_t msg_class;
-	uint8_t msg_type;
-	uint32_t msg_length;
-	uint8_t data[0];
-} __attribute__((packed));
-
-
 /**
  * Tag Values for M2UA
  */
@@ -123,13 +113,6 @@ enum {
 	M2UA_TAG_DEREG_RES,	/* De-Registration Result */
 	M2UA_TAG_DEREG_STATUS,	/* De-Registration Status */
 };
-
-struct m2ua_parameter_hdr {
-	uint16_t tag;
-	uint16_t len;
-	uint8_t data[0];
-} __attribute__((packed));
-
 
 /**
  * 3.3.1.5 State Request

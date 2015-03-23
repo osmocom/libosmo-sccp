@@ -15,24 +15,21 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
+#pragma once
 
-
-#ifndef m2ua_msg_h
-#define m2ua_msg_h
-
-#include "m2ua_types.h"
+#include "xua_types.h"
 
 #include <osmocom/core/linuxlist.h>
 
 struct msgb;
 
-struct m2ua_msg {
-	struct m2ua_common_hdr hdr;
+struct xua_msg {
+	struct xua_common_hdr hdr;
 
 	struct llist_head headers;
 };
 
-struct m2ua_msg_part {
+struct xua_msg_part {
 	struct llist_head entry;
 
 	uint16_t tag;
@@ -43,16 +40,14 @@ struct m2ua_msg_part {
 };
 
 
-struct m2ua_msg *m2ua_msg_alloc(void);
-void m2ua_msg_free(struct m2ua_msg *msg);
+struct xua_msg *xua_msg_alloc(void);
+void xua_msg_free(struct xua_msg *msg);
 
-int m2ua_msg_add_data(struct m2ua_msg *msg, uint16_t tag, uint16_t len, uint8_t *dat);
+int xua_msg_add_data(struct xua_msg *msg, uint16_t tag, uint16_t len, uint8_t *dat);
 
-struct m2ua_msg_part *m2ua_msg_find_tag(struct m2ua_msg *msg, uint16_t tag);
+struct xua_msg_part *xua_msg_find_tag(struct xua_msg *msg, uint16_t tag);
 
-struct m2ua_msg *m2ua_from_msg(uint16_t len, uint8_t *data);
-struct msgb *m2ua_to_msg(struct m2ua_msg *msg);
+struct xua_msg *xua_from_msg(const int version, uint16_t len, uint8_t *data);
+struct msgb *xua_to_msg(const int version, struct xua_msg *msg);
 
-void m2ua_set_log_area(int log_area);
-
-#endif
+void xua_set_log_area(int log_area);

@@ -15,7 +15,8 @@
  *
  */
 
-#include <sigtran/m2ua_msg.h>
+#include <sigtran/xua_msg.h>
+#include <sigtran/m2ua_types.h>
 
 #include <osmocom/core/utils.h>
 #include <osmocom/core/msgb.h>
@@ -46,9 +47,9 @@ static uint8_t data[] = {
 
 static void test_asp_up(void)
 {
-	struct m2ua_msg_part *part;
-	struct m2ua_msg *m2u = m2ua_from_msg(ARRAY_SIZE(asp_up), asp_up);
-	struct msgb *msg = m2ua_to_msg(m2u);
+	struct xua_msg_part *part;
+	struct xua_msg *m2u = xua_from_msg(M2UA_VERSION, ARRAY_SIZE(asp_up), asp_up);
+	struct msgb *msg = xua_to_msg(M2UA_VERSION, m2u);
 	const uint8_t res[] = { 0xac, 0x10, 0x01, 0x51 };
 
 	printf("Testing ASP UP parsing.\n");
@@ -63,7 +64,7 @@ static void test_asp_up(void)
 		FAIL("Wrong memory");
 	}
 
-	part = m2ua_msg_find_tag(m2u, 0x11);
+	part = xua_msg_find_tag(m2u, 0x11);
 	if (!part)
 		FAIL("Could not find part");
 	if (part->len != 4)
@@ -71,15 +72,15 @@ static void test_asp_up(void)
 	if (memcmp(part->dat, res, 4) != 0)
 		FAIL("Wrong result for the tag\n");
 
-	m2ua_msg_free(m2u);
+	xua_msg_free(m2u);
 	msgb_free(msg);
 }
 
 static void test_data(void)
 {
-	struct m2ua_msg_part *part;
-	struct m2ua_msg *m2u = m2ua_from_msg(ARRAY_SIZE(data), data);
-	struct msgb *msg = m2ua_to_msg(m2u);
+	struct xua_msg_part *part;
+	struct xua_msg *m2u = xua_from_msg(M2UA_VERSION, ARRAY_SIZE(data), data);
+	struct msgb *msg = xua_to_msg(M2UA_VERSION, m2u);
 
 	printf("Testing parsing of data.\n");
 
@@ -93,7 +94,7 @@ static void test_data(void)
 		FAIL("Wrong memory");
 	}
 
-	part = m2ua_msg_find_tag(m2u, 0x300);
+	part = xua_msg_find_tag(m2u, 0x300);
 	if (!part)
 		FAIL("Could not find part");
 	if (part->len != 22) {
@@ -101,7 +102,7 @@ static void test_data(void)
 		FAIL("Part is not of length 22\n");
 	}
 
-	m2ua_msg_free(m2u);
+	xua_msg_free(m2u);
 	msgb_free(msg);
 }
 
