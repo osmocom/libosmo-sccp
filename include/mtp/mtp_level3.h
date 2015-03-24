@@ -96,6 +96,8 @@ static inline uint16_t c_swap_16(uint16_t in)
 #define MTP_MAKE_APOC(apoc) \
 	c_swap_16((apoc & 0x3fff))
 #error "Need to add MTP_READ_DPC/MTP_READ_OPC for big endian"
+#else
+#error "Unknown endian"
 #endif
 
 
