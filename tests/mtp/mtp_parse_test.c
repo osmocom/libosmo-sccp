@@ -599,6 +599,16 @@ int main(int argc, char **argv)
 			check_prohib(tests[i].input, &tests[i].prohib);
 	}
 
+	if (MTP_READ_OPC(tests[0].hdr.addr) != 91) {
+		fprintf(stderr, "Failed to read OPC address\n");
+		abort();
+	}
+
+	if (MTP_READ_DPC(tests[1].hdr.addr) != 136) {
+		fprintf(stderr, "Failed to read DPC address\n");
+		abort();
+	}
+
 	/* check the SCCP unitdata */
 	{
 		struct sccp_con_ctrl_prt_mgt prt = {

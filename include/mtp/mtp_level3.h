@@ -71,6 +71,10 @@
 	 ((link) & MTP_LINK_MASK) << 28)
 #define MTP_MAKE_APOC(apoc) \
 	(apoc & 0x3fff)
+#define MTP_READ_DPC(addr) \
+	(((addr) >> 0) & MTP_ADDR_MASK)
+#define MTP_READ_OPC(addr) \
+	(((addr) >> 14) & MTP_ADDR_MASK)
 #elif OSMO_IS_BIG_ENDIAN
 static inline uint32_t c_swap_32(uint32_t in)
 {
@@ -91,6 +95,7 @@ static inline uint16_t c_swap_16(uint16_t in)
          ((link) & MTP_LINK_MASK) << 28)
 #define MTP_MAKE_APOC(apoc) \
 	c_swap_16((apoc & 0x3fff))
+#error "Need to add MTP_READ_DPC/MTP_READ_OPC for big endian"
 #endif
 
 
