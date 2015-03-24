@@ -94,7 +94,10 @@ static inline uint16_t c_swap_16(uint16_t in)
          ((link) & MTP_LINK_MASK) << 28)
 #define MTP_MAKE_APOC(apoc) \
 	c_swap_16((apoc & 0x3fff))
-#error "Need to add MTP_READ_DPC/MTP_READ_OPC for big endian"
+#define MTP_READ_DPC(addr) \
+	(c_swap_32(addr) & MTP_ADDR_MASK)
+#define MTP_READ_OPC(addr) \
+	((c_swap_32(addr) >> 14) & MTP_ADDR_MASK)
 #else
 #error "Unknown endian"
 #endif
