@@ -36,6 +36,7 @@
 #define MTP_SI_MNT_SNM_MSG	0x00
 #define MTP_SI_MNT_REG_MSG	0x01
 #define MTP_SI_MNT_SCCP		0x03
+#define MTP_SI_MNT_ISUP		0x05
 
 /*
  * h0 contains the group, h1 the semantic of it
@@ -43,6 +44,7 @@
 
 #define MTP_TST_MSG_GRP		0x01
 #define MTP_PROHIBIT_MSG_GRP	0x04
+#define MTP_SROUTE_MSG_GRP	0x05
 #define MTP_TRF_RESTR_MSG_GRP	0x07
 
 /* h1 values for different groups */
@@ -51,10 +53,16 @@
 
 #define MTP_RESTR_MSG_ALLWED	0x01
 
+/* For the prohibit group */
 #define MTP_PROHIBIT_MSG_SIG	0x01
+#define MTP_PROHIBIT_MSG_TFA	0x05
+
+/* For the Signalling-route-set-test */
+#define MTP_SROUTE_MSG_TEST	0x01
 
 
 #define SCCP_SST	0x03
+#define SCCP_SSP	0x02
 #define SCCP_SSA	0x01
 
 #define MTP_LINK_MASK	    0x0F
