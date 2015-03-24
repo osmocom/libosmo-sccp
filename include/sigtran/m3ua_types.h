@@ -111,3 +111,18 @@ enum {
 	M3UA_TAG_REG_STATUS,		/* Registration Status */
 	M3UA_TAG_DEREG_STATUS,		/* Deregistration Status */
 };
+
+
+/**
+ * Protocol data for transport messages. This is
+ * replacing the MTP L3 header
+ */
+struct m3ua_protocol_data {
+        uint32_t        opc;
+        uint32_t        dpc;
+        uint8_t         si;
+        uint8_t         ni;
+        uint8_t         mp;
+        uint8_t         sls;
+        uint8_t         data[0];
+} __attribute__((packed));
