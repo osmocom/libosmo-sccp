@@ -20,8 +20,7 @@
  *
  */
 
-#ifndef mtp_level3_h
-#define mtp_level3_h
+#pragma once
 
 #include <osmocom/core/endian.h>
 
@@ -170,4 +169,3 @@ struct sccp_con_ctrl_prt_mgt {
 #endif
 } __attribute__((packed));
 
-#endif
