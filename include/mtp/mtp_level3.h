@@ -66,7 +66,7 @@
 #define SCCP_SSA	0x01
 
 #define MTP_LINK_MASK	    0x0F
-#define MTP_ADDR_MASK	    0x0FFF
+#define MTP_ADDR_MASK	    0x3FFF
 #define MTP_APOC_MASK 0x3f
 
 
