@@ -1,4 +1,10 @@
-libosmo-sccp (0.0.6.4) UNRELEASED; urgency=medium
+libosmo-sccp (0.0.6.5) UNRELEASED; urgency=medium
+
+  * Non-maintainer upload.
+
+ --  Holger Hans Peter Freyther <holger@freyther.de>  Thu, 16 Apr 2015 21:16:25 +0200
+
+libosmo-sccp (0.0.6.4) unstable; urgency=medium
 
   * Bump the version due the package changes.
 
