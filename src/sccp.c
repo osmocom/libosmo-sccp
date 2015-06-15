@@ -692,13 +692,13 @@ struct msgb *sccp_create_refuse(struct sccp_source_reference *src_ref, int cause
 	return msgb;
 }
 
-static int _sccp_send_refuse(struct sccp_source_reference *src_ref, int cause)
+static int _sccp_send_refuse(struct sccp_source_reference *src_ref, int cause, void *ctx)
 {
 	struct msgb *msgb = sccp_create_refuse(src_ref, cause, NULL, 0);
 	if (!msgb)
 		return -1;
 
-	_send_msg(NULL, msgb, NULL);
+	_send_msg(NULL, msgb, ctx);
 	return 0;
 }
 
@@ -949,7 +949,7 @@ static int _sccp_send_connection_released(struct sccp_connection *conn, int caus
  *      - Try to open the connection by assigning a source local reference
  *        and sending the packet
  */
-static int _sccp_handle_connection_request(struct msgb *msgb)
+static int _sccp_handle_connection_request(struct msgb *msgb, void *ctx)
 {
 	struct sccp_parse_result result;
 
@@ -981,7 +981,7 @@ static int _sccp_handle_connection_request(struct msgb *msgb)
 	 */
 	if (destination_local_reference_is_free(result.source_local_reference) != 0) {
 		LOGP(DSCCP, LOGL_ERROR, "Need to reject connection with existing reference\n");
-		_sccp_send_refuse(result.source_local_reference, SCCP_REFUSAL_SCCP_FAILURE);
+		_sccp_send_refuse(result.source_local_reference, SCCP_REFUSAL_SCCP_FAILURE, ctx);
 		talloc_free(connection);
 		return -1;
 	}
@@ -990,7 +990,7 @@ static int _sccp_handle_connection_request(struct msgb *msgb)
 	connection->destination_local_reference = *result.source_local_reference;
 
 	if (cb->accept_cb(connection, cb->accept_context) != 0) {
-		_sccp_send_refuse(result.source_local_reference, SCCP_REFUSAL_END_USER_ORIGINATED);
+		_sccp_send_refuse(result.source_local_reference, SCCP_REFUSAL_END_USER_ORIGINATED, ctx);
 		_sccp_set_connection_state(connection, SCCP_CONNECTION_STATE_REFUSED);
 		talloc_free(connection);
 		return 0;
@@ -1002,7 +1002,7 @@ static int _sccp_handle_connection_request(struct msgb *msgb)
 	if (_sccp_send_connection_confirm(connection) != 0) {
 		LOGP(DSCCP, LOGL_ERROR, "Sending confirm failed... no available source reference?\n");
 
-		_sccp_send_refuse(result.source_local_reference, SCCP_REFUSAL_SCCP_FAILURE);
+		_sccp_send_refuse(result.source_local_reference, SCCP_REFUSAL_SCCP_FAILURE, ctx);
 		_sccp_set_connection_state(connection, SCCP_CONNECTION_STATE_REFUSED);
 		llist_del(&connection->list);
 		talloc_free(connection);
@@ -1228,6 +1228,11 @@ int sccp_system_init(void (*outgoing)(struct sccp_connection *conn, struct msgb 
 /* oh my god a real SCCP packet. need to dispatch it now */
 int sccp_system_incoming(struct msgb *msgb)
 {
+	return sccp_system_incoming_ctx(msgb, NULL);
+}
+
+int sccp_system_incoming_ctx(struct msgb *msgb, void *ctx)
+{
 	if (msgb_l2len(msgb) < 1 ) {
 		LOGP(DSCCP, LOGL_ERROR, "Too short packet\n");
 		return -1;
@@ -1237,7 +1242,7 @@ int sccp_system_incoming(struct msgb *msgb)
 
 	switch(type) {
 	case SCCP_MSG_TYPE_CR:
-		return _sccp_handle_connection_request(msgb);
+		return _sccp_handle_connection_request(msgb, ctx);
 		break;
 	case SCCP_MSG_TYPE_RLSD:
 		return _sccp_handle_connection_released(msgb);

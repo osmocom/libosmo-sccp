@@ -110,6 +110,7 @@ struct sccp_connection {
  *   The conn is NULL for UDT and other messages without a connection
  */
 int sccp_system_init(void (*outgoing)(struct sccp_connection *conn, struct msgb *data, void *gctx, void *ctx), void *context);
+int sccp_system_incoming_ctx(struct msgb *data, void *ctx);
 int sccp_system_incoming(struct msgb *data);
 
 /**
