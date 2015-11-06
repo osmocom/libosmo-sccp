@@ -55,7 +55,7 @@ static void test_asp_up(void)
 	printf("Testing ASP UP parsing.\n");
 
 	if (msg->len != ARRAY_SIZE(asp_up)) {
-		printf("Got %d wanted %d\n", msg->len, ARRAY_SIZE(asp_up));
+		printf("Got %d wanted %zu\n", msg->len, ARRAY_SIZE(asp_up));
 		FAIL("Wrong size");
 	}
 
@@ -85,7 +85,7 @@ static void test_data(void)
 	printf("Testing parsing of data.\n");
 
 	if (msg->len != ARRAY_SIZE(data)) {
-		printf("Got %d wanted %d\n", msg->len, ARRAY_SIZE(data));
+		printf("Got %d wanted %zu\n", msg->len, ARRAY_SIZE(data));
 		FAIL("Wrong size");
 	}
 
