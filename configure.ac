@@ -31,6 +31,7 @@ CFLAGS="$saved_CFLAGS"
 AC_SUBST(SYMBOL_VISIBILITY)
 
 AC_OUTPUT(
+    libosmo-sigtran.pc
     libosmo-sccp.pc
     libosmo-mtp.pc
     include/sccp/Makefile
