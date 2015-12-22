@@ -44,5 +44,6 @@ AC_OUTPUT(
     tests/sccp/Makefile
     tests/mtp/Makefile
     tests/m2ua/Makefile
+    tests/sigtran/Makefile
     Makefile)
 
