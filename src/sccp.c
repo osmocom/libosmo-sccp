@@ -246,7 +246,7 @@ int _sccp_parse_connection_released(struct msgb *msgb, struct sccp_parse_result 
 
 	/* we don't have enough size for the struct */
 	if (msgb_l2len(msgb) < header_size) {
-		LOGP(DSCCP, LOGL_ERROR, "msgb > header_size %u %u\n",
+		LOGP(DSCCP, LOGL_ERROR, "msgb > header_size %u %zu\n",
 		        msgb_l2len(msgb), header_size);
 		return -1;
 	}
@@ -352,7 +352,7 @@ int _sccp_parse_connection_release_complete(struct msgb *msgb, struct sccp_parse
 
 	/* header check */
 	if (msgb_l2len(msgb) < header_size) {
-		LOGP(DSCCP, LOGL_ERROR, "msgb < header_size %u %u\n",
+		LOGP(DSCCP, LOGL_ERROR, "msgb < header_size %u %zu\n",
 		        msgb_l2len(msgb), header_size);
 		return -1;
 	}
@@ -373,7 +373,7 @@ int _sccp_parse_connection_dt1(struct msgb *msgb, struct sccp_parse_result *resu
 
 	/* we don't have enough size for the struct */
 	if (msgb_l2len(msgb) < header_size) {
-		LOGP(DSCCP, LOGL_ERROR, "msgb > header_size %u %u\n",
+		LOGP(DSCCP, LOGL_ERROR, "msgb > header_size %u %zu\n",
 		        msgb_l2len(msgb), header_size);
 		return -1;
 	}
