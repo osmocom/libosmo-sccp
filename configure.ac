@@ -13,9 +13,11 @@ dnl checks for programs
 AC_PROG_MAKE_SET
 AC_PROG_CC
 AC_PROG_INSTALL
-AC_PROG_RANLIB
+LT_INIT
+AC_PROG_LIBTOOL
 
 PKG_CHECK_MODULES(LIBOSMOCORE, libosmocore >= 0.3.0)
+PKG_CHECK_MODULES(LIBOSMONETIF, libosmo-netif >= 0.0.6.1)
 
 # The following test is taken from WebKit's webkit.m4
 saved_CFLAGS="$CFLAGS"
@@ -33,7 +35,8 @@ AC_OUTPUT(
     libosmo-mtp.pc
     include/sccp/Makefile
     include/mtp/Makefile
-    include/sigtran/Makefile
+    include/osmocom/Makefile
+    include/osmocom/sigtran/Makefile
     include/Makefile
     src/Makefile
     tests/Makefile

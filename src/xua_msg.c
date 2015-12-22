@@ -16,7 +16,7 @@
  *
  */
 
-#include <sigtran/xua_msg.h>
+#include <osmocom/sigtran/xua_msg.h>
 
 #include <osmocom/core/msgb.h>
 #include <osmocom/core/logging.h>

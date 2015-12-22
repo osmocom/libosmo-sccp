@@ -1,1 +1,1 @@
-SUBDIRS = sccp mtp sigtran
+SUBDIRS = sccp mtp osmocom
