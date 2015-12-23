@@ -10,6 +10,7 @@
 #include <osmocom/core/prim.h>
 #include <osmocom/core/talloc.h>
 #include <osmocom/core/logging.h>
+#include <osmocom/core/application.h>
 #include <osmocom/vty/logging.h>
 
 #include <osmocom/sigtran/sua.h>

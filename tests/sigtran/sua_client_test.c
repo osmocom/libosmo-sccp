@@ -1,7 +1,7 @@
 #include "sua_test_common.h"
 
 struct osmo_sua_user *g_user;
-struct sua_link *g_link;
+struct osmo_sua_link *g_link;
 
 static int sccp_sap_up(struct osmo_prim_hdr *oph, void *link)
 {
