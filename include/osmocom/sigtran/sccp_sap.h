@@ -22,11 +22,9 @@
 
 #include <stdint.h>
 #include <osmocom/core/prim.h>
+#include <osmocom/sigtran/sigtran_sap.h>
 
 #include <netinet/in.h>
-
-/* FIXME: properly define this based on libosmocore */
-#define SCCP_SAP_USER 0x2342
 
 /* detailed coding of primitives at the SAP_SCCP_USER */
 
