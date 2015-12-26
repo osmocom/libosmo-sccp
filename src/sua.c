@@ -59,6 +59,7 @@ struct osmo_sccp_user {
 	struct llist_head links;
 	/* user call-back function in case of incoming primitives */
 	osmo_prim_cb prim_cb;
+	void *priv;
 };
 
 struct osmo_sccp_link {
@@ -1401,16 +1402,23 @@ struct osmo_sccp_link *osmo_sua_client_get_link(struct osmo_sccp_user *user)
 
 static LLIST_HEAD(sua_users);
 
-struct osmo_sccp_user *osmo_sua_user_create(void *ctx, osmo_prim_cb prim_cb)
+struct osmo_sccp_user *osmo_sua_user_create(void *ctx, osmo_prim_cb prim_cb,
+					    void *priv)
 {
 	struct osmo_sccp_user *user = talloc_zero(ctx, struct osmo_sccp_user);
 
 	user->prim_cb = prim_cb;
+	user->priv = priv;
 	INIT_LLIST_HEAD(&user->links);
 
 	llist_add_tail(&user->list, &sua_users);
 
 	return user;
+}
+
+void *osmo_sccp_link_get_user_priv(struct osmo_sccp_link *slink)
+{
+	return slink->user->priv;
 }
 
 void osmo_sua_user_destroy(struct osmo_sccp_user *user)

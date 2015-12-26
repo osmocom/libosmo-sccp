@@ -36,7 +36,7 @@ int main(int argc, char **argv)
 
 	osmo_init_logging(&test_log_info);
 
-	g_user = osmo_sua_user_create(ctx, sccp_sap_up);
+	g_user = osmo_sua_user_create(ctx, sccp_sap_up, NULL);
 
 	rc = osmo_sua_client_connect(g_user, "127.0.0.1", 2342);
 	if (rc < 0) {
