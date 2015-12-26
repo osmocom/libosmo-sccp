@@ -548,6 +548,7 @@ static int sua_disconnect_req(struct osmo_sccp_link *link, struct osmo_scu_prim 
 	xua_msg_free(xua);
 
 	conn_state_set(conn, S_DISCONN_PEND);
+	conn_destroy(conn);
 
 	return sua_link_send(link, outmsg);
 }
