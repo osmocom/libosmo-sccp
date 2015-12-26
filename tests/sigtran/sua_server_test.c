@@ -65,7 +65,7 @@ int main(int argc, char **argv)
 
 	osmo_init_logging(&test_log_info);
 
-	user = osmo_sua_user_create(ctx, sccp_sap_up);
+	user = osmo_sua_user_create(ctx, sccp_sap_up, NULL);
 
 	rc = osmo_sua_server_listen(user, "127.0.0.1", 2342);
 	if (rc < 0) {
