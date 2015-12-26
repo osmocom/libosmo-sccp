@@ -1385,7 +1385,7 @@ int osmo_sua_client_connect(struct osmo_sccp_user *user, const char *hostname, u
 	sual->data = cli;
 	osmo_stream_cli_set_data(cli, sual);
 
-	rc = osmo_stream_cli_open(cli);
+	rc = osmo_stream_cli_open2(cli, 1);
 	if (rc < 0) {
 		sua_link_destroy(sual);
 		osmo_stream_cli_destroy(cli);
