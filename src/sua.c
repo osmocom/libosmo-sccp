@@ -526,7 +526,7 @@ static int sua_disconnect_req(struct osmo_sccp_link *link, struct osmo_scu_prim 
 	/* resolve reference of connection */
 	conn = conn_find_by_id(link, par->conn_id);
 	if (!conn) {
-		LOGP(DSUA, LOGL_ERROR, "N-DISCONNECT.resp for unknown "
+		LOGP(DSUA, LOGL_ERROR, "N-DISCONNECT.req for unknown "
 			"connection ID %u\n", par->conn_id);
 		/* FIXME: Send primitive to user */
 		return -ENODEV;
