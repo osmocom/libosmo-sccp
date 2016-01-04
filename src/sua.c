@@ -242,6 +242,8 @@ static int sua_link_send(struct osmo_sccp_link *link, struct msgb *msg)
 {
 	msgb_sctp_ppid(msg) = SUA_PPID;
 
+	DEBUGP(DSUA, "sua_link_send(%s)\n", osmo_hexdump(msg->data, msgb_length(msg)));
+
 	if (link->is_server)
 		osmo_stream_srv_send(link->data, msg);
 	else
@@ -550,6 +552,7 @@ static int sua_disconnect_req(struct osmo_sccp_link *link, struct osmo_scu_prim 
 	conn_state_set(conn, S_DISCONN_PEND);
 	conn_destroy(conn);
 
+	LOGP(DSUA, LOGL_NOTICE, "About to send the SUA RELRE\n");
 	return sua_link_send(link, outmsg);
 }
 
@@ -1211,6 +1214,39 @@ static int sua_srv_conn_cb(struct osmo_stream_srv *conn)
 	}
 
 	if (flags & MSG_NOTIFICATION) {
+		union sctp_notification *notif = (union sctp_notification *) msgb_data(msg);
+		printf("NOTIFICATION %u flags=0x%x\n", notif->sn_header.sn_type, notif->sn_header.sn_flags);
+		switch (notif->sn_header.sn_type) {
+		case SCTP_ASSOC_CHANGE:
+			printf("===> ASSOC CHANGE:");
+			switch (notif->sn_assoc_change.sac_state) {
+			case SCTP_COMM_UP:
+				printf(" UP\n");
+				break;
+			case SCTP_COMM_LOST:
+				printf(" LOST\n");
+				break;
+			case SCTP_RESTART:
+				printf(" RESTART\n");
+				break;
+			case SCTP_SHUTDOWN_COMP:
+				printf(" SHUTDOWN COMP\n");
+				break;
+			case SCTP_CANT_STR_ASSOC:
+				printf(" CANT STR ASSOC\n");
+				break;
+			}
+			break;
+		case SCTP_PEER_ADDR_CHANGE:
+			printf("===> PEER ADDR CHANGE\n");
+			break;
+		case SCTP_SHUTDOWN_EVENT:
+			printf("===> SHUTDOWN EVT\n");
+			close(ofd->fd);
+			osmo_fd_unregister(ofd);
+			ofd->fd = -1;
+			break;
+		}
 		msgb_free(msg);
 		return 0;
 	}
@@ -1337,6 +1373,41 @@ static int sua_cli_conn_cb(struct osmo_stream_cli *conn)
 	}
 
 	if (flags & MSG_NOTIFICATION) {
+		union sctp_notification *notif = (union sctp_notification *) msgb_data(msg);
+		printf("NOTIFICATION %u flags=0x%x\n", notif->sn_header.sn_type, notif->sn_header.sn_flags);
+		switch (notif->sn_header.sn_type) {
+		case SCTP_ASSOC_CHANGE:
+			printf("===> ASSOC CHANGE:");
+			switch (notif->sn_assoc_change.sac_state) {
+			case SCTP_COMM_UP:
+				printf(" UP\n");
+				break;
+			case SCTP_COMM_LOST:
+				printf(" LOST\n");
+				break;
+			case SCTP_RESTART:
+				printf(" RESTART\n");
+				break;
+			case SCTP_SHUTDOWN_COMP:
+				printf(" SHUTDOWN COMP\n");
+				break;
+			case SCTP_CANT_STR_ASSOC:
+				printf(" CANT STR ASSOC\n");
+				break;
+			}
+			break;
+		case SCTP_PEER_ADDR_CHANGE:
+			printf("===> PEER ADDR CHANGE\n");
+			break;
+		case SCTP_SHUTDOWN_EVENT:
+			printf("===> SHUTDOWN EVT\n");
+			close(ofd->fd);
+			osmo_fd_unregister(ofd);
+			ofd->fd = -1;
+			msgb_free(msg);
+			return -1;
+			break;
+		}
 		msgb_free(msg);
 		return 0;
 	}
