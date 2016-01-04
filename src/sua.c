@@ -1,6 +1,6 @@
 /* Minimal implementation of RFC 3868 - SCCP User Adaptation Layer */
 
-/* (C) 2015 by Harald Welte <laforge@gnumonks.org>
+/* (C) 2015-2017 by Harald Welte <laforge@gnumonks.org>
  * All Rights Reserved
  *
  * This program is free software; you can redistribute it and/or modify
@@ -28,6 +28,7 @@
 #include <osmocom/core/write_queue.h>
 #include <osmocom/core/logging.h>
 #include <osmocom/core/timer.h>
+#include <osmocom/core/socket.h>
 
 #include <osmocom/netif/stream.h>
 #include <osmocom/sigtran/xua_msg.h>
@@ -241,6 +242,8 @@ static void sua_link_destroy(struct osmo_sccp_link *link)
 static int sua_link_send(struct osmo_sccp_link *link, struct msgb *msg)
 {
 	msgb_sctp_ppid(msg) = SUA_PPID;
+
+	DEBUGP(DSUA, "sua_link_send(%s)\n", osmo_hexdump(msg->data, msgb_length(msg)));
 
 	if (link->is_server)
 		osmo_stream_srv_send(link->data, msg);
@@ -550,6 +553,7 @@ static int sua_disconnect_req(struct osmo_sccp_link *link, struct osmo_scu_prim 
 	conn_state_set(conn, S_DISCONN_PEND);
 	conn_destroy(conn);
 
+	LOGP(DSUA, LOGL_NOTICE, "About to send the SUA RELRE\n");
 	return sua_link_send(link, outmsg);
 }
 
@@ -1256,6 +1260,85 @@ static int sua_rx_msg(struct osmo_sccp_link *link, struct msgb *msg)
 #include <osmocom/netif/stream.h>
 #include <netinet/sctp.h>
 
+static const struct value_string sctp_assoc_chg_vals[] = {
+	{ SCTP_COMM_UP, "COMM_UP" },
+	{ SCTP_COMM_LOST, "COMM_LOST" },
+	{ SCTP_RESTART, "RESTART" },
+	{ SCTP_SHUTDOWN_COMP, "SHUTDOWN_COMP" },
+	{ SCTP_CANT_STR_ASSOC, "CANT_STR_ASSOC" },
+	{ 0, NULL }
+};
+
+static const struct value_string sctp_sn_type_vals[] = {
+	{ SCTP_ASSOC_CHANGE,		"ASSOC_CHANGE" },
+	{ SCTP_PEER_ADDR_CHANGE,	"PEER_ADDR_CHANGE" },
+	{ SCTP_SHUTDOWN_EVENT, 		"SHUTDOWN_EVENT" },
+	{ SCTP_SEND_FAILED,		"SEND_FAILED" },
+	{ SCTP_REMOTE_ERROR,		"REMOTE_ERROR" },
+	{ SCTP_PARTIAL_DELIVERY_EVENT,	"PARTIAL_DELIVERY_EVENT" },
+	{ SCTP_ADAPTATION_INDICATION,	"ADAPTATION_INDICATION" },
+#ifdef SCTP_AUTHENTICATION_INDICATION
+	{ SCTP_AUTHENTICATION_INDICATION, "UTHENTICATION_INDICATION" },
+#endif
+#ifdef SCTP_SENDER_DRY_EVENT
+	{ SCTP_SENDER_DRY_EVENT,	"SENDER_DRY_EVENT" },
+#endif
+	{ 0, NULL }
+};
+
+static int get_logevel_by_sn_type(int sn_type)
+{
+	switch (sn_type) {
+	case SCTP_ADAPTATION_INDICATION:
+	case SCTP_PEER_ADDR_CHANGE:
+#ifdef SCTP_AUTHENTICATION_INDICATION
+	case SCTP_AUTHENTICATION_INDICATION:
+#endif
+#ifdef SCTP_SENDER_DRY_EVENT
+	case SCTP_SENDER_DRY_EVENT:
+#endif
+		return LOGL_INFO;
+	case SCTP_ASSOC_CHANGE:
+		return LOGL_NOTICE;
+	case SCTP_SHUTDOWN_EVENT:
+	case SCTP_PARTIAL_DELIVERY_EVENT:
+		return LOGL_NOTICE;
+	case SCTP_SEND_FAILED:
+	case SCTP_REMOTE_ERROR:
+		return LOGL_ERROR;
+	default:
+		return LOGL_NOTICE;
+	}
+}
+
+static void log_sctp_notification(int fd, const char *pfx,
+				  union sctp_notification *notif)
+{
+	int log_level;
+	char *conn_id = osmo_sock_get_name(NULL, fd);
+
+	LOGP(DSUA, LOGL_INFO, "%s %s SCTP NOTIFICATION %u flags=0x%0x\n",
+		conn_id, pfx, notif->sn_header.sn_type,
+		notif->sn_header.sn_flags);
+
+	log_level = get_logevel_by_sn_type(notif->sn_header.sn_type);
+
+	switch (notif->sn_header.sn_type) {
+	case SCTP_ASSOC_CHANGE:
+		LOGP(DSUA, log_level, "%s %s SCTP_ASSOC_CHANGE: %s\n",
+			conn_id, pfx, get_value_string(sctp_assoc_chg_vals,
+				notif->sn_assoc_change.sac_state));
+		break;
+	default:
+		LOGP(DSUA, log_level, "%s %s %s\n",
+			conn_id, pfx, get_value_string(sctp_sn_type_vals,
+				notif->sn_header.sn_type));
+		break;
+	}
+
+	talloc_free(conn_id);
+}
+
 /* netif code tells us we can read something from the socket */
 static int sua_srv_conn_cb(struct osmo_stream_srv *conn)
 {
@@ -1273,6 +1356,8 @@ static int sua_srv_conn_cb(struct osmo_stream_srv *conn)
 	/* read SUA message from socket and process it */
 	rc = sctp_recvmsg(ofd->fd, msgb_data(msg), msgb_tailroom(msg),
 			  NULL, NULL, &sinfo, &flags);
+	LOGP(DSUA, LOGL_DEBUG, "sua_srv_conn_cb(): sctp_recvmsg() returned %d\n",
+	     rc);
 	if (rc < 0) {
 		close(ofd->fd);
 		osmo_fd_unregister(ofd);
@@ -1287,6 +1372,19 @@ static int sua_srv_conn_cb(struct osmo_stream_srv *conn)
 	}
 
 	if (flags & MSG_NOTIFICATION) {
+		union sctp_notification *notif = (union sctp_notification *) msgb_data(msg);
+
+		log_sctp_notification(ofd->fd, "SUA SRV", notif);
+
+		switch (notif->sn_header.sn_type) {
+		case SCTP_SHUTDOWN_EVENT:
+			close(ofd->fd);
+			osmo_fd_unregister(ofd);
+			ofd->fd = -1;
+			break;
+		default:
+			break;
+		}
 		msgb_free(msg);
 		return 0;
 	}
@@ -1385,7 +1483,7 @@ int osmo_sua_server_listen(struct osmo_sccp_user *user, const char *hostname, ui
 }
 
 /* netif code tells us we can read something from the socket */
-static int sua_cli_conn_cb(struct osmo_stream_cli *conn)
+static int sua_cli_read_cb(struct osmo_stream_cli *conn)
 {
 	struct osmo_fd *ofd = osmo_stream_cli_get_ofd(conn);
 	struct osmo_sccp_link *link = osmo_stream_cli_get_data(conn);
@@ -1394,6 +1492,8 @@ static int sua_cli_conn_cb(struct osmo_stream_cli *conn)
 	unsigned int ppid;
 	int flags = 0;
 	int rc;
+
+	LOGP(DSUA, LOGL_DEBUG, "sua_cli_read_cb() rx\n");
 
 	if (!msg)
 		return -ENOMEM;
@@ -1415,6 +1515,19 @@ static int sua_cli_conn_cb(struct osmo_stream_cli *conn)
 	}
 
 	if (flags & MSG_NOTIFICATION) {
+		union sctp_notification *notif = (union sctp_notification *) msgb_data(msg);
+
+		log_sctp_notification(ofd->fd, "SUA CLNT", notif);
+
+		switch (notif->sn_header.sn_type) {
+		case SCTP_SHUTDOWN_EVENT:
+			close(ofd->fd);
+			osmo_fd_unregister(ofd);
+			ofd->fd = -1;
+			break;
+		default:
+			break;
+		}
 		msgb_free(msg);
 		return 0;
 	}
@@ -1452,7 +1565,7 @@ int osmo_sua_client_connect(struct osmo_sccp_user *user, const char *hostname, u
 	osmo_stream_cli_set_port(cli, port);
 	osmo_stream_cli_set_proto(cli, IPPROTO_SCTP);
 	osmo_stream_cli_set_reconnect_timeout(cli, 5);
-	osmo_stream_cli_set_read_cb(cli, sua_cli_conn_cb);
+	osmo_stream_cli_set_read_cb(cli, sua_cli_read_cb);
 
 	/* create SUA link and associate it with stream_cli */
 	sual = sua_link_new(user, 0);
