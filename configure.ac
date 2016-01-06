@@ -17,7 +17,7 @@ LT_INIT
 AC_PROG_LIBTOOL
 
 PKG_CHECK_MODULES(LIBOSMOCORE, libosmocore >= 0.3.0)
-PKG_CHECK_MODULES(LIBOSMONETIF, libosmo-netif >= 0.0.6.1)
+PKG_CHECK_MODULES(LIBOSMONETIF, libosmo-netif >= 0.0.6)
 
 # The following test is taken from WebKit's webkit.m4
 saved_CFLAGS="$CFLAGS"
