@@ -1392,14 +1392,26 @@ osmo_static_assert(sizeof(struct sccp_source_reference) <= sizeof(uint32_t), eno
 uint32_t sccp_src_ref_to_int(struct sccp_source_reference *ref)
 {
 	uint32_t src_ref = 0;
+#if OSMO_IS_LITTLE_ENDIAN
 	memcpy(&src_ref, ref, sizeof(*ref));
+#elif OSMO_IS_BIG_ENDIAN
+	*(((uint8_t*)(&src_ref))+3) = ref->octet1;
+	*(((uint8_t*)(&src_ref))+2) = ref->octet2;
+	*(((uint8_t*)(&src_ref))+1) = ref->octet3;
+#endif
 	return src_ref;
 }
 
 struct sccp_source_reference sccp_src_ref_from_int(uint32_t int_ref)
 {
 	struct sccp_source_reference ref;
+#if OSMO_IS_LITTLE_ENDIAN
 	memcpy(&ref, &int_ref, sizeof(ref));
+#elif OSMO_IS_BIG_ENDIAN
+	ref.octet1 = *(((uint8_t*)(&int_ref))+3);
+	ref.octet2 = *(((uint8_t*)(&int_ref))+2);
+	ref.octet3 = *(((uint8_t*)(&int_ref))+1);
+#endif
 	return ref;
 }
 
