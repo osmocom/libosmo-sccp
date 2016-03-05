@@ -1,7 +1,7 @@
 Source: libosmo-sccp
 Priority: optional
 Maintainer: Harald Welte <laforge@gnumonks.org>
-Build-Depends: debhelper (>= 9), autotools-dev, pkg-config, libosmocore-dev, autoconf, automake, libtool, dh-autoreconf, git, libdpkg-perl
+Build-Depends: debhelper (>= 9), autotools-dev, pkg-config, libosmocore-dev, autoconf, automake, libtool, dh-autoreconf, git, libdpkg-perl, libosmo-netif-dev, libsctp-dev
 Standards-Version: 3.9.6
 Section: libs
 #Homepage: <insert the upstream URL, if relevant>
