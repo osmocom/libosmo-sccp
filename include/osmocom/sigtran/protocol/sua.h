@@ -74,7 +74,7 @@
 #define SUA_CO_CODT		8
 #define SUA_CO_CODA		9
 #define SUA_CO_COERR		10
-#define SUA_CO_COIT		11
+#define SUA_CO_COIT		11 /* Connection Oriented Inactiviy Test */
 
 #define SUA_IEI_ROUTE_CTX	0x0006
 #define SUA_IEI_CORR_ID		0x0013
