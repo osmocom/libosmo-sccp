@@ -1200,6 +1200,8 @@ static int sua_srv_conn_cb(struct osmo_stream_srv *conn)
 	/* read SUA message from socket and process it */
 	rc = sctp_recvmsg(ofd->fd, msgb_data(msg), msgb_tailroom(msg),
 			  NULL, NULL, &sinfo, &flags);
+	LOGP(DSUA, LOGL_DEBUG, "sua_srv_conn_cb(): sctp_recvmsg() returned %d\n",
+	     rc);
 	if (rc < 0) {
 		close(ofd->fd);
 		osmo_fd_unregister(ofd);
@@ -1241,7 +1243,7 @@ static int sua_srv_conn_cb(struct osmo_stream_srv *conn)
 			printf("===> PEER ADDR CHANGE\n");
 			break;
 		case SCTP_SHUTDOWN_EVENT:
-			printf("===> SHUTDOWN EVT\n");
+			printf("===> SHUTDOWN EVT (libosmo-sccp sua.c sua_srv_conn_cb())\n");
 			close(ofd->fd);
 			osmo_fd_unregister(ofd);
 			ofd->fd = -1;
@@ -1353,6 +1355,8 @@ static int sua_cli_conn_cb(struct osmo_stream_cli *conn)
 	int flags = 0;
 	int rc;
 
+	LOGP(DSUA, LOGL_DEBUG, "sua_cli_conn_cb() rx\n");
+
 	if (!msg)
 		return -ENOMEM;
 
@@ -1400,7 +1404,7 @@ static int sua_cli_conn_cb(struct osmo_stream_cli *conn)
 			printf("===> PEER ADDR CHANGE\n");
 			break;
 		case SCTP_SHUTDOWN_EVENT:
-			printf("===> SHUTDOWN EVT\n");
+			printf("===> SHUTDOWN EVT (libosmo-sccp sua.c sua_cli_conn_cb())\n");
 			close(ofd->fd);
 			osmo_fd_unregister(ofd);
 			ofd->fd = -1;
