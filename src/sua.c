@@ -274,7 +274,7 @@ static void tx_inact_tmr_cb(void *data)
 	xua_msg_add_u32(xua, SUA_IEI_ROUTE_CTX, 0);	/* FIXME */
 	xua_msg_add_u32(xua, SUA_IEI_PROTO_CLASS, 2);
 	xua_msg_add_u32(xua, SUA_IEI_SRC_REF, conn->conn_id);
-	xua_msg_add_sccp_addr(xua, SUA_IEI_DEST_ADDR, &conn->called_addr);
+	xua_msg_add_u32(xua, SUA_IEI_DEST_REF, conn->remote_ref);
 	/* optional: sequence number; credit (both class 3 only) */
 
 	outmsg = xua_to_msg(1, xua);
