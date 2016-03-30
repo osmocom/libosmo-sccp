@@ -25,17 +25,17 @@
 #include <osmocom/sigtran/sua.h>
 #include <osmocom/sigtran/sccp_helpers.h>
 
-void sccp_make_addr_pc_ssn(struct osmo_sccp_addr *addr, uint32_t pc, uint32_t ssn)
+void osmo_sccp_make_addr_pc_ssn(struct osmo_sccp_addr *addr, uint32_t pc, uint32_t ssn)
 {
 	addr->presence = OSMO_SCCP_ADDR_T_SSN | OSMO_SCCP_ADDR_T_PC;
 	addr->ssn = ssn;
 	addr->pc = pc;
 }
 
-int sccp_tx_unitdata(struct osmo_sccp_link *link,
-		     const struct osmo_sccp_addr *calling_addr,
-		     const struct osmo_sccp_addr *called_addr,
-		     uint8_t *data, unsigned int len)
+int osmo_sccp_tx_unitdata(struct osmo_sccp_link *link,
+			  const struct osmo_sccp_addr *calling_addr,
+			  const struct osmo_sccp_addr *called_addr,
+			  uint8_t *data, unsigned int len)
 {
 	struct msgb *msg = msgb_alloc(1024, "sccp_tx_unitdata");
 	struct osmo_scu_prim *prim;
@@ -43,8 +43,8 @@ int sccp_tx_unitdata(struct osmo_sccp_link *link,
 
 	prim = (struct osmo_scu_prim *) msgb_put(msg, sizeof(*prim));
 	param = &prim->u.unitdata;
-	sccp_make_addr_pc_ssn(&param->calling_addr, 1, OSMO_SCCP_SSN_RANAP);
-	sccp_make_addr_pc_ssn(&param->called_addr, 2, OSMO_SCCP_SSN_RANAP);
+	memcpy(&param->calling_addr, calling_addr, sizeof(*calling_addr));
+	memcpy(&param->called_addr, called_addr, sizeof(*called_addr));
 	osmo_prim_init(&prim->oph, SCCP_SAP_USER, OSMO_SCU_PRIM_N_UNITDATA, PRIM_OP_REQUEST, msg);
 
 	msg->l2h = msgb_put(msg, len);
@@ -53,24 +53,24 @@ int sccp_tx_unitdata(struct osmo_sccp_link *link,
 	return osmo_sua_user_link_down(link, &prim->oph);
 }
 
-int sccp_tx_unitdata_msg(struct osmo_sccp_link *link,
-			 const struct osmo_sccp_addr *calling_addr,
-			 const struct osmo_sccp_addr *called_addr,
-			 struct msgb *msg)
+int osmo_sccp_tx_unitdata_msg(struct osmo_sccp_link *link,
+			      const struct osmo_sccp_addr *calling_addr,
+			      const struct osmo_sccp_addr *called_addr,
+			      struct msgb *msg)
 {
 	int rc;
 
-	rc = sccp_tx_unitdata(link, calling_addr, called_addr,
-			      msg->data, msgb_length(msg));
+	rc = osmo_sccp_tx_unitdata(link, calling_addr, called_addr,
+				   msg->data, msgb_length(msg));
 	msgb_free(msg);
 
 	return rc;
 }
 
-int sccp_tx_conn_req(struct osmo_sccp_link *link, uint32_t conn_id,
-		     const struct osmo_sccp_addr *calling_addr,
-		     const struct osmo_sccp_addr *called_addr,
-		     uint8_t *data, unsigned int len)
+int osmo_sccp_tx_conn_req(struct osmo_sccp_link *link, uint32_t conn_id,
+			  const struct osmo_sccp_addr *calling_addr,
+			  const struct osmo_sccp_addr *called_addr,
+			  uint8_t *data, unsigned int len)
 {
 	struct msgb *msg = msgb_alloc(1024, "sccp_tx_conn_req");
 	struct osmo_scu_prim *prim;
@@ -79,7 +79,8 @@ int sccp_tx_conn_req(struct osmo_sccp_link *link, uint32_t conn_id,
 	osmo_prim_init(&prim->oph, SCCP_SAP_USER,
 			OSMO_SCU_PRIM_N_CONNECT,
 			PRIM_OP_REQUEST, msg);
-	sccp_make_addr_pc_ssn(&prim->u.connect.calling_addr, 1, OSMO_SCCP_SSN_RANAP);
+	osmo_sccp_make_addr_pc_ssn(&prim->u.connect.calling_addr, 1,
+				   OSMO_SCCP_SSN_RANAP);
 	prim->u.connect.sccp_class = 2;
 	prim->u.connect.conn_id = conn_id;
 
@@ -91,22 +92,22 @@ int sccp_tx_conn_req(struct osmo_sccp_link *link, uint32_t conn_id,
 	return osmo_sua_user_link_down(link, &prim->oph);
 }
 
-int sccp_tx_conn_req_msg(struct osmo_sccp_link *link, uint32_t conn_id,
-			 const struct osmo_sccp_addr *calling_addr,
-			 const struct osmo_sccp_addr *called_addr,
-			 struct msgb *msg)
+int osmo_sccp_tx_conn_req_msg(struct osmo_sccp_link *link, uint32_t conn_id,
+			      const struct osmo_sccp_addr *calling_addr,
+			      const struct osmo_sccp_addr *called_addr,
+			      struct msgb *msg)
 {
 	int rc;
 
-	rc = sccp_tx_conn_req(link, conn_id, calling_addr, called_addr,
-			      msg->data, msgb_length(msg));
+	rc = osmo_sccp_tx_conn_req(link, conn_id, calling_addr, called_addr,
+				   msg->data, msgb_length(msg));
 	msgb_free(msg);
 
 	return rc;
 }
 
-int sccp_tx_data(struct osmo_sccp_link *link, uint32_t conn_id,
-		 uint8_t *data, unsigned int len)
+int osmo_sccp_tx_data(struct osmo_sccp_link *link, uint32_t conn_id,
+		      uint8_t *data, unsigned int len)
 {
 	struct msgb *msg = msgb_alloc(1024, "sccp_tx_data");
 	struct osmo_scu_prim *prim;
@@ -123,12 +124,12 @@ int sccp_tx_data(struct osmo_sccp_link *link, uint32_t conn_id,
 	return osmo_sua_user_link_down(link, &prim->oph);
 }
 
-int sccp_tx_data_msg(struct osmo_sccp_link *link, uint32_t conn_id,
-		     struct msgb *msg)
+int osmo_sccp_tx_data_msg(struct osmo_sccp_link *link, uint32_t conn_id,
+			  struct msgb *msg)
 {
 	int rc;
 
-	rc = sccp_tx_data(link, conn_id, msg->data, msgb_length(msg));
+	rc = osmo_sccp_tx_data(link, conn_id, msg->data, msgb_length(msg));
 	msgb_free(msg);
 
 	return rc;
