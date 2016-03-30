@@ -1,6 +1,7 @@
-/* SCCP User SAP helper functions (move to libosmo-sigtran?) */
+/* SCCP User SAP helper functions */
 
 /* (C) 2015 by Harald Welte <laforge@gnumonks.org>
+ * (C) 2016 by sysmocom s.m.f.c. GmbH <info@sysmocom.de>
  * All Rights Reserved
  *
  * This program is free software; you can redistribute it and/or modify
@@ -22,8 +23,7 @@
 
 #include <osmocom/sigtran/sccp_sap.h>
 #include <osmocom/sigtran/sua.h>
-
-#include "sccp_helpers.h"
+#include <osmocom/sigtran/sccp_helpers.h>
 
 void sccp_make_addr_pc_ssn(struct osmo_sccp_addr *addr, uint32_t pc, uint32_t ssn)
 {
