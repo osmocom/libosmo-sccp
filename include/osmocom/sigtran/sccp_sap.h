@@ -46,9 +46,9 @@ enum osmo_scu_prim_type {
 	OSMO_SCU_PRIM_N_PCSTATE,
 };
 
-#define OSMO_SCCP_ADDR_T_GT	0x0001
-#define OSMO_SCCP_ADDR_T_PC	0x0002
-#define OSMO_SCCP_ADDR_T_SSN	0x0004
+#define OSMO_SCCP_ADDR_T_GT	0x0001 /* global title */
+#define OSMO_SCCP_ADDR_T_PC	0x0002 /* signalling point code */
+#define OSMO_SCCP_ADDR_T_SSN	0x0004 /* subsystem number */
 #define OSMO_SCCP_ADDR_T_IPv4	0x0008
 #define OSMO_SCCP_ADDR_T_IPv6	0x0010
 
