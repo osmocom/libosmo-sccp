@@ -53,6 +53,21 @@ int osmo_sccp_tx_unitdata(struct osmo_sccp_link *link,
 	return osmo_sua_user_link_down(link, &prim->oph);
 }
 
+int osmo_sccp_tx_unitdata_ranap(struct osmo_sccp_link *link,
+				uint32_t src_point_code,
+				uint32_t dst_point_code,
+				uint8_t *data, unsigned int len)
+{
+	struct osmo_sccp_addr calling_addr;
+	struct osmo_sccp_addr called_addr;
+	osmo_sccp_make_addr_pc_ssn(&calling_addr, src_point_code,
+				   OSMO_SCCP_SSN_RANAP);
+	osmo_sccp_make_addr_pc_ssn(&called_addr, dst_point_code,
+				   OSMO_SCCP_SSN_RANAP);
+	return osmo_sccp_tx_unitdata(link, &calling_addr, &called_addr,
+				     data, len);
+}
+
 int osmo_sccp_tx_unitdata_msg(struct osmo_sccp_link *link,
 			      const struct osmo_sccp_addr *calling_addr,
 			      const struct osmo_sccp_addr *called_addr,
