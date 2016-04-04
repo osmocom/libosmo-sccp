@@ -1368,7 +1368,7 @@ int osmo_sua_server_listen(struct osmo_sccp_user *user, const char *hostname, ui
 }
 
 /* netif code tells us we can read something from the socket */
-static int sua_cli_conn_cb(struct osmo_stream_cli *conn)
+static int sua_cli_read_cb(struct osmo_stream_cli *conn)
 {
 	struct osmo_fd *ofd = osmo_stream_cli_get_ofd(conn);
 	struct osmo_sccp_link *link = osmo_stream_cli_get_data(conn);
@@ -1378,7 +1378,7 @@ static int sua_cli_conn_cb(struct osmo_stream_cli *conn)
 	int flags = 0;
 	int rc;
 
-	LOGP(DSUA, LOGL_DEBUG, "sua_cli_conn_cb() rx\n");
+	LOGP(DSUA, LOGL_DEBUG, "sua_cli_read_cb() rx\n");
 
 	if (!msg)
 		return -ENOMEM;
@@ -1427,7 +1427,7 @@ static int sua_cli_conn_cb(struct osmo_stream_cli *conn)
 			printf("===> PEER ADDR CHANGE\n");
 			break;
 		case SCTP_SHUTDOWN_EVENT:
-			printf("===> SHUTDOWN EVT (libosmo-sccp sua.c sua_cli_conn_cb())\n");
+			printf("===> SHUTDOWN EVT (libosmo-sccp sua.c sua_cli_read_cb())\n");
 			close(ofd->fd);
 			osmo_fd_unregister(ofd);
 			ofd->fd = -1;
@@ -1494,7 +1494,7 @@ int osmo_sua_client_connect(struct osmo_sccp_user *user, const char *hostname, u
 	osmo_stream_cli_set_port(cli, port);
 	osmo_stream_cli_set_proto(cli, IPPROTO_SCTP);
 	osmo_stream_cli_set_reconnect_timeout(cli, 5);
-	osmo_stream_cli_set_read_cb(cli, sua_cli_conn_cb);
+	osmo_stream_cli_set_read_cb(cli, sua_cli_read_cb);
 
 	/* create SUA link and associate it with stream_cli */
 	sual = sua_link_new(user, 0);
