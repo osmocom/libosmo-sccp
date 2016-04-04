@@ -798,7 +798,6 @@ static int sua_rx_core(struct osmo_sccp_link *link, struct xua_msg *xua)
 	struct xua_msg_part *data_ie = xua_msg_find_tag(xua, SUA_IEI_DATA);
 	struct msgb *upmsg;
 	struct sua_connection *conn;
-	uint8_t *cur;
 
 	/* fill conn */
 	conn = conn_create(link);
@@ -931,7 +930,8 @@ static int sua_rx_coref(struct osmo_sccp_link *link, struct xua_msg *xua)
 	memcpy(&param->calling_addr, &conn->calling_addr,
 		sizeof(param->calling_addr));
 	//param->in_sequence_control;
-	cause = xua_msg_get_u32(xua, SUA_IEI_CAUSE);
+	/* TODO evaluate cause:
+	 * cause = xua_msg_get_u32(xua, SUA_IEI_CAUSE); */
 	/* optional: src addr */
 	/* optional: dest addr */
 	param->importance = xua_msg_get_u32(xua, SUA_IEI_IMPORTANCE);
