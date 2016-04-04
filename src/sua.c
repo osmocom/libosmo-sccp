@@ -927,7 +927,8 @@ static int sua_rx_coref(struct osmo_sccp_link *link, struct xua_msg *xua)
 	memcpy(&param->calling_addr, &conn->calling_addr,
 		sizeof(param->calling_addr));
 	//param->in_sequence_control;
-	cause = xua_msg_get_u32(xua, SUA_IEI_CAUSE);
+	/* TODO evaluate cause:
+	 * cause = xua_msg_get_u32(xua, SUA_IEI_CAUSE); */
 	/* optional: src addr */
 	/* optional: dest addr */
 	param->importance = xua_msg_get_u32(xua, SUA_IEI_IMPORTANCE);
