@@ -1248,6 +1248,29 @@ static int sua_srv_conn_cb(struct osmo_stream_srv *conn)
 			osmo_fd_unregister(ofd);
 			ofd->fd = -1;
 			break;
+		case SCTP_SEND_FAILED:
+			printf("===> SCTP_SEND_FAILED\n");
+			break;
+		case SCTP_REMOTE_ERROR:
+			printf("===> SCTP_REMOTE_ERROR\n");
+			break;
+		case SCTP_PARTIAL_DELIVERY_EVENT:
+			printf("===> SCTP_PARTIAL_DELIVERY_EVENT\n");
+			break;
+		case SCTP_ADAPTATION_INDICATION:
+			printf("===> SCTP_ADAPTATION_INDICATION\n");
+			break;
+		case SCTP_AUTHENTICATION_INDICATION:
+			printf("===> SCTP_AUTHENTICATION_INDICATION\n");
+			break;
+		case SCTP_SENDER_DRY_EVENT:
+			printf("===> SCTP_SENDER_DRY_EVENT\n");
+			break;
+		default:
+			printf("===> unknown sn_type %u 0x%x\n",
+			       notif->sn_header.sn_type,
+			       notif->sn_header.sn_type);
+			break;
 		}
 		msgb_free(msg);
 		return 0;
@@ -1410,6 +1433,28 @@ static int sua_cli_conn_cb(struct osmo_stream_cli *conn)
 			ofd->fd = -1;
 			msgb_free(msg);
 			return -1;
+		case SCTP_SEND_FAILED:
+			printf("===> SCTP_SEND_FAILED\n");
+			break;
+		case SCTP_REMOTE_ERROR:
+			printf("===> SCTP_REMOTE_ERROR\n");
+			break;
+		case SCTP_PARTIAL_DELIVERY_EVENT:
+			printf("===> SCTP_PARTIAL_DELIVERY_EVENT\n");
+			break;
+		case SCTP_ADAPTATION_INDICATION:
+			printf("===> SCTP_ADAPTATION_INDICATION\n");
+			break;
+		case SCTP_AUTHENTICATION_INDICATION:
+			printf("===> SCTP_AUTHENTICATION_INDICATION\n");
+			break;
+		case SCTP_SENDER_DRY_EVENT:
+			printf("===> SCTP_SENDER_DRY_EVENT\n");
+			break;
+		default:
+			printf("===> unknown sn_type %u 0x%x\n",
+			       notif->sn_header.sn_type,
+			       notif->sn_header.sn_type);
 			break;
 		}
 		msgb_free(msg);
