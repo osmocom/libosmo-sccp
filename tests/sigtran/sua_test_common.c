@@ -44,8 +44,6 @@ static void sccp_make_addr_pc_ssn(struct osmo_sccp_addr *addr, uint32_t pc, uint
 	addr->pc = pc;
 }
 
-#define SSN_RANAP 142
-
 struct osmo_prim_hdr *make_conn_req(uint32_t conn_id)
 {
 	struct msgb *msg = msgb_alloc(1024, "conn_req");
@@ -56,8 +54,8 @@ struct osmo_prim_hdr *make_conn_req(uint32_t conn_id)
 			OSMO_SCU_PRIM_N_CONNECT,
 			PRIM_OP_REQUEST, msg);
 	/* Set SSN for calling and called addr */
-	sccp_make_addr_pc_ssn(&prim->u.connect.called_addr, 2, SSN_RANAP);
-	sccp_make_addr_pc_ssn(&prim->u.connect.calling_addr, 1, SSN_RANAP);
+	sccp_make_addr_pc_ssn(&prim->u.connect.called_addr, 2, OSMO_SCCP_SSN_RANAP);
+	sccp_make_addr_pc_ssn(&prim->u.connect.calling_addr, 1, OSMO_SCCP_SSN_RANAP);
 	prim->u.connect.sccp_class = 2;
 	prim->u.connect.conn_id = conn_id;
 
