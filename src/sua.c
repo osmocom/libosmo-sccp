@@ -177,7 +177,7 @@ static int xua_msg_add_sccp_addr(struct xua_msg *xua, uint16_t iei, const struct
 	if (!tmp)
 		return -ENOMEM;
 
-	msgb_put_u16(tmp, 2); /* route on SSN + PC */
+	msgb_put_u16(tmp, SUA_RI_SSN_PC); /* route on SSN + PC */
 	msgb_put_u16(tmp, 7); /* always put all addresses on SCCP side */
 
 	if (addr->presence & OSMO_SCCP_ADDR_T_GT) {
@@ -726,12 +726,95 @@ static int sua_parse_addr(struct osmo_sccp_addr *out,
 			  uint16_t iei)
 {
 	const struct xua_msg_part *param = xua_msg_find_tag(xua, iei);
+	const struct xua_parameter_hdr *par;
+	uint16_t ri;
+	uint16_t ai;
+	uint16_t pos;
+	uint16_t par_tag, par_len, par_datalen;
+	uint32_t *p32;
 
 	if (!param)
 		return -ENODEV;
 
-	/* FIXME */
+	LOGP(DSUA, LOGL_DEBUG, "sua_parse_addr(IEI=%d) (%d) %s\n",
+	     iei, param->len,
+	     osmo_hexdump(param->dat, param->len));
+
+	if (param->len < 4) {
+		LOGP(DSUA, LOGL_ERROR, "SUA IEI %d: invalid address length: %d\n",
+		     iei, param->len);
+		return -EINVAL;
+	}
+
+	pos = 0;
+	ri = ntohs(*(uint16_t*) &param->dat[pos]);
+	pos += 2;
+	ai = ntohs(*(uint16_t*) &param->dat[pos]);
+	pos += 2;
+
+	if (ri != SUA_RI_SSN_PC) {
+		LOGP(DSUA, LOGL_ERROR, "SUA IEI %d: Routing Indicator not supported yet: %d\n",
+		     iei, ri);
+		return -ENOTSUP;
+	}
+
+	if (ai != 7) {
+		LOGP(DSUA, LOGL_ERROR, "SUA IEI %d: Address Indicator not supported yet: %x\n",
+		     iei, ai);
+		return -ENOTSUP;
+	}
+
+	/*
+	 * FIXME: this parses the encapsulated T16L16V IEs on the go. We
+	 * probably want to have a separate general parsing function storing
+	 * the subparts in xua_msg_part. But before we do, we should find more
+	 * users of this subpart parsing and be aware of the performance
+	 * tradeoff.
+	 */
+
+	while (pos + sizeof(*par) < param->len) {
+		par = (struct xua_parameter_hdr *) &param->dat[pos];
+		par_tag = ntohs(par->tag);
+		par_len = ntohs(par->len);
+		par_datalen = par_len - sizeof(*par);
+
+		LOGP(DSUA, LOGL_DEBUG, "SUA IEI %hu pos %hu/%hu: subpart tag %hu, len %hu\n",
+		     iei, pos, param->len, par->tag, par->len);
+
+		switch (par_tag) {
+		case SUA_IEI_PC:
+			if (par_datalen != 4)
+				goto subpar_fail;
+			p32 = (uint32_t*)par->data;
+			out->pc = ntohl(*p32);
+			out->presence |= OSMO_SCCP_ADDR_T_PC;
+			break;
+		case SUA_IEI_SSN:
+			if (par_datalen != 4)
+				goto subpar_fail;
+			/* 24 zero bits, then 8 bits SSN */
+			out->ssn = par->data[3];
+			out->presence |= OSMO_SCCP_ADDR_T_SSN;
+			break;
+		case SUA_IEI_GT:
+			/* TODO */
+			out->presence |= OSMO_SCCP_ADDR_T_GT;
+			break;
+		default:
+			LOGP(DSUA, LOGL_ERROR, "SUA IEI %d: Unknown subpart tag %hd\n",
+			     iei, par_tag);
+			goto subpar_fail;
+		}
+
+		pos += par_len;
+	}
+
 	return 0;
+
+subpar_fail:
+	LOGP(DSUA, LOGL_ERROR, "Failed to parse subparts of address IEI=%d\n",
+	     iei);
+	return -EINVAL;
 }
 
 static int sua_rx_cldt(struct osmo_sccp_link *link, struct xua_msg *xua)
