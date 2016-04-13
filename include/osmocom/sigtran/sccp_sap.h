@@ -106,7 +106,7 @@ enum osmo_sccp_ssn {
 	OSMO_SCCP_SSN_RES_INTL		= 0x0c,
 	OSMO_SCCP_SSN_BISDN		= 0x0d,
 	OSMO_SCCP_SSN_TC_TEST		= 0x0e,
-	OSMO_SCCP_SSN_RANAP		= 143,
+	OSMO_SCCP_SSN_RANAP		= 142,
 };
 
 struct osmo_sccp_gt {
