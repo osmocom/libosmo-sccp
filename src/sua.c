@@ -1450,9 +1450,11 @@ static int sua_cli_read_cb(struct osmo_stream_cli *conn)
 		case SCTP_AUTHENTICATION_INDICATION:
 			printf("===> SCTP_AUTHENTICATION_INDICATION\n");
 			break;
+#ifdef SCTP_SENDER_DRY_EVENT
 		case SCTP_SENDER_DRY_EVENT:
 			printf("===> SCTP_SENDER_DRY_EVENT\n");
 			break;
+#endif
 		default:
 			printf("===> unknown sn_type %u 0x%x\n",
 			       notif->sn_header.sn_type,
