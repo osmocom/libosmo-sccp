@@ -93,6 +93,7 @@ enum osmo_sccp_nai {
 
 /* Q.713 3.4.2.2 */
 enum osmo_sccp_ssn {
+	/* globally standardised for GSM/UMTS: 1-31 */
 	OSMO_SCCP_SSN_MGMT		= 1,
 	OSMO_SCCP_SSN_ISUP		= 3,
 	OSMO_SCCP_SSN_OMAP		= 4,
@@ -102,11 +103,26 @@ enum osmo_sccp_ssn {
 	OSMO_SCCP_SSN_MSC		= 8,
 	OSMO_SCCP_SSN_EIR		= 9,
 	OSMO_SCCP_SSN_AUC		= 0x0a,
+	/* Q.713 */
 	OSMO_SCCP_SSN_ISDN_SS		= 0x0b,
 	OSMO_SCCP_SSN_RES_INTL		= 0x0c,
 	OSMO_SCCP_SSN_BISDN		= 0x0d,
 	OSMO_SCCP_SSN_TC_TEST		= 0x0e,
+	/* national network SSN for wihin and between GSM/UMTS: 129-150 */
 	OSMO_SCCP_SSN_RANAP		= 142,
+	OSMO_SCCP_SSN_RNSAP		= 143,
+	OSMO_SCCP_SSN_GMLC_MAP		= 145,
+	OSMO_SCCP_SSN_CAP		= 146,
+	OSMO_SCCP_SSN_gsmSCF_MAP	= 147,
+	OSMO_SCCP_SSN_SIWF_MAP		= 148,
+	OSMO_SCCP_SSN_SGSN_MAP		= 149,
+	OSMO_SCCP_SSN_GGSN_MAP		= 150,
+	/* national network SSN within GSM/UMTS: 32-128 + 151-254 */
+	OSMO_SCCP_SSN_PCAP		= 249,
+	OSMO_SCCP_SSN_BSC_BSSAP		= 250,
+	OSMO_SCCP_SSN_MSC_BSSAP		= 251,
+	OSMO_SCCP_SSN_SMLC_BSSAP	= 252,
+	OSMO_SCCP_SSN_BSS_OAM		= 253,
 };
 
 struct osmo_sccp_gt {
