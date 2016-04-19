@@ -271,7 +271,7 @@ enum sccp_refusal_cause {
  * messages... as of Q.713 Chapter 4
  */
 struct sccp_connection_request {
-	/* mandantory */
+	/* mandatory */
 	uint8_t			type;
 	struct sccp_source_reference	source_local_reference;
 	uint8_t			proto_class;
@@ -299,7 +299,7 @@ struct sccp_connection_request {
 } __attribute__((packed));
 
 struct sccp_connection_confirm {
-	/* mandantory */
+	/* mandatory */
 	uint8_t			type;
 	struct sccp_source_reference	destination_local_reference;
 	struct sccp_source_reference	source_local_reference;
@@ -321,7 +321,7 @@ struct sccp_connection_confirm {
 } __attribute__((packed));
 
 struct sccp_connection_refused {
-	/* mandantory */
+	/* mandatory */
 	uint8_t			type;
 	struct sccp_source_reference	destination_local_reference;
 	uint8_t			cause;
@@ -341,7 +341,7 @@ struct sccp_connection_refused {
 } __attribute__((packed));
 
 struct sccp_connection_released {
-	/* mandantory */
+	/* mandatory */
 	uint8_t			type;
 	struct sccp_source_reference	destination_local_reference;
 	struct sccp_source_reference	source_local_reference;
@@ -366,7 +366,7 @@ struct sccp_connection_release_complete {
 } __attribute__((packed));
 
 struct sccp_data_form1 {
-	/* mandantory */
+	/* mandatory */
 	uint8_t			type;
 	struct sccp_source_reference	destination_local_reference;
 	uint8_t			segmenting;
@@ -383,7 +383,7 @@ struct sccp_data_form1 {
 
 
 struct sccp_data_unitdata {
-	/* mandantory */
+	/* mandatory */
 	uint8_t			type;
 	uint8_t			proto_class;
 
@@ -422,7 +422,7 @@ struct sccp_data_unitdata_service {
 
 
 struct sccp_data_it {
-	/* mandantory */
+	/* mandatory */
 	uint8_t			type;
 	struct sccp_source_reference	destination_local_reference;
 	struct sccp_source_reference	source_local_reference;
