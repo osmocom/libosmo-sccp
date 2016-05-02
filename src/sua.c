@@ -984,7 +984,7 @@ static int sua_rx_coref(struct osmo_sccp_link *link, struct xua_msg *xua)
 {
 	struct osmo_scu_prim *prim;
 	struct sua_connection *conn;
-	struct osmo_scu_connect_param *param;
+	struct osmo_scu_disconn_param *param;
 	struct xua_msg_part *data_ie = xua_msg_find_tag(xua, SUA_IEI_DATA);
 	struct msgb *upmsg;
 	uint32_t conn_id = xua_msg_get_u32(xua, SUA_IEI_DEST_REF);
@@ -1003,15 +1003,13 @@ static int sua_rx_coref(struct osmo_sccp_link *link, struct xua_msg *xua)
 	/* fill primitive */
 	upmsg = sua_msgb_alloc();
 	prim = (struct osmo_scu_prim *) msgb_put(upmsg, sizeof(*prim));
-	param = &prim->u.connect;
+	param = &prim->u.disconnect;
 	osmo_prim_init(&prim->oph, SCCP_SAP_USER,
 			OSMO_SCU_PRIM_N_DISCONNECT,
 			PRIM_OP_INDICATION, upmsg);
 	param->conn_id = conn_id;
-	memcpy(&param->called_addr, &conn->called_addr,
-		sizeof(param->called_addr));
-	memcpy(&param->calling_addr, &conn->calling_addr,
-		sizeof(param->calling_addr));
+	param->responding_addr = conn->called_addr;
+	param->originator = OSMO_SCCP_ORIG_UNDEFINED;
 	//param->in_sequence_control;
 	/* TODO evaluate cause:
 	 * cause = xua_msg_get_u32(xua, SUA_IEI_CAUSE); */
@@ -1038,7 +1036,7 @@ static int sua_rx_relre(struct osmo_sccp_link *link, struct xua_msg *xua)
 {
 	struct osmo_scu_prim *prim;
 	struct sua_connection *conn;
-	struct osmo_scu_connect_param *param;
+	struct osmo_scu_disconn_param *param;
 	struct xua_msg_part *data_ie = xua_msg_find_tag(xua, SUA_IEI_DATA);
 	struct msgb *upmsg;
 	uint32_t conn_id = xua_msg_get_u32(xua, SUA_IEI_DEST_REF);
@@ -1056,7 +1054,7 @@ static int sua_rx_relre(struct osmo_sccp_link *link, struct xua_msg *xua)
 	/* fill primitive */
 	upmsg = sua_msgb_alloc();
 	prim = (struct osmo_scu_prim *) msgb_put(upmsg, sizeof(*prim));
-	param = &prim->u.connect;
+	param = &prim->u.disconnect;
 	osmo_prim_init(&prim->oph, SCCP_SAP_USER,
 			OSMO_SCU_PRIM_N_DISCONNECT,
 			PRIM_OP_INDICATION, upmsg); /* what primitive? */
@@ -1071,10 +1069,8 @@ static int sua_rx_relre(struct osmo_sccp_link *link, struct xua_msg *xua)
 		memcpy(upmsg->l2h, data_ie->dat, data_ie->len);
 	}
 
-	memcpy(&param->called_addr, &conn->called_addr,
-		sizeof(param->called_addr));
-	memcpy(&param->calling_addr, &conn->calling_addr,
-		sizeof(param->calling_addr));
+	param->responding_addr = conn->called_addr;
+	param->originator = OSMO_SCCP_ORIG_UNDEFINED;
 
 	/* send to user SAP */
 	link->user->prim_cb(&prim->oph, link);
@@ -1090,7 +1086,7 @@ static int sua_rx_relco(struct osmo_sccp_link *link, struct xua_msg *xua)
 {
 	struct osmo_scu_prim *prim;
 	struct sua_connection *conn;
-	struct osmo_scu_connect_param *param;
+	struct osmo_scu_disconn_param *param;
 	struct msgb *upmsg;
 	uint32_t conn_id = xua_msg_get_u32(xua, SUA_IEI_DEST_REF);
 
@@ -1107,7 +1103,7 @@ static int sua_rx_relco(struct osmo_sccp_link *link, struct xua_msg *xua)
 	/* fill primitive */
 	upmsg = sua_msgb_alloc();
 	prim = (struct osmo_scu_prim *) msgb_put(upmsg, sizeof(*prim));
-	param = &prim->u.connect;
+	param = &prim->u.disconnect;
 	osmo_prim_init(&prim->oph, SCCP_SAP_USER,
 			OSMO_SCU_PRIM_N_DISCONNECT,
 			PRIM_OP_CONFIRM, upmsg); /* what primitive? */
@@ -1116,10 +1112,8 @@ static int sua_rx_relco(struct osmo_sccp_link *link, struct xua_msg *xua)
 	/* source reference */
 	param->importance = xua_msg_get_u32(xua, SUA_IEI_IMPORTANCE);
 
-	memcpy(&param->called_addr, &conn->called_addr,
-		sizeof(param->called_addr));
-	memcpy(&param->calling_addr, &conn->calling_addr,
-		sizeof(param->calling_addr));
+	param->responding_addr = conn->called_addr;
+	param->originator = OSMO_SCCP_ORIG_UNDEFINED;
 
 	/* send to user SAP */
 	link->user->prim_cb(&prim->oph, link);
