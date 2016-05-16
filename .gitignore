@@ -1,5 +1,7 @@
 *.o
 *.a
+*.lo
+*.la
 .deps
 Makefile
 Makefile.in
@@ -24,6 +26,11 @@ depcomp
 install-sh
 missing
 stamp-h1
+
+# libtool
+ltmain.sh
+libtool
+.libs
 
 # git-version-gen magic
 .tarball-version
@@ -52,6 +59,8 @@ tests/mtp/mtp_parse_test
 tests/sccp/sccp_test
 tests/sms/sms_test
 tests/timer/timer_test
+tests/sigtran/sua_server_test
+tests/sigtran/sua_client_test
 
 tests/atconfig
 tests/package.m4
