@@ -1,3 +1,9 @@
+libosmo-sccp (0.7.1) UNRELEASED; urgency=medium
+
+  * Move forward towards a new release.
+
+ -- Holger Hans Peter Freyther <holger@moiji-mobile.com>  Tue, 24 May 2016 22:57:59 +0200
+
 libosmo-sccp (0.7.0) unstable; urgency=medium
 
   * New release.
