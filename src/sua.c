@@ -844,7 +844,7 @@ static int sua_rx_coak(struct osmo_sua_link *link, struct xua_msg *xua)
 	/* resolve conn */
 	conn = conn_find_by_id(link, conn_id);
 	if (!conn) {
-		LOGP(DSUA, LOGL_ERROR, "COAK for unknwon reference %u\n",
+		LOGP(DSUA, LOGL_ERROR, "COAK for unknown reference %u\n",
 			conn_id);
 		/* FIXME: send error reply down the sua link? */
 		return -1;
@@ -906,7 +906,7 @@ static int sua_rx_coref(struct osmo_sua_link *link, struct xua_msg *xua)
 	/* resolve conn */
 	conn = conn_find_by_id(link, conn_id);
 	if (!conn) {
-		LOGP(DSUA, LOGL_ERROR, "COREF for unknwon reference %u\n",
+		LOGP(DSUA, LOGL_ERROR, "COREF for unknown reference %u\n",
 			conn_id);
 		/* FIXME: send error reply down the sua link? */
 		return -1;
@@ -959,7 +959,7 @@ static int sua_rx_relre(struct osmo_sua_link *link, struct xua_msg *xua)
 	/* resolve conn */
 	conn = conn_find_by_id(link, conn_id);
 	if (!conn) {
-		LOGP(DSUA, LOGL_ERROR, "RELRE for unknwon reference %u\n",
+		LOGP(DSUA, LOGL_ERROR, "RELRE for unknown reference %u\n",
 			conn_id);
 		/* FIXME: send error reply down the sua link? */
 		return -1;
@@ -1009,7 +1009,7 @@ static int sua_rx_relco(struct osmo_sua_link *link, struct xua_msg *xua)
 	/* resolve conn */
 	conn = conn_find_by_id(link, conn_id);
 	if (!conn) {
-		LOGP(DSUA, LOGL_ERROR, "RELCO for unknwon reference %u\n",
+		LOGP(DSUA, LOGL_ERROR, "RELCO for unknown reference %u\n",
 			conn_id);
 		/* FIXME: send error reply down the sua link? */
 		return -1;
@@ -1056,7 +1056,7 @@ static int sua_rx_codt(struct osmo_sua_link *link, struct xua_msg *xua)
 	/* resolve conn */
 	conn = conn_find_by_id(link, conn_id);
 	if (!conn) {
-		LOGP(DSUA, LOGL_ERROR, "DT1 for unknwon reference %u\n",
+		LOGP(DSUA, LOGL_ERROR, "DT1 for unknown reference %u\n",
 			conn_id);
 		/* FIXME: send error reply down the sua link? */
 		return -1;
