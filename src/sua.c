@@ -846,7 +846,7 @@ static int sua_rx_coak(struct osmo_sua_link *link, struct xua_msg *xua)
 	if (!conn) {
 		LOGP(DSUA, LOGL_ERROR, "COAK for unknwon reference %u\n",
 			conn_id);
-		/* FIXME: error message? */
+		/* FIXME: send error reply down the sua link? */
 		return -1;
 	}
 	conn_restart_rx_inact_timer(conn);
@@ -854,7 +854,7 @@ static int sua_rx_coak(struct osmo_sua_link *link, struct xua_msg *xua)
 	if (conn->state != S_CONN_PEND_OUT) {
 		LOGP(DSUA, LOGL_ERROR, "COAK in wrong state %s\n",
 			get_value_string(conn_state_names, conn->state));
-		/* FIXME: error message? */
+		/* FIXME: send error reply down the sua link? */
 		return -EINVAL;
 	}
 
@@ -908,7 +908,7 @@ static int sua_rx_coref(struct osmo_sua_link *link, struct xua_msg *xua)
 	if (!conn) {
 		LOGP(DSUA, LOGL_ERROR, "COREF for unknwon reference %u\n",
 			conn_id);
-		/* FIXME: error message? */
+		/* FIXME: send error reply down the sua link? */
 		return -1;
 	}
 	conn_restart_rx_inact_timer(conn);
@@ -961,7 +961,7 @@ static int sua_rx_relre(struct osmo_sua_link *link, struct xua_msg *xua)
 	if (!conn) {
 		LOGP(DSUA, LOGL_ERROR, "RELRE for unknwon reference %u\n",
 			conn_id);
-		/* FIXME: error message? */
+		/* FIXME: send error reply down the sua link? */
 		return -1;
 	}
 
@@ -1011,7 +1011,7 @@ static int sua_rx_relco(struct osmo_sua_link *link, struct xua_msg *xua)
 	if (!conn) {
 		LOGP(DSUA, LOGL_ERROR, "RELCO for unknwon reference %u\n",
 			conn_id);
-		/* FIXME: error message? */
+		/* FIXME: send error reply down the sua link? */
 		return -1;
 	}
 	conn_restart_rx_inact_timer(conn);
@@ -1058,14 +1058,14 @@ static int sua_rx_codt(struct osmo_sua_link *link, struct xua_msg *xua)
 	if (!conn) {
 		LOGP(DSUA, LOGL_ERROR, "DT1 for unknwon reference %u\n",
 			conn_id);
-		/* FIXME: error message? */
+		/* FIXME: send error reply down the sua link? */
 		return -1;
 	}
 
 	if (conn->state != S_ACTIVE) {
 		LOGP(DSUA, LOGL_ERROR, "DT1 in invalid state %s\n",
 			get_value_string(conn_state_names, conn->state));
-		/* FIXME: error message? */
+		/* FIXME: send error reply down the sua link? */
 		return -1;
 	}
 
