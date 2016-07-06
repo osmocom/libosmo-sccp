@@ -18,7 +18,7 @@ const struct log_info test_log_info = {
 	.num_cat = ARRAY_SIZE(log_cat),
 };
 
-int tx_unitdata(struct osmo_sua_link *link)
+int tx_unitdata(struct osmo_sccp_link *link)
 {
 	struct msgb *msg = msgb_alloc(1024, "tx_unitdata");
 	struct osmo_scu_prim *prim;
@@ -62,7 +62,7 @@ struct osmo_prim_hdr *make_conn_req(uint32_t conn_id)
 	return &prim->oph;
 }
 
-int tx_conn_req(struct osmo_sua_link *link, uint32_t conn_id)
+int tx_conn_req(struct osmo_sccp_link *link, uint32_t conn_id)
 {
 	struct osmo_prim_hdr *prim = make_conn_req(conn_id);
 	return osmo_sua_user_link_down(link, prim);

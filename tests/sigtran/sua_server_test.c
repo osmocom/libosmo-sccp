@@ -57,7 +57,7 @@ static int sccp_sap_up(struct osmo_prim_hdr *oph, void *link)
 
 int main(int argc, char **argv)
 {
-	struct osmo_sua_user *user;
+	struct osmo_sccp_user *user;
 	void *ctx = talloc_named_const(NULL, 1, "root");
 	int rc;
 

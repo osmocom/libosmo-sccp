@@ -50,7 +50,7 @@
 
 static int DSUA = -1;
 
-struct osmo_sua_user {
+struct osmo_sccp_user {
 	/* global list of SUA users? */
 	struct llist_head list;
 	/* set if we are a server */
@@ -61,11 +61,11 @@ struct osmo_sua_user {
 	osmo_prim_cb prim_cb;
 };
 
-struct osmo_sua_link {
+struct osmo_sccp_link {
 	/* list of SUA links per sua_user */
 	struct llist_head list;
 	/* sua user to which we belong */
-	struct osmo_sua_user *user;
+	struct osmo_sccp_user *user;
 	/* local list of (SCCP) connections in this link */
 	struct llist_head connections;
 	/* next connection local reference */
@@ -101,7 +101,7 @@ static const struct value_string conn_state_names[] = {
 
 struct sua_connection {
 	struct llist_head list;
-	struct osmo_sua_link *link;
+	struct osmo_sccp_link *link;
 	struct osmo_sccp_addr calling_addr;
 	struct osmo_sccp_addr called_addr;
 	uint32_t conn_id;
@@ -204,11 +204,11 @@ static int xua_msg_add_sccp_addr(struct xua_msg *xua, uint16_t iei, const struct
  * SUA Link and Connection handling
  ***********************************************************************/
 
-static struct osmo_sua_link *sua_link_new(struct osmo_sua_user *user, int is_server)
+static struct osmo_sccp_link *sua_link_new(struct osmo_sccp_user *user, int is_server)
 {
-	struct osmo_sua_link *link;
+	struct osmo_sccp_link *link;
 
-	link = talloc_zero(user, struct osmo_sua_link);
+	link = talloc_zero(user, struct osmo_sccp_link);
 	if (!link)
 		return NULL;
 
@@ -223,7 +223,7 @@ static struct osmo_sua_link *sua_link_new(struct osmo_sua_user *user, int is_ser
 
 static void conn_destroy(struct sua_connection *conn);
 
-static void sua_link_destroy(struct osmo_sua_link *link)
+static void sua_link_destroy(struct osmo_sccp_link *link)
 {
 	struct sua_connection *conn;
 
@@ -237,7 +237,7 @@ static void sua_link_destroy(struct osmo_sua_link *link)
 	talloc_free(link);
 }
 
-static int sua_link_send(struct osmo_sua_link *link, struct msgb *msg)
+static int sua_link_send(struct osmo_sccp_link *link, struct msgb *msg)
 {
 	msgb_sctp_ppid(msg) = SUA_PPID;
 
@@ -249,7 +249,7 @@ static int sua_link_send(struct osmo_sua_link *link, struct msgb *msg)
 	return 0;
 }
 
-static struct sua_connection *conn_find_by_id(struct osmo_sua_link *link, uint32_t id)
+static struct sua_connection *conn_find_by_id(struct osmo_sccp_link *link, uint32_t id)
 {
 	struct sua_connection *conn;
 
@@ -291,7 +291,7 @@ static void rx_inact_tmr_cb(void *data)
 }
 
 
-static struct sua_connection *conn_create_id(struct osmo_sua_link *link, uint32_t conn_id)
+static struct sua_connection *conn_create_id(struct osmo_sccp_link *link, uint32_t conn_id)
 {
 	struct sua_connection *conn = talloc_zero(link, struct sua_connection);
 
@@ -309,7 +309,7 @@ static struct sua_connection *conn_create_id(struct osmo_sua_link *link, uint32_
 	return conn;
 }
 
-static struct sua_connection *conn_create(struct osmo_sua_link *link)
+static struct sua_connection *conn_create(struct osmo_sccp_link *link)
 {
 	uint32_t conn_id;
 
@@ -369,7 +369,7 @@ static struct msgb *sua_msgb_alloc(void)
  ***********************************************************************/
 
 /* user program sends us a N-CONNNECT.req to initiate a new connection */
-static int sua_connect_req(struct osmo_sua_link *link, struct osmo_scu_prim *prim)
+static int sua_connect_req(struct osmo_sccp_link *link, struct osmo_scu_prim *prim)
 {
 	struct osmo_scu_connect_param *par = &prim->u.connect;
 	struct xua_msg *xua = xua_msg_alloc();
@@ -420,7 +420,7 @@ static int sua_connect_req(struct osmo_sua_link *link, struct osmo_scu_prim *pri
 
 /* user program sends us a N-CONNNECT.resp, presumably against a
  * N-CONNECT.ind */
-static int sua_connect_resp(struct osmo_sua_link *link, struct osmo_scu_prim *prim)
+static int sua_connect_resp(struct osmo_sccp_link *link, struct osmo_scu_prim *prim)
 {
 	struct osmo_scu_connect_param *par = &prim->u.connect;
 	struct xua_msg *xua = xua_msg_alloc();
@@ -473,7 +473,7 @@ static int sua_connect_resp(struct osmo_sua_link *link, struct osmo_scu_prim *pr
 }
 
 /* user wants to send connection-oriented data */
-static int sua_data_req(struct osmo_sua_link *link, struct osmo_scu_prim *prim)
+static int sua_data_req(struct osmo_sccp_link *link, struct osmo_scu_prim *prim)
 {
 	struct osmo_scu_data_param *par = &prim->u.data;
 	struct xua_msg *xua;
@@ -515,7 +515,7 @@ static int sua_data_req(struct osmo_sua_link *link, struct osmo_scu_prim *prim)
 }
 
 /* user wants to disconnect a connection */
-static int sua_disconnect_req(struct osmo_sua_link *link, struct osmo_scu_prim *prim)
+static int sua_disconnect_req(struct osmo_sccp_link *link, struct osmo_scu_prim *prim)
 {
 	struct osmo_scu_disconn_param *par = &prim->u.disconnect;
 	struct xua_msg *xua;
@@ -552,7 +552,7 @@ static int sua_disconnect_req(struct osmo_sua_link *link, struct osmo_scu_prim *
 }
 
 /* user wants to send connectionless data */
-static int sua_unitdata_req(struct osmo_sua_link *link, struct osmo_scu_prim *prim)
+static int sua_unitdata_req(struct osmo_sccp_link *link, struct osmo_scu_prim *prim)
 {
 	struct osmo_scu_unitdata_param *par = &prim->u.unitdata;
 	struct xua_msg *xua = xua_msg_alloc();
@@ -576,7 +576,7 @@ static int sua_unitdata_req(struct osmo_sua_link *link, struct osmo_scu_prim *pr
 }
 
 /* user hands us a SCCP-USER SAP primitive down into the stack */
-int osmo_sua_user_link_down(struct osmo_sua_link *link, struct osmo_prim_hdr *oph)
+int osmo_sua_user_link_down(struct osmo_sccp_link *link, struct osmo_prim_hdr *oph)
 {
 	struct osmo_scu_prim *prim = (struct osmo_scu_prim *) oph;
 	struct msgb *msg = prim->oph.msg;
@@ -732,7 +732,7 @@ static int sua_parse_addr(struct osmo_sccp_addr *out,
 	return 0;
 }
 
-static int sua_rx_cldt(struct osmo_sua_link *link, struct xua_msg *xua)
+static int sua_rx_cldt(struct osmo_sccp_link *link, struct xua_msg *xua)
 {
 	struct osmo_scu_prim *prim;
 	struct osmo_scu_unitdata_param *param;
@@ -765,7 +765,7 @@ static int sua_rx_cldt(struct osmo_sua_link *link, struct xua_msg *xua)
 
 
 /* connectioness messages received from socket */
-static int sua_rx_cl(struct osmo_sua_link *link,
+static int sua_rx_cl(struct osmo_sccp_link *link,
 		     struct xua_msg *xua, struct msgb *msg)
 {
 	int rc = -1;
@@ -786,7 +786,7 @@ static int sua_rx_cl(struct osmo_sua_link *link,
 }
 
 /* RFC 3868 3.3.3 / SCCP CR */
-static int sua_rx_core(struct osmo_sua_link *link, struct xua_msg *xua)
+static int sua_rx_core(struct osmo_sccp_link *link, struct xua_msg *xua)
 {
 	struct osmo_scu_prim *prim;
 	struct osmo_scu_connect_param *param;
@@ -832,7 +832,7 @@ static int sua_rx_core(struct osmo_sua_link *link, struct xua_msg *xua)
 }
 
 /* RFC 3868 3.3.4 / SCCP CC */
-static int sua_rx_coak(struct osmo_sua_link *link, struct xua_msg *xua)
+static int sua_rx_coak(struct osmo_sccp_link *link, struct xua_msg *xua)
 {
 	struct osmo_scu_prim *prim;
 	struct sua_connection *conn;
@@ -893,7 +893,7 @@ static int sua_rx_coak(struct osmo_sua_link *link, struct xua_msg *xua)
 }
 
 /* RFC 3868 3.3.5 / SCCP CREF */
-static int sua_rx_coref(struct osmo_sua_link *link, struct xua_msg *xua)
+static int sua_rx_coref(struct osmo_sccp_link *link, struct xua_msg *xua)
 {
 	struct osmo_scu_prim *prim;
 	struct sua_connection *conn;
@@ -946,7 +946,7 @@ static int sua_rx_coref(struct osmo_sua_link *link, struct xua_msg *xua)
 }
 
 /* RFC 3868 3.3.6 / SCCP RLSD */
-static int sua_rx_relre(struct osmo_sua_link *link, struct xua_msg *xua)
+static int sua_rx_relre(struct osmo_sccp_link *link, struct xua_msg *xua)
 {
 	struct osmo_scu_prim *prim;
 	struct sua_connection *conn;
@@ -998,7 +998,7 @@ static int sua_rx_relre(struct osmo_sua_link *link, struct xua_msg *xua)
 }
 
 /* RFC 3868 3.3.7 / SCCP RLC */
-static int sua_rx_relco(struct osmo_sua_link *link, struct xua_msg *xua)
+static int sua_rx_relco(struct osmo_sccp_link *link, struct xua_msg *xua)
 {
 	struct osmo_scu_prim *prim;
 	struct sua_connection *conn;
@@ -1043,7 +1043,7 @@ static int sua_rx_relco(struct osmo_sua_link *link, struct xua_msg *xua)
 }
 
 /* RFC3868 3.3.1 / SCCP DT1 */
-static int sua_rx_codt(struct osmo_sua_link *link, struct xua_msg *xua)
+static int sua_rx_codt(struct osmo_sccp_link *link, struct xua_msg *xua)
 {
 	struct osmo_scu_prim *prim;
 	struct sua_connection *conn;
@@ -1093,7 +1093,7 @@ static int sua_rx_codt(struct osmo_sua_link *link, struct xua_msg *xua)
 
 
 /* connection-oriented messages received from socket */
-static int sua_rx_co(struct osmo_sua_link *link,
+static int sua_rx_co(struct osmo_sccp_link *link,
 		     struct xua_msg *xua, struct msgb *msg)
 {
 	int rc = -1;
@@ -1134,7 +1134,7 @@ static int sua_rx_co(struct osmo_sua_link *link,
 }
 
 /* process SUA message received from socket */
-static int sua_rx_msg(struct osmo_sua_link *link, struct msgb *msg)
+static int sua_rx_msg(struct osmo_sccp_link *link, struct msgb *msg)
 {
 	struct xua_msg *xua;
 	int rc = -1;
@@ -1182,7 +1182,7 @@ static int sua_rx_msg(struct osmo_sua_link *link, struct msgb *msg)
 static int sua_srv_conn_cb(struct osmo_stream_srv *conn)
 {
 	struct osmo_fd *ofd = osmo_stream_srv_get_ofd(conn);
-	struct osmo_sua_link *link = osmo_stream_srv_get_data(conn);
+	struct osmo_sccp_link *link = osmo_stream_srv_get_data(conn);
 	struct msgb *msg = msgb_alloc(SUA_MSGB_SIZE, "SUA Server Rx");
 	struct sctp_sndrcvinfo sinfo;
 	unsigned int ppid;
@@ -1235,7 +1235,7 @@ static int sua_srv_conn_cb(struct osmo_stream_srv *conn)
 
 static int sua_srv_conn_closed_cb(struct osmo_stream_srv *srv)
 {
-	struct osmo_sua_link *sual = osmo_stream_srv_get_data(srv);
+	struct osmo_sccp_link *sual = osmo_stream_srv_get_data(srv);
 	struct sua_connection *conn;
 
 	LOGP(DSUA, LOGL_INFO, "SCTP connection closed\n");
@@ -1254,9 +1254,9 @@ static int sua_srv_conn_closed_cb(struct osmo_stream_srv *srv)
 
 static int sua_accept_cb(struct osmo_stream_srv_link *link, int fd)
 {
-	struct osmo_sua_user *user = osmo_stream_srv_link_get_data(link);
+	struct osmo_sccp_user *user = osmo_stream_srv_link_get_data(link);
 	struct osmo_stream_srv *srv;
-	struct osmo_sua_link *sual;
+	struct osmo_sccp_link *sual;
 
 	LOGP(DSUA, LOGL_INFO, "New SCTP connection accepted\n");
 
@@ -1278,7 +1278,7 @@ static int sua_accept_cb(struct osmo_stream_srv_link *link, int fd)
 	return 0;
 }
 
-int osmo_sua_server_listen(struct osmo_sua_user *user, const char *hostname, uint16_t port)
+int osmo_sua_server_listen(struct osmo_sccp_user *user, const char *hostname, uint16_t port)
 {
 	int rc;
 
@@ -1308,7 +1308,7 @@ int osmo_sua_server_listen(struct osmo_sua_user *user, const char *hostname, uin
 static int sua_cli_conn_cb(struct osmo_stream_cli *conn)
 {
 	struct osmo_fd *ofd = osmo_stream_cli_get_ofd(conn);
-	struct osmo_sua_link *link = osmo_stream_cli_get_data(conn);
+	struct osmo_sccp_link *link = osmo_stream_cli_get_data(conn);
 	struct msgb *msg = msgb_alloc(SUA_MSGB_SIZE, "SUA Client Rx");
 	struct sctp_sndrcvinfo sinfo;
 	unsigned int ppid;
@@ -1359,10 +1359,10 @@ static int sua_cli_conn_cb(struct osmo_stream_cli *conn)
 	return rc;
 }
 
-int osmo_sua_client_connect(struct osmo_sua_user *user, const char *hostname, uint16_t port)
+int osmo_sua_client_connect(struct osmo_sccp_user *user, const char *hostname, uint16_t port)
 {
 	struct osmo_stream_cli *cli;
-	struct osmo_sua_link *sual;
+	struct osmo_sccp_link *sual;
 	int rc;
 
 	cli = osmo_stream_cli_create(user);
@@ -1394,16 +1394,16 @@ int osmo_sua_client_connect(struct osmo_sua_user *user, const char *hostname, ui
 	return 0;
 }
 
-struct osmo_sua_link *osmo_sua_client_get_link(struct osmo_sua_user *user)
+struct osmo_sccp_link *osmo_sua_client_get_link(struct osmo_sccp_user *user)
 {
 	return osmo_stream_cli_get_data(user->client);
 }
 
 static LLIST_HEAD(sua_users);
 
-struct osmo_sua_user *osmo_sua_user_create(void *ctx, osmo_prim_cb prim_cb)
+struct osmo_sccp_user *osmo_sua_user_create(void *ctx, osmo_prim_cb prim_cb)
 {
-	struct osmo_sua_user *user = talloc_zero(ctx, struct osmo_sua_user);
+	struct osmo_sccp_user *user = talloc_zero(ctx, struct osmo_sccp_user);
 
 	user->prim_cb = prim_cb;
 	INIT_LLIST_HEAD(&user->links);
@@ -1413,9 +1413,9 @@ struct osmo_sua_user *osmo_sua_user_create(void *ctx, osmo_prim_cb prim_cb)
 	return user;
 }
 
-void osmo_sua_user_destroy(struct osmo_sua_user *user)
+void osmo_sua_user_destroy(struct osmo_sccp_user *user)
 {
-	struct osmo_sua_link *link;
+	struct osmo_sccp_link *link;
 
 	llist_del(&user->list);
 
