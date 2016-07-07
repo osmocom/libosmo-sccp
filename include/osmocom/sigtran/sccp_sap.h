@@ -174,7 +174,7 @@ enum osmo_sccp_originator {
 /* OSMO_SCU_PRIM_N_DISCONNECT */
 struct osmo_scu_disconn_param {
 	enum osmo_sccp_originator originator;
-	struct osmo_sccp_addr repsonding_addr;
+	struct osmo_sccp_addr responding_addr;
 	uint32_t cause;
 	uint32_t conn_id;
 	uint32_t importance;
