@@ -1337,9 +1337,11 @@ static int sua_srv_conn_cb(struct osmo_stream_srv *conn)
 		case SCTP_ADAPTATION_INDICATION:
 			printf("===> SCTP_ADAPTATION_INDICATION\n");
 			break;
+#ifdef SCTP_AUTHENTICATION_INDICATION
 		case SCTP_AUTHENTICATION_INDICATION:
 			printf("===> SCTP_AUTHENTICATION_INDICATION\n");
 			break;
+#endif
 #ifdef SCTP_SENDER_DRY_EVENT
 		case SCTP_SENDER_DRY_EVENT:
 			printf("===> SCTP_SENDER_DRY_EVENT\n");
@@ -1526,9 +1528,11 @@ static int sua_cli_read_cb(struct osmo_stream_cli *conn)
 		case SCTP_ADAPTATION_INDICATION:
 			printf("===> SCTP_ADAPTATION_INDICATION\n");
 			break;
+#ifdef SCTP_AUTHENTICATION_INDICATION
 		case SCTP_AUTHENTICATION_INDICATION:
 			printf("===> SCTP_AUTHENTICATION_INDICATION\n");
 			break;
+#endif
 #ifdef SCTP_SENDER_DRY_EVENT
 		case SCTP_SENDER_DRY_EVENT:
 			printf("===> SCTP_SENDER_DRY_EVENT\n");
