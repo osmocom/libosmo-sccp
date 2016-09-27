@@ -32,7 +32,7 @@ void sccp_make_addr_pc_ssn(struct osmo_sccp_addr *addr, uint32_t pc, uint32_t ss
 	addr->pc = pc;
 }
 
-int sccp_tx_unitdata(struct osmo_sua_link *link,
+int sccp_tx_unitdata(struct osmo_sccp_link *link,
 		     const struct osmo_sccp_addr *calling_addr,
 		     const struct osmo_sccp_addr *called_addr,
 		     uint8_t *data, unsigned int len)
@@ -53,7 +53,7 @@ int sccp_tx_unitdata(struct osmo_sua_link *link,
 	return osmo_sua_user_link_down(link, &prim->oph);
 }
 
-int sccp_tx_unitdata_msg(struct osmo_sua_link *link,
+int sccp_tx_unitdata_msg(struct osmo_sccp_link *link,
 			 const struct osmo_sccp_addr *calling_addr,
 			 const struct osmo_sccp_addr *called_addr,
 			 struct msgb *msg)
@@ -67,7 +67,7 @@ int sccp_tx_unitdata_msg(struct osmo_sua_link *link,
 	return rc;
 }
 
-int sccp_tx_conn_req(struct osmo_sua_link *link, uint32_t conn_id,
+int sccp_tx_conn_req(struct osmo_sccp_link *link, uint32_t conn_id,
 		     const struct osmo_sccp_addr *calling_addr,
 		     const struct osmo_sccp_addr *called_addr,
 		     uint8_t *data, unsigned int len)
@@ -91,7 +91,7 @@ int sccp_tx_conn_req(struct osmo_sua_link *link, uint32_t conn_id,
 	return osmo_sua_user_link_down(link, &prim->oph);
 }
 
-int sccp_tx_conn_req_msg(struct osmo_sua_link *link, uint32_t conn_id,
+int sccp_tx_conn_req_msg(struct osmo_sccp_link *link, uint32_t conn_id,
 			 const struct osmo_sccp_addr *calling_addr,
 			 const struct osmo_sccp_addr *called_addr,
 			 struct msgb *msg)
@@ -105,7 +105,7 @@ int sccp_tx_conn_req_msg(struct osmo_sua_link *link, uint32_t conn_id,
 	return rc;
 }
 
-int sccp_tx_data(struct osmo_sua_link *link, uint32_t conn_id,
+int sccp_tx_data(struct osmo_sccp_link *link, uint32_t conn_id,
 		 uint8_t *data, unsigned int len)
 {
 	struct msgb *msg = msgb_alloc(1024, "sccp_tx_data");
@@ -123,7 +123,7 @@ int sccp_tx_data(struct osmo_sua_link *link, uint32_t conn_id,
 	return osmo_sua_user_link_down(link, &prim->oph);
 }
 
-int sccp_tx_data_msg(struct osmo_sua_link *link, uint32_t conn_id,
+int sccp_tx_data_msg(struct osmo_sccp_link *link, uint32_t conn_id,
 		     struct msgb *msg)
 {
 	int rc;
