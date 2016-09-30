@@ -19,6 +19,13 @@ AC_PROG_INSTALL
 LT_INIT
 AC_PROG_LIBTOOL
 
+dnl check for pkg-config (explained in detail in libosmocore/configure.ac)
+AC_PATH_PROG(PKG_CONFIG_INSTALLED, pkg-config, no)
+if test "x$PKG_CONFIG_INSTALLED" = "xno"; then
+        AC_MSG_WARN([You need to install pkg-config])
+fi
+PKG_PROG_PKG_CONFIG([0.20])
+
 PKG_CHECK_MODULES(LIBOSMOCORE, libosmocore >= 0.3.0)
 PKG_CHECK_MODULES(LIBOSMONETIF, libosmo-netif >= 0.0.6)
 
