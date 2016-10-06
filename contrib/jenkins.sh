@@ -2,32 +2,32 @@
 
 set -ex
 
-rm -rf deps/install
-mkdir deps || true
-cd deps
-osmo-deps.sh libosmocore
+base="$PWD"
+deps="$base/deps"
+inst="$deps/install"
+export deps inst
 
-cd libosmocore
-autoreconf --install --force
-./configure --prefix=$PWD/../install
-$MAKE $PARALLEL_MAKE install
+mkdir "$deps" || true
+rm -rf "$inst"
 
-cd ../
-osmo-deps.sh libosmo-abis
-cd libosmo-abis
-autoreconf --install --force
-PKG_CONFIG_PATH=$PWD/../install/lib/pkgconfig:$PKG_CONFIG_PATH ./configure --prefix=$PWD/../install  
-PKG_CONFIG_PATH=$PWD/..//install/lib/pkgconfig:$PKG_CONFIG_PATH $MAKE $PARALLEL_MAKE install
+osmo-build-dep.sh libosmocore
 
-cd ../
-osmo-deps.sh libosmo-netif
-cd libosmo-netif
-autoreconf --install --force
-PKG_CONFIG_PATH=$PWD/../install/lib/pkgconfig:$PKG_CONFIG_PATH ./configure --prefix=$PWD/../install  
-PKG_CONFIG_PATH=$PWD/..//install/lib/pkgconfig:$PKG_CONFIG_PATH $MAKE $PARALLEL_MAKE install
+export PKG_CONFIG_PATH="$inst/lib/pkgconfig:$PKG_CONFIG_PATH"
+export LD_LIBRARY_PATH="$inst/lib"
 
-cd ../../
+osmo-build-dep.sh libosmo-abis
+osmo-build-dep.sh libosmo-netif
+
+set +x
+echo
+echo
+echo
+echo " =============================== libosmo-sccp ==============================="
+echo
+set -x
+
 autoreconf --install --force
-PKG_CONFIG_PATH=$PWD/deps/install/lib/pkgconfig:$PKG_CONFIG_PATH ./configure
-PKG_CONFIG_PATH=$PWD/deps/install/lib/pkgconfig:$PKG_CONFIG_PATH $MAKE $PARALLEL_MAKE
-PKG_CONFIG_PATH=$PWD/deps/install/lib/pkgconfig:$PKG_CONFIG_PATH LD_LIBRARY_PATH=$PWD/deps/install/lib $MAKE distcheck
+./configure
+$MAKE $PARALLEL_MAKE
+$MAKE distcheck \
+  || cat-testlogs.sh
