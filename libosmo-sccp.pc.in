@@ -6,5 +6,5 @@ includedir=@includedir@
 Name: OpenBSC SCCP Lib
 Description: OpenBSC SCCP Lib
 Version: @VERSION@
-Libs: -L${libdir} -lsccp
+Libs: -L${libdir} -losmo-sccp
 Cflags: -I${includedir}/

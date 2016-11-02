@@ -6,5 +6,5 @@ includedir=@includedir@
 Name: Osmo MTP Lib
 Description: Osmo MTP Lib
 Version: @VERSION@
-Libs: -L${libdir} -lmtp
+Libs: -L${libdir} -losmo-mtp
 Cflags: -I${includedir}/
