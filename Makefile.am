@@ -4,7 +4,7 @@ AM_CPPFLAGS = $(all_includes) -I$(top_srcdir)/include
 SUBDIRS = include src tests
 
 pkgconfigdir = $(libdir)/pkgconfig
-pkgconfig_DATA = libosmo-sccp.pc libosmo-mtp.pc libosmo-sigtran.pc
+pkgconfig_DATA = libosmo-sccp.pc libosmo-mtp.pc libosmo-sigtran.pc libosmo-xua.pc
 
 EXTRA_DIST = .version
 
