@@ -793,7 +793,6 @@ static int sua_rx_core(struct osmo_sccp_link *link, struct xua_msg *xua)
 	struct xua_msg_part *data_ie = xua_msg_find_tag(xua, SUA_IEI_DATA);
 	struct msgb *upmsg;
 	struct sua_connection *conn;
-	uint8_t *cur;
 
 	/* fill conn */
 	conn = conn_create(link);
@@ -1051,7 +1050,6 @@ static int sua_rx_codt(struct osmo_sccp_link *link, struct xua_msg *xua)
 	struct xua_msg_part *data_ie = xua_msg_find_tag(xua, SUA_IEI_DATA);
 	struct msgb *upmsg;
 	uint32_t conn_id = xua_msg_get_u32(xua, SUA_IEI_DEST_REF);
-	uint8_t *cur;
 
 	/* resolve conn */
 	conn = conn_find_by_id(link, conn_id);
