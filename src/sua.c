@@ -1261,8 +1261,10 @@ static int sua_accept_cb(struct osmo_stream_srv_link *link, int fd)
 	srv = osmo_stream_srv_create(user, link, fd,
 				     sua_srv_conn_cb,
 				     sua_srv_conn_closed_cb, NULL);
-	if (!srv)
+	if (!srv) {
 		close(fd);
+		return -1;
+	}
 
 	/* create new SUA link and connect both data structures */
 	sual = sua_link_new(user, 1);
