@@ -510,8 +510,10 @@ int sccp_create_sccp_addr(struct msgb *msg, const struct sockaddr_sccp *sock)
 	msgb_v_put(msg, sock->sccp_ssn);
 
 	/* copy the gti if it is present */
-	gti = msgb_put(msg, sock->gti_len);
-	memcpy(gti, sock->gti, sock->gti_len);
+	if (sock->gti) {
+		gti = msgb_put(msg, sock->gti_len);
+		memcpy(gti, sock->gti, sock->gti_len);
+	}
 
 	/* update the length now */
 	len[0] = msg->tail - len - 1;
