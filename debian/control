@@ -1,16 +1,33 @@
 Source: libosmo-sccp
-Priority: optional
 Maintainer: Harald Welte <laforge@gnumonks.org>
-Build-Depends: debhelper (>= 9), autotools-dev, pkg-config, libosmocore-dev, autoconf, automake, libtool, dh-autoreconf, git, libdpkg-perl, libosmo-netif-dev, libsctp-dev
-Standards-Version: 3.9.6
 Section: libs
-#Homepage: <insert the upstream URL, if relevant>
+Priority: optional
+Build-Depends: debhelper (>= 9),
+               autotools-dev,
+               pkg-config,
+               libosmocore-dev,
+               autoconf,
+               automake,
+               libtool,
+               dh-autoreconf,
+               git,
+               libdpkg-perl,
+               libosmo-netif-dev,
+               libsctp-dev
+Standards-Version: 3.9.7
 Vcs-Git: git://git.osmocom.org/libosmo-sccp.git
 Vcs-Browser: http://git.osmocom.org/gitweb?p=libosmo-sccp.git;a=summary
+Homepage: https://projects.osmocom.org/projects/libosmo-sccp
 
 Package: libosmo-sccp-dev
-Section: libdevel
 Architecture: any
 Depends: ${misc:Depends}
 Multi-Arch: same
-Description: Development files for Osmcoom SCCP library
+Section: libdevel
+Description: Development files for libosmosccp, libosmomtp and libosmoxua
+ SCCP is a network layer protocol that provides extended routing, flow control,
+ segmentation, connection-orientation, and error correction facilities in
+ Signaling System 7 telecommunications networks.
+ It is heavily used in cellular networks such as GSM.
+ .
+ This package contains the development files for the library.
