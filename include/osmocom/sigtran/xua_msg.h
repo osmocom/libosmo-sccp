@@ -42,6 +42,8 @@ struct xua_msg_part {
 };
 
 
+extern int DXUA;
+
 struct xua_msg *xua_msg_alloc(void);
 void xua_msg_free(struct xua_msg *msg);
 

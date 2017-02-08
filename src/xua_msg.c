@@ -28,7 +28,7 @@
 #include <errno.h>
 
 static void *tall_xua;
-static int DXUA = -1;
+int DXUA = -1;
 
 struct xua_msg *xua_msg_alloc(void)
 {
