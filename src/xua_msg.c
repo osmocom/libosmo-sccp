@@ -25,6 +25,7 @@
 #include <arpa/inet.h>
 
 #include <string.h>
+#include <errno.h>
 
 static void *tall_xua;
 static int DXUA = -1;
@@ -181,4 +182,57 @@ struct msgb *xua_to_msg(const int version, struct xua_msg *xua)
 void xua_set_log_area(int log_area)
 {
 	DXUA = log_area;
+}
+
+
+/***********************************************************************
+ * Message encoding helper functions
+ ***********************************************************************/
+
+int msgb_t16l16vp_put(struct msgb *msg, uint16_t tag, uint16_t len, const uint8_t *data)
+{
+	uint8_t *cur;
+	unsigned int rest;
+	unsigned int tlv_len = 4 + len + (4 - (len % 4));
+
+	if (msgb_tailroom(msg) < tlv_len)
+		return -ENOMEM;
+
+	/* tag */
+	msgb_put_u16(msg, tag);
+	/* length */
+	msgb_put_u16(msg, len + 4);
+	/* value */
+	cur = msgb_put(msg, len);
+	memcpy(cur, data, len);
+	/* padding */
+	rest = (4 - (len % 4)) & 0x3;
+	if (rest > 0) {
+		cur = msgb_put(msg, rest);
+		memset(cur, 0, rest);
+	}
+
+	return 0;
+}
+
+int msgb_t16l16vp_put_u32(struct msgb *msg, uint16_t tag, uint32_t val)
+{
+	uint32_t val_n = htonl(val);
+
+	return msgb_t16l16vp_put(msg, tag, sizeof(val_n), (uint8_t *)&val_n);
+}
+
+int xua_msg_add_u32(struct xua_msg *xua, uint16_t iei, uint32_t val)
+{
+	uint32_t val_n = htonl(val);
+	return xua_msg_add_data(xua, iei, sizeof(val_n), (uint8_t *) &val_n);
+}
+
+uint32_t xua_msg_get_u32(struct xua_msg *xua, uint16_t iei)
+{
+	struct xua_msg_part *part = xua_msg_find_tag(xua, iei);
+	uint32_t rc = 0;
+	if (part)
+		rc = ntohl(*(uint32_t *)part->dat);
+	return rc;
 }
