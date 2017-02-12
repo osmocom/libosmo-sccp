@@ -20,6 +20,11 @@
  */
 
 #include <string.h>
+#include <stdbool.h>
+
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#include <netinet/in.h>
 
 #include <osmocom/sigtran/sccp_sap.h>
 #include <osmocom/sigtran/sua.h>
@@ -148,4 +153,70 @@ int osmo_sccp_tx_data_msg(struct osmo_sccp_link *link, uint32_t conn_id,
 	msgb_free(msg);
 
 	return rc;
+}
+
+static void append_to_buf(char *buf, bool *comma, const char *fmt, ...)
+{
+	va_list ap;
+
+	va_start(ap, fmt);
+	if (*comma == true) {
+		strcat(buf, ",");
+	} else
+		*comma = true;
+	vsprintf(buf+strlen(buf), fmt, ap);
+	va_end(ap);
+}
+
+char *osmo_sccp_gt_dump(const struct osmo_sccp_gt *gt)
+{
+	static char buf[256];
+	bool comma = false;
+
+	buf[0] = '\0';
+
+	if (gt->gti == OSMO_SCCP_GTI_NO_GT) {
+		strcat(buf, "NONE");
+		return buf;
+	}
+	if (gt->gti == OSMO_SCCP_GTI_NAI_ONLY) {
+		return buf;
+	}
+	if (gt->gti == OSMO_SCCP_GTI_TT_ONLY ||
+	    gt->gti == OSMO_SCCP_GTI_TT_NPL_ENC ||
+	    gt->gti == OSMO_SCCP_GTI_TT_NPL_ENC_NAI)
+		append_to_buf(buf, &comma, "TT=%u", gt->tt);
+
+	if (gt->gti == OSMO_SCCP_GTI_TT_NPL_ENC ||
+	    gt->gti == OSMO_SCCP_GTI_TT_NPL_ENC_NAI)
+		append_to_buf(buf, &comma, "NPL=%u", gt->npi);
+
+	if (gt->gti == OSMO_SCCP_GTI_TT_NPL_ENC_NAI)
+		append_to_buf(buf, &comma, "NAI=%u", gt->nai);
+
+	append_to_buf(buf, &comma, "DIG=%s", gt->digits);
+
+	return buf;
+}
+
+char *osmo_sccp_addr_dump(const struct osmo_sccp_addr *addr)
+{
+	static char buf[256];
+	bool comma = false;
+
+	buf[0] = '\0';
+
+	append_to_buf(buf, &comma, "RI=7");
+
+	if (addr->presence & OSMO_SCCP_ADDR_T_PC)
+		append_to_buf(buf, &comma, "PC=%u", addr->pc);
+	if (addr->presence & OSMO_SCCP_ADDR_T_SSN)
+		append_to_buf(buf, &comma, "SSN=%u", addr->ssn);
+	if (addr->presence & OSMO_SCCP_ADDR_T_IPv4)
+		append_to_buf(buf, &comma, "IP=%s", inet_ntoa(addr->ip.v4));
+	append_to_buf(buf, &comma, "GTI=%u", addr->gt.gti);
+	if (addr->presence & OSMO_SCCP_ADDR_T_GT)
+		append_to_buf(buf, &comma, "GT=(%s)", osmo_sccp_gt_dump(&addr->gt));
+
+	return buf;
 }

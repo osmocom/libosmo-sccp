@@ -37,3 +37,6 @@ int osmo_sccp_tx_data(struct osmo_sccp_link *link, uint32_t conn_id,
 
 int osmo_sccp_tx_data_msg(struct osmo_sccp_link *link, uint32_t conn_id,
 			  struct msgb *msg);
+
+char *osmo_sccp_gt_dump(const struct osmo_sccp_gt *gt);
+char *osmo_sccp_addr_dump(const struct osmo_sccp_addr *addr);
