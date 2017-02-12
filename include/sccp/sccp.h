@@ -30,6 +30,8 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 
+#include <osmocom/core/linuxlist.h>
+
 #include "sccp_types.h"
 
 struct msgb;
