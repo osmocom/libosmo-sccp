@@ -24,6 +24,7 @@
 #ifndef SCCP_TYPES_H
 #define SCCP_TYPES_H
 
+#include <stdint.h>
 #include <osmocom/core/endian.h>
 
 /* Table 1/Q.713 - SCCP message types */
