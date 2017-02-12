@@ -24,6 +24,7 @@
 #define XUA_HDR(class, type)	((struct xua_common_hdr) { .spare = 0, .msg_class = (class), .msg_type = (type) })
 
 struct msgb;
+struct osmo_sccp_addr;
 
 struct xua_msg {
 	struct xua_common_hdr hdr;
@@ -60,3 +61,4 @@ int msgb_t16l16vp_put(struct msgb *msg, uint16_t tag, uint16_t len, const uint8_
 int msgb_t16l16vp_put_u32(struct msgb *msg, uint16_t tag, uint32_t val);
 int xua_msg_add_u32(struct xua_msg *xua, uint16_t iei, uint32_t val);
 uint32_t xua_msg_get_u32(struct xua_msg *xua, uint16_t iei);
+int xua_msg_add_sccp_addr(struct xua_msg *xua, uint16_t iei, const struct osmo_sccp_addr *addr);

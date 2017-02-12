@@ -117,42 +117,6 @@ struct sua_connection {
 
 
 /***********************************************************************
- * Message encoding helper functions
- ***********************************************************************/
-
-static int xua_msg_add_sccp_addr(struct xua_msg *xua, uint16_t iei, const struct osmo_sccp_addr *addr)
-{
-	struct msgb *tmp = msgb_alloc(128, "SCCP Address");
-	int rc;
-
-	if (!tmp)
-		return -ENOMEM;
-
-	msgb_put_u16(tmp, SUA_RI_SSN_PC); /* route on SSN + PC */
-	msgb_put_u16(tmp, 7); /* always put all addresses on SCCP side */
-
-	if (addr->presence & OSMO_SCCP_ADDR_T_GT) {
-		/* FIXME */
-	}
-	if (addr->presence & OSMO_SCCP_ADDR_T_PC) {
-		msgb_t16l16vp_put_u32(tmp, SUA_IEI_PC, addr->pc);
-	}
-	if (addr->presence & OSMO_SCCP_ADDR_T_SSN) {
-		msgb_t16l16vp_put_u32(tmp, SUA_IEI_SSN, addr->ssn);
-	}
-	if (addr->presence & OSMO_SCCP_ADDR_T_IPv4) {
-		/* FIXME: IPv4 address */
-	} else if (addr->presence & OSMO_SCCP_ADDR_T_IPv6) {
-		/* FIXME: IPv6 address */
-	}
-	rc = xua_msg_add_data(xua, iei, msgb_length(tmp), tmp->data);
-	msgb_free(tmp);
-
-	return rc;
-}
-
-
-/***********************************************************************
  * SUA Link and Connection handling
  ***********************************************************************/
 
