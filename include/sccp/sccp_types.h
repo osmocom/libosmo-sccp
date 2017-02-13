@@ -400,6 +400,26 @@ struct sccp_data_unitdata {
 	uint8_t			data[0];
 } __attribute__((packed));
 
+struct sccp_data_unitdata_service {
+	/* mandantory */
+	uint8_t			type;
+	uint8_t			return_cause;
+
+
+	/* variable */
+	uint8_t			variable_called;
+	uint8_t			variable_calling;
+	uint8_t			variable_data;
+
+#if VARIABLE
+	called party address
+	calling party address
+#endif
+
+	uint8_t			data[0];
+} __attribute__((packed));
+
+
 struct sccp_data_it {
 	/* mandantory */
 	uint8_t			type;
