@@ -20,6 +20,7 @@
 #include <osmocom/sigtran/protocol/sua.h>
 #include <osmocom/sigtran/sccp_sap.h>
 
+#include <osmocom/core/utils.h>
 #include <osmocom/core/msgb.h>
 #include <osmocom/core/logging.h>
 #include <osmocom/core/talloc.h>
@@ -230,13 +231,18 @@ int xua_msg_add_u32(struct xua_msg *xua, uint16_t iei, uint32_t val)
 	return xua_msg_add_data(xua, iei, sizeof(val_n), (uint8_t *) &val_n);
 }
 
+uint32_t xua_msg_part_get_u32(struct xua_msg_part *part)
+{
+	OSMO_ASSERT(part->len >= 4);
+	return ntohl(*(uint32_t *)part->dat);
+}
+
 uint32_t xua_msg_get_u32(struct xua_msg *xua, uint16_t iei)
 {
 	struct xua_msg_part *part = xua_msg_find_tag(xua, iei);
-	uint32_t rc = 0;
-	if (part)
-		rc = ntohl(*(uint32_t *)part->dat);
-	return rc;
+	if (!part)
+		return 0;
+	return xua_msg_part_get_u32(part);
 }
 
 int xua_msg_add_sccp_addr(struct xua_msg *xua, uint16_t iei, const struct osmo_sccp_addr *addr)
