@@ -38,6 +38,10 @@ static int asp_notify_all_as(struct osmo_ss7_as *as, struct osmo_xlm_prim_notify
 	struct msgb *msg;
 	unsigned int i, sent = 0;
 
+	/* we don't send notify to IPA peers! */
+	if (as->cfg.proto == OSMO_SS7_ASP_PROT_IPA)
+		return 0;
+
 	/* iterate over all non-DOWN ASPs and send them the message */
 	for (i = 0; i < ARRAY_SIZE(as->cfg.asps); i++) {
 		struct osmo_ss7_asp *asp = as->cfg.asps[i];
@@ -66,7 +70,7 @@ static int asp_notify_all_as(struct osmo_ss7_as *as, struct osmo_xlm_prim_notify
 }
 
 /* actually transmit a message through this AS */
-static int xua_as_transmit_msg(struct osmo_ss7_as *as, struct msgb *msg)
+int xua_as_transmit_msg(struct osmo_ss7_as *as, struct msgb *msg)
 {
 	struct osmo_ss7_asp *asp;
 	unsigned int i;

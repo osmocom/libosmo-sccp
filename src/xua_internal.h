@@ -66,3 +66,9 @@ extern const struct value_string m3ua_rkm_dereg_status_vals[];
 #define CS7_STR	"ITU-T Signaling System 7\n"
 #define PC_STR	"Point Code\n"
 #define INST_STR "An instance of the SS7 stack\n"
+
+int xua_as_transmit_msg(struct osmo_ss7_as *as, struct msgb *msg);
+
+
+int ipa_tx_xua_as(struct osmo_ss7_as *as, struct xua_msg *xua);
+int ipa_rx_msg(struct osmo_ss7_asp *asp, struct msgb *msg);

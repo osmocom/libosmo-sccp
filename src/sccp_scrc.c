@@ -142,6 +142,7 @@ static int gen_mtp_transfer_req_xua(struct osmo_sccp_instance *inst,
 		case OSMO_SS7_ASP_PROT_SUA:
 			return sua_tx_xua_as(as, xua);
 		case OSMO_SS7_ASP_PROT_M3UA:
+		case OSMO_SS7_ASP_PROT_IPA:
 			return sua2sccp_tx_m3ua(inst, xua);
 		default:
 			LOGP(DLSCCP, LOGL_ERROR, "MTP-TRANSFER.req for "
@@ -296,7 +297,8 @@ static int scrc_node_6(struct osmo_sccp_instance *inst,
 		       const struct osmo_sccp_addr *called)
 {
 	struct osmo_sccp_user *scu;
-
+	/* it is not really clear that called->pc will be set to
+	 * anything here, in the case of a SSN-only CalledAddr */
 	scu = sccp_user_find(inst, called->ssn, called->pc);
 
 	/* Is subsystem equipped? */

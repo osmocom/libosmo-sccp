@@ -141,6 +141,8 @@ static int hmrt_message_for_routing(struct osmo_ss7_instance *inst,
 			switch (as->cfg.proto) {
 			case OSMO_SS7_ASP_PROT_M3UA:
 				return m3ua_tx_xua_as(as,xua);
+			case OSMO_SS7_ASP_PROT_IPA:
+				return ipa_tx_xua_as(as, xua);
 			default:
 				LOGP(DLSS7, LOGL_ERROR, "MTP message "
 					"for ASP of unknown protocol%u\n",

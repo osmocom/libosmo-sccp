@@ -41,6 +41,7 @@
 #include <osmocom/core/socket.h>
 
 #include <osmocom/netif/stream.h>
+#include <osmocom/netif/ipa.h>
 
 #include "sccp_internal.h"
 #include "xua_internal.h"
@@ -68,11 +69,24 @@ struct value_string osmo_ss7_asp_protocol_vals[] = {
 	{ OSMO_SS7_ASP_PROT_NONE,	"none" },
 	{ OSMO_SS7_ASP_PROT_SUA,	"sua" },
 	{ OSMO_SS7_ASP_PROT_M3UA,	"m3ua" },
+	{ OSMO_SS7_ASP_PROT_IPA,	"ipa" },
 	{ 0, NULL }
 };
 
 #define LOGSS7(inst, level, fmt, args ...)	\
 	LOGP(DLSS7, level, "%u: " fmt, inst ? (inst)->cfg.id : 0, ## args)
+
+static int asp_proto_to_ip_proto(enum osmo_ss7_asp_protocol proto)
+{
+	switch (proto) {
+	case OSMO_SS7_ASP_PROT_IPA:
+		return IPPROTO_TCP;
+	case OSMO_SS7_ASP_PROT_SUA:
+	case OSMO_SS7_ASP_PROT_M3UA:
+	default:
+		return IPPROTO_SCTP;
+	}
+}
 
 int osmo_ss7_find_free_rctx(struct osmo_ss7_instance *inst)
 {
@@ -1075,6 +1089,7 @@ void osmo_ss7_asp_destroy(struct osmo_ss7_asp *asp)
 }
 
 static int xua_cli_read_cb(struct osmo_stream_cli *conn);
+static int ipa_cli_read_cb(struct osmo_stream_cli *conn);
 static int xua_cli_connect_cb(struct osmo_stream_cli *cli);
 
 int osmo_ss7_asp_restart(struct osmo_ss7_asp *asp)
@@ -1105,10 +1120,13 @@ int osmo_ss7_asp_restart(struct osmo_ss7_asp *asp)
 		osmo_stream_cli_set_port(asp->client, asp->cfg.remote.port);
 		osmo_stream_cli_set_local_addr(asp->client, asp->cfg.local.host);
 		osmo_stream_cli_set_local_port(asp->client, asp->cfg.local.port);
-		osmo_stream_cli_set_proto(asp->client, IPPROTO_SCTP);
+		osmo_stream_cli_set_proto(asp->client, asp_proto_to_ip_proto(asp->cfg.proto));
 		osmo_stream_cli_set_reconnect_timeout(asp->client, 5);
 		osmo_stream_cli_set_connect_cb(asp->client, xua_cli_connect_cb);
-		osmo_stream_cli_set_read_cb(asp->client, xua_cli_read_cb);
+		if (asp->cfg.proto == OSMO_SS7_ASP_PROT_IPA)
+			osmo_stream_cli_set_read_cb(asp->client, ipa_cli_read_cb);
+		else
+			osmo_stream_cli_set_read_cb(asp->client, xua_cli_read_cb);
 		osmo_stream_cli_set_data(asp->client, asp);
 		rc = osmo_stream_cli_open2(asp->client, 1);
 		if (rc < 0) {
@@ -1218,6 +1236,37 @@ static void log_sctp_notification(struct osmo_ss7_asp *asp, const char *pfx,
 				notif->sn_header.sn_type));
 		break;
 	}
+}
+
+/* netif code tells us we can read something from the socket */
+static int ipa_srv_conn_cb(struct osmo_stream_srv *conn)
+{
+	struct osmo_fd *ofd = osmo_stream_srv_get_ofd(conn);
+	struct osmo_ss7_asp *asp = osmo_stream_srv_get_data(conn);
+	struct msgb *msg = NULL;
+	int rc;
+
+	/* read IPA message from socket and process it */
+	rc = ipa_msg_recv_buffered(ofd->fd, &msg, &asp->pending_msg);
+	LOGPASP(asp, DLSS7, LOGL_DEBUG, "%s(): ipa_msg_recv_buffered() returned %d\n",
+		__func__, rc);
+	if (rc <= 0) {
+		if (rc == -EAGAIN) {
+			/* more data needed */
+			return 0;
+		}
+		osmo_stream_srv_destroy(conn);
+		return rc;
+	}
+	if (osmo_ipa_process_msg(msg) < 0) {
+		LOGPASP(asp, DLSS7, LOGL_ERROR, "Bad IPA message\n");
+		osmo_stream_srv_destroy(conn);
+		msgb_free(msg);
+		return -1;
+	}
+	msg->dst = asp;
+
+	return ipa_rx_msg(asp, msg);
 }
 
 /* netif code tells us we can read something from the socket */
@@ -1332,6 +1381,36 @@ static void xua_cli_close_and_reconnect(struct osmo_stream_cli *cli)
 	osmo_stream_cli_reconnect(cli);
 }
 
+/* read call-back for IPA/SCCPlite socket */
+static int ipa_cli_read_cb(struct osmo_stream_cli *conn)
+{
+	struct osmo_fd *ofd = osmo_stream_cli_get_ofd(conn);
+	struct osmo_ss7_asp *asp = osmo_stream_cli_get_data(conn);
+	struct msgb *msg = NULL;
+	int rc;
+
+	/* read IPA message from socket and process it */
+	rc = ipa_msg_recv_buffered(ofd->fd, &msg, &asp->pending_msg);
+	LOGPASP(asp, DLSS7, LOGL_DEBUG, "%s(): ipa_msg_recv_buffered() returned %d\n",
+		__func__, rc);
+	if (rc <= 0) {
+		if (rc == -EAGAIN) {
+			/* more data needed */
+			return 0;
+		}
+		osmo_stream_cli_reconnect(conn);
+		return rc;
+	}
+	if (osmo_ipa_process_msg(msg) < 0) {
+		LOGPASP(asp, DLSS7, LOGL_ERROR, "Bad IPA message\n");
+		osmo_stream_cli_reconnect(conn);
+		msgb_free(msg);
+		return -1;
+	}
+	msg->dst = asp;
+	return ipa_rx_msg(asp, msg);
+}
+
 static int xua_cli_read_cb(struct osmo_stream_cli *conn)
 {
 	struct osmo_fd *ofd = osmo_stream_cli_get_ofd(conn);
@@ -1444,15 +1523,21 @@ static int xua_accept_cb(struct osmo_stream_srv_link *link, int fd)
 	struct osmo_ss7_asp *asp;
 	char *sock_name = osmo_sock_get_name(link, fd);
 
-	LOGP(DLSS7, LOGL_INFO, "%s: New SCTP connection accepted\n",
-		sock_name);
+	LOGP(DLSS7, LOGL_INFO, "%s: New %s connection accepted\n",
+		sock_name, get_value_string(osmo_ss7_asp_protocol_vals, oxs->cfg.proto));
 
-	srv = osmo_stream_srv_create(oxs, link, fd,
-				     xua_srv_conn_cb,
-				     xua_srv_conn_closed_cb, NULL);
+	if (oxs->cfg.proto == OSMO_SS7_ASP_PROT_IPA) {
+		srv = osmo_stream_srv_create(oxs, link, fd,
+					     ipa_srv_conn_cb,
+					     xua_srv_conn_closed_cb, NULL);
+	} else {
+		srv = osmo_stream_srv_create(oxs, link, fd,
+					     xua_srv_conn_cb,
+					     xua_srv_conn_closed_cb, NULL);
+	}
 	if (!srv) {
 		LOGP(DLSS7, LOGL_ERROR, "%s: Unable to create stream server "
-		     "for SCTP connection\n", sock_name);
+		     "for connection\n", sock_name);
 		close(fd);
 		talloc_free(sock_name);
 		return -1;
@@ -1478,6 +1563,7 @@ static int xua_accept_cb(struct osmo_stream_srv_link *link, int fd)
 					sock_name, asp->cfg.name);
 				asp->cfg.is_server = true;
 				asp->dyn_allocated = true;
+				asp->server = srv;
 				osmo_ss7_asp_restart(asp);
 			}
 		}
@@ -1522,6 +1608,8 @@ int osmo_ss7_asp_send(struct osmo_ss7_asp *asp, struct msgb *msg)
 		break;
 	case OSMO_SS7_ASP_PROT_M3UA:
 		msgb_sctp_ppid(msg) = M3UA_PPID;
+		break;
+	case OSMO_SS7_ASP_PROT_IPA:
 		break;
 	default:
 		OSMO_ASSERT(0);
@@ -1594,8 +1682,8 @@ osmo_ss7_xua_server_create(struct osmo_ss7_instance *inst, enum osmo_ss7_asp_pro
 	if (!oxs)
 		return NULL;
 
-	LOGP(DLSS7, LOGL_INFO, "Creating XUA Server %s:%u\n",
-		local_host, local_port);
+	LOGP(DLSS7, LOGL_INFO, "Creating %s Server %s:%u\n",
+		get_value_string(osmo_ss7_asp_protocol_vals, proto), local_host, local_port);
 
 	INIT_LLIST_HEAD(&oxs->asp_list);
 
@@ -1610,7 +1698,7 @@ osmo_ss7_xua_server_create(struct osmo_ss7_instance *inst, enum osmo_ss7_asp_pro
 	osmo_stream_srv_link_set_nodelay(oxs->server, true);
 	osmo_stream_srv_link_set_addr(oxs->server, oxs->cfg.local.host);
 	osmo_stream_srv_link_set_port(oxs->server, oxs->cfg.local.port);
-	osmo_stream_srv_link_set_proto(oxs->server, IPPROTO_SCTP);
+	osmo_stream_srv_link_set_proto(oxs->server, asp_proto_to_ip_proto(proto));
 
 	rc = osmo_stream_srv_link_open(oxs->server);
 	if (rc < 0) {
@@ -1673,6 +1761,7 @@ int osmo_ss7_init(void)
 	osmo_fsm_register(&sccp_scoc_fsm);
 	osmo_fsm_register(&xua_as_fsm);
 	osmo_fsm_register(&xua_asp_fsm);
+	osmo_fsm_register(&ipa_asp_fsm);
 	osmo_fsm_register(&xua_default_lm_fsm);
 	ss7_initialized = true;
 	return 0;

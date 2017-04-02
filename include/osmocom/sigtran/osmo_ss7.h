@@ -258,6 +258,7 @@ enum osmo_ss7_asp_protocol {
 	OSMO_SS7_ASP_PROT_NONE,
 	OSMO_SS7_ASP_PROT_SUA,
 	OSMO_SS7_ASP_PROT_M3UA,
+	OSMO_SS7_ASP_PROT_IPA,
 	_NUM_OSMO_SS7_ASP_PROT
 };
 
@@ -358,6 +359,9 @@ struct osmo_ss7_asp {
 
 	/*! Were we dynamically allocated */
 	bool dyn_allocated;
+
+	/*! Pending message for non-blocking IPA read */
+	struct msgb *pending_msg;
 
 	struct {
 		char *name;

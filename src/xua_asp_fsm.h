@@ -28,6 +28,11 @@ enum xua_asp_event {
 	XUA_ASP_E_ASPSM_BEAT,
 	XUA_ASP_E_ASPSM_BEAT_ACK,
 
+	/* IPA specific */
+	IPA_ASP_E_ID_RESP,
+	IPA_ASP_E_ID_ACK,
+	IPA_ASP_E_ID_GET,
+
 	_NUM_XUA_ASP_E
 };
 
@@ -38,6 +43,7 @@ enum xua_asp_role {
 };
 
 extern struct osmo_fsm xua_asp_fsm;
+extern struct osmo_fsm ipa_asp_fsm;
 
 struct osmo_fsm_inst *xua_asp_fsm_start(struct osmo_ss7_asp *asp,
 					enum xua_asp_role role, int log_level);

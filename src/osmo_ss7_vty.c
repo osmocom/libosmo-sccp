@@ -37,11 +37,12 @@
 
 #include "xua_internal.h"
 
-#define XUA_VAR_STR	"(sua|m3ua)"
+#define XUA_VAR_STR	"(sua|m3ua|ipa)"
 
 #define XUA_VAR_HELP_STR		\
 	"SCCP User Adaptation\n"	 \
-	"MTP3 User Adaptation\n"
+	"MTP3 User Adaptation\n"	\
+	"IPA Multiplex (SCCP Lite)\n"
 
 
 /***********************************************************************
