@@ -32,17 +32,14 @@
 #include <errno.h>
 
 static void *tall_xua;
-int DXUA = -1;
 
 struct xua_msg *xua_msg_alloc(void)
 {
 	struct xua_msg *msg;
 
 	msg = talloc_zero(tall_xua, struct xua_msg);
-	if (!msg) {
-		LOGP(DXUA, LOGL_ERROR, "Failed to allocate.\n");
+	if (!msg)
 		return NULL;
-	}
 
 	INIT_LLIST_HEAD(&msg->headers);
 	return msg;
@@ -162,7 +159,6 @@ struct xua_msg *xua_from_msg(const int version, uint16_t len, uint8_t *data)
 	return msg;
 
 fail:
-	LOGP(DXUA, LOGL_ERROR, "Failed to parse.\n");
 	xua_msg_free(msg);
 	return NULL;
 }
@@ -175,10 +171,8 @@ struct msgb *xua_to_msg(const int version, struct xua_msg *xua)
 	uint8_t rest;
 
 	msg = msgb_alloc_headroom(2048, 512, "xua msg");
-	if (!msg) {
-		LOGP(DXUA, LOGL_ERROR, "Failed to allocate.\n");
+	if (!msg)
 		return NULL;
-	}
 
 	msg->l2h = msgb_put(msg, sizeof(*hdr));
 	hdr = (struct xua_common_hdr *) msg->l2h;
@@ -208,12 +202,6 @@ struct msgb *xua_to_msg(const int version, struct xua_msg *xua)
 	hdr->msg_length = htonl(msgb_l2len(msg));
 	return msg;
 }
-
-void xua_set_log_area(int log_area)
-{
-	DXUA = log_area;
-}
-
 
 /***********************************************************************
  * Message encoding helper functions
