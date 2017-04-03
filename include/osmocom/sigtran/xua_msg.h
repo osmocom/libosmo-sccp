@@ -20,6 +20,7 @@
 #include "xua_types.h"
 
 #include <osmocom/core/linuxlist.h>
+#include <osmocom/sigtran/mtp_sap.h>
 
 #define XUA_HDR(class, type)	((struct xua_common_hdr) { .spare = 0, .msg_class = (class), .msg_type = (type) })
 
@@ -29,6 +30,7 @@ struct osmo_sccp_gt;
 
 struct xua_msg {
 	struct xua_common_hdr hdr;
+	struct osmo_mtp_transfer_param mtp;
 
 	struct llist_head headers;
 };
