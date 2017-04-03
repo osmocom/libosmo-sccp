@@ -42,6 +42,23 @@ struct xua_msg_part {
 	/* TODO: keep small data in the struct for perf reasons */
 };
 
+struct xua_msg_class {
+	const char *name;
+	const struct value_string *msgt_names;
+	const struct value_string *iei_names;
+	const uint16_t *mand_ies[256];
+};
+
+struct xua_dialect {
+	const char *name;
+	uint16_t port;
+	uint16_t ppid;
+	int log_subsys;
+	const struct xua_msg_class *class[256];
+};
+
+extern const struct xua_dialect xua_dialect_sua;
+extern const struct xua_dialect xua_dialect_m3ua;
 
 extern int DXUA;
 
@@ -66,3 +83,10 @@ int xua_msg_add_u32(struct xua_msg *xua, uint16_t iei, uint32_t val);
 uint32_t xua_msg_part_get_u32(struct xua_msg_part *part);
 uint32_t xua_msg_get_u32(struct xua_msg *xua, uint16_t iei);
 int xua_msg_add_sccp_addr(struct xua_msg *xua, uint16_t iei, const struct osmo_sccp_addr *addr);
+
+const char *xua_class_msg_name(const struct xua_msg_class *xmc, uint16_t msg_type);
+const char *xua_class_iei_name(const struct xua_msg_class *xmc, uint16_t iei);
+char *xua_hdr_dump(struct xua_msg *xua, const struct xua_dialect *dialect);
+char *xua_msg_dump(struct xua_msg *xua, const struct xua_dialect *dialect);
+int xua_dialect_check_all_mand_ies(const struct xua_dialect *dialect, struct xua_msg *xua);
+
