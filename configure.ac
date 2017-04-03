@@ -67,6 +67,7 @@ AC_OUTPUT(
     tests/mtp/Makefile
     tests/m2ua/Makefile
     tests/sigtran/Makefile
+    tests/xua/Makefile
     tests/ss7/Makefile
     Makefile)
 
