@@ -41,6 +41,7 @@
 
 #include <osmocom/netif/stream.h>
 
+#include "sccp_internal.h"
 #include "xua_internal.h"
 #include "xua_asp_fsm.h"
 #include "xua_as_fsm.h"
@@ -1483,6 +1484,7 @@ int osmo_ss7_init(void)
 {
 	if (ss7_initialized)
 		return 1;
+	osmo_fsm_register(&sccp_scoc_fsm);
 	osmo_fsm_register(&xua_as_fsm);
 	osmo_fsm_register(&xua_asp_fsm);
 	ss7_initialized = true;
