@@ -692,11 +692,51 @@ int osmo_sua_user_link_down(struct osmo_sccp_link *link, struct osmo_prim_hdr *o
  * Receiving SUA messsages from SCTP
  ***********************************************************************/
 
-static int sua_parse_addr(struct osmo_sccp_addr *out,
-			  struct xua_msg *xua,
-			  uint16_t iei)
+/*! \brief Decode SUA Global Title according to RFC3868 3.10.2.3
+ *  \param[out] gt User-allocated structure for decoded output
+ *  \param[in] data binary-encoded data
+ *  \param[in] datalen length of \ref data in octets
+ */
+int sua_parse_gt(struct osmo_sccp_gt *gt, const uint8_t *data, unsigned int datalen)
 {
-	const struct xua_msg_part *param = xua_msg_find_tag(xua, iei);
+	uint8_t num_digits;
+	char *out_digits;
+	unsigned int i;
+
+	/* 8 byte header at minimum, plus digits */
+	if (datalen < 8)
+		return -EINVAL;
+
+	/* parse header */
+	gt->gti = data[3];
+	num_digits = data[4];
+	gt->tt = data[5];
+	gt->npi = data[6];
+	gt->nai = data[7];
+
+	/* parse digits */
+	out_digits = gt->digits;
+	for (i = 0; i < datalen-8; i++) {
+		uint8_t byte = data[8+i];
+		*out_digits++ = osmo_bcd2char(byte & 0x0F);
+		if (out_digits - gt->digits >= num_digits)
+			break;
+		*out_digits++ = osmo_bcd2char(byte >> 4);
+		if (out_digits - gt->digits >= num_digits)
+			break;
+	}
+	*out_digits++ = '\0';
+
+	return 0;
+}
+
+/*! \brief parse SCCP address from given xUA message part
+ *  \param[out] out caller-allocated decoded SCCP address struct
+ *  \param[in] param xUA message part containing address
+    \returns 0 on success; negative on error */
+int sua_addr_parse_part(struct osmo_sccp_addr *out,
+			const struct xua_msg_part *param)
+{
 	const struct xua_parameter_hdr *par;
 	uint16_t ri;
 	uint16_t ai;
@@ -704,16 +744,15 @@ static int sua_parse_addr(struct osmo_sccp_addr *out,
 	uint16_t par_tag, par_len, par_datalen;
 	uint32_t *p32;
 
-	if (!param)
-		return -ENODEV;
+	memset(out, 0, sizeof(*out));
 
-	LOGP(DSUA, LOGL_DEBUG, "sua_parse_addr(IEI=%d) (%d) %s\n",
-	     iei, param->len,
+	LOGP(DSUA, LOGL_DEBUG, "%s(IEI=0x%04x) (%d) %s\n", __func__,
+	     param->tag, param->len,
 	     osmo_hexdump(param->dat, param->len));
 
 	if (param->len < 4) {
-		LOGP(DSUA, LOGL_ERROR, "SUA IEI %d: invalid address length: %d\n",
-		     iei, param->len);
+		LOGP(DSUA, LOGL_ERROR, "SUA IEI 0x%04x: invalid address length: %d\n",
+		     param->tag, param->len);
 		return -EINVAL;
 	}
 
@@ -723,16 +762,29 @@ static int sua_parse_addr(struct osmo_sccp_addr *out,
 	ai = ntohs(*(uint16_t*) &param->dat[pos]);
 	pos += 2;
 
-	if (ri != SUA_RI_SSN_PC) {
-		LOGP(DSUA, LOGL_ERROR, "SUA IEI %d: Routing Indicator not supported yet: %d\n",
-		     iei, ri);
+	switch (ri) {
+	case SUA_RI_GT:
+		out->ri = OSMO_SCCP_RI_GT;
+		break;
+	case SUA_RI_SSN_PC:
+		out->ri = OSMO_SCCP_RI_SSN_PC;
+		break;
+	case SUA_RI_SSN_IP:
+		out->ri = OSMO_SCCP_RI_SSN_IP;
+		break;
+	case SUA_RI_HOST:
+	default:
+		LOGP(DSUA, LOGL_ERROR, "SUA IEI 0x%04x: Routing Indicator not supported yet: %d\n",
+		     param->tag, ri);
 		return -ENOTSUP;
 	}
 
 	if (ai != 7) {
-		LOGP(DSUA, LOGL_ERROR, "SUA IEI %d: Address Indicator not supported yet: %x\n",
-		     iei, ai);
+#if 0
+		LOGP(DSUA, LOGL_ERROR, "SUA IEI 0x%04x: Address Indicator not supported yet: %x\n",
+		     param->tag, ai);
 		return -ENOTSUP;
+#endif
 	}
 
 	/*
@@ -749,8 +801,8 @@ static int sua_parse_addr(struct osmo_sccp_addr *out,
 		par_len = ntohs(par->len);
 		par_datalen = par_len - sizeof(*par);
 
-		LOGP(DSUA, LOGL_DEBUG, "SUA IEI %hu pos %hu/%hu: subpart tag %hu, len %hu\n",
-		     iei, pos, param->len, par->tag, par->len);
+		LOGP(DSUA, LOGL_DEBUG, "SUA IEI 0x%04x pos %hu/%hu: subpart tag 0x%04x, len %hu\n",
+		     param->tag, pos, param->len, par_tag, par_len);
 
 		switch (par_tag) {
 		case SUA_IEI_PC:
@@ -768,12 +820,22 @@ static int sua_parse_addr(struct osmo_sccp_addr *out,
 			out->presence |= OSMO_SCCP_ADDR_T_SSN;
 			break;
 		case SUA_IEI_GT:
-			/* TODO */
+			if (par_datalen < 8)
+				goto subpar_fail;
+			sua_parse_gt(&out->gt, par->data, par_datalen);
 			out->presence |= OSMO_SCCP_ADDR_T_GT;
 			break;
+		case SUA_IEI_IPv4:
+			if (par_datalen != 4)
+				goto subpar_fail;
+			p32 = (uint32_t*)par->data;
+			/* no endian conversion, both network order */
+			out->ip.v4.s_addr = *p32;
+			out->presence |= OSMO_SCCP_ADDR_T_IPv4;
+			break;
 		default:
-			LOGP(DSUA, LOGL_ERROR, "SUA IEI %d: Unknown subpart tag %hd\n",
-			     iei, par_tag);
+			LOGP(DSUA, LOGL_ERROR, "SUA IEI 0x%04x: Unknown subpart tag %hd\n",
+			     param->tag, par_tag);
 			goto subpar_fail;
 		}
 
@@ -783,9 +845,25 @@ static int sua_parse_addr(struct osmo_sccp_addr *out,
 	return 0;
 
 subpar_fail:
-	LOGP(DSUA, LOGL_ERROR, "Failed to parse subparts of address IEI=%d\n",
-	     iei);
+	LOGP(DSUA, LOGL_ERROR, "Failed to parse subparts of address IEI=0x%04x\n",
+	     param->tag);
 	return -EINVAL;
+}
+
+/*! \brief parse SCCP address from given xUA message IE
+ *  \param[out] out caller-allocated decoded SCCP address struct
+ *  \param[in] xua xUA message
+ *  \param[in] iei Information Element Identifier inside \ref xua
+    \returns 0 on success; negative on error */
+int sua_addr_parse(struct osmo_sccp_addr *out, struct xua_msg *xua, uint16_t iei)
+{
+	const struct xua_msg_part *param = xua_msg_find_tag(xua, iei);
+	if (!param) {
+		memset(out, 0, sizeof(*out));
+		return -ENODEV;
+	}
+
+	return sua_addr_parse_part(out, param);
 }
 
 static int sua_rx_cldt(struct osmo_sccp_link *link, struct xua_msg *xua)
@@ -802,8 +880,8 @@ static int sua_rx_cldt(struct osmo_sccp_link *link, struct xua_msg *xua)
 	osmo_prim_init(&prim->oph, SCCP_SAP_USER,
 			OSMO_SCU_PRIM_N_UNITDATA,
 			PRIM_OP_INDICATION, upmsg);
-	sua_parse_addr(&param->called_addr, xua, SUA_IEI_DEST_ADDR);
-	sua_parse_addr(&param->calling_addr, xua, SUA_IEI_SRC_ADDR);
+	sua_addr_parse(&param->called_addr, xua, SUA_IEI_DEST_ADDR);
+	sua_addr_parse(&param->calling_addr, xua, SUA_IEI_SRC_ADDR);
 	param->in_sequence_control = xua_msg_get_u32(xua, SUA_IEI_SEQ_CTRL);
 	protocol_class = xua_msg_get_u32(xua, SUA_IEI_PROTO_CLASS);
 	param->return_option = protocol_class & 0x80;
@@ -849,8 +927,8 @@ static int sua_rx_core(struct osmo_sccp_link *link, struct xua_msg *xua)
 
 	/* fill conn */
 	conn = conn_create(link);
-	sua_parse_addr(&conn->called_addr, xua, SUA_IEI_DEST_ADDR);
-	sua_parse_addr(&conn->calling_addr, xua, SUA_IEI_SRC_ADDR);
+	sua_addr_parse(&conn->called_addr, xua, SUA_IEI_DEST_ADDR);
+	sua_addr_parse(&conn->calling_addr, xua, SUA_IEI_SRC_ADDR);
 	conn->remote_ref = xua_msg_get_u32(xua, SUA_IEI_SRC_REF);
 
 	/* fill primitive */
