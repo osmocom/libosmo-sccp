@@ -69,8 +69,6 @@ struct xua_msg_event_map {
 extern const struct xua_dialect xua_dialect_sua;
 extern const struct xua_dialect xua_dialect_m3ua;
 
-extern int DXUA;
-
 struct xua_msg *xua_msg_alloc(void);
 void xua_msg_free(struct xua_msg *msg);
 
@@ -83,8 +81,6 @@ int xua_msg_copy_part(struct xua_msg *xua_out, uint16_t tag_out,
 
 struct xua_msg *xua_from_msg(const int version, uint16_t len, uint8_t *data);
 struct msgb *xua_to_msg(const int version, struct xua_msg *msg);
-
-void xua_set_log_area(int log_area);
 
 int msgb_t16l16vp_put(struct msgb *msg, uint16_t tag, uint16_t len, const uint8_t *data);
 int msgb_t16l16vp_put_u32(struct msgb *msg, uint16_t tag, uint32_t val);
