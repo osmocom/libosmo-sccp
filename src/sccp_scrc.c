@@ -139,6 +139,8 @@ static int gen_mtp_transfer_req_xua(struct osmo_sccp_instance *inst,
 	if (rt->dest.as) {
 		struct osmo_ss7_as *as = rt->dest.as;
 		switch (as->cfg.proto) {
+		case OSMO_SS7_ASP_PROT_SUA:
+			return sua_tx_xua_as(as, xua);
 		case OSMO_SS7_ASP_PROT_M3UA:
 			return sua2sccp_tx_m3ua(inst, xua);
 		default:

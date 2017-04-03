@@ -1197,7 +1197,9 @@ static int xua_srv_conn_cb(struct osmo_stream_srv *conn)
 	msgb_sctp_stream(msg) = ntohl(sinfo.sinfo_stream);
 	msg->dst = asp;
 
-	if (ppid == M3UA_PPID && asp->cfg.proto == OSMO_SS7_ASP_PROT_M3UA)
+	if (ppid == SUA_PPID && asp->cfg.proto == OSMO_SS7_ASP_PROT_SUA)
+		rc = sua_rx_msg(asp, msg);
+	else if (ppid == M3UA_PPID && asp->cfg.proto == OSMO_SS7_ASP_PROT_M3UA)
 		rc = m3ua_rx_msg(asp, msg);
 	else {
 		LOGPASP(asp, DLSS7, LOGL_NOTICE, "SCTP chunk for unknown PPID %u "
@@ -1280,7 +1282,9 @@ static int xua_cli_read_cb(struct osmo_stream_cli *conn)
 	msgb_sctp_stream(msg) = ntohl(sinfo.sinfo_stream);
 	msg->dst = asp;
 
-	if (ppid == M3UA_PPID && asp->cfg.proto == OSMO_SS7_ASP_PROT_M3UA)
+	if (ppid == SUA_PPID && asp->cfg.proto == OSMO_SS7_ASP_PROT_SUA)
+		rc = sua_rx_msg(asp, msg);
+	else if (ppid == M3UA_PPID && asp->cfg.proto == OSMO_SS7_ASP_PROT_M3UA)
 		rc = m3ua_rx_msg(asp, msg);
 	else {
 		LOGPASP(asp, DLSS7, LOGL_NOTICE, "SCTP chunk for unknown PPID %u "

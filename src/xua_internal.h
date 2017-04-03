@@ -15,6 +15,8 @@ int sua_parse_gt(struct osmo_sccp_gt *gt, const uint8_t *data, unsigned int data
 struct xua_msg *osmo_sccp_to_xua(struct msgb *msg);
 struct msgb *osmo_sua_to_sccp(struct xua_msg *xua);
 
+int sua_rx_msg(struct osmo_ss7_asp *asp, struct msgb *msg);
+
 int sua_tx_xua_as(struct osmo_ss7_as *as, struct xua_msg *xua);
 
 struct osmo_mtp_prim *m3ua_to_xfer_ind(struct xua_msg *xua);
