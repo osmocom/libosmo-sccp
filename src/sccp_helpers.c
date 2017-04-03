@@ -1,6 +1,6 @@
 /* SCCP User SAP helper functions */
 
-/* (C) 2015 by Harald Welte <laforge@gnumonks.org>
+/* (C) 2015-2017 by Harald Welte <laforge@gnumonks.org>
  * (C) 2016 by sysmocom s.m.f.c. GmbH <info@sysmocom.de>
  * All Rights Reserved
  *
@@ -27,8 +27,14 @@
 #include <netinet/in.h>
 
 #include <osmocom/sigtran/sccp_sap.h>
-#include <osmocom/sigtran/sua.h>
 #include <osmocom/sigtran/sccp_helpers.h>
+
+#include "sccp_internal.h"
+
+static struct msgb *scu_msgb_alloc(const char *name)
+{
+	return sccp_msgb_alloc("SCU");
+}
 
 void osmo_sccp_make_addr_pc_ssn(struct osmo_sccp_addr *addr, uint32_t pc, uint32_t ssn)
 {
@@ -37,12 +43,12 @@ void osmo_sccp_make_addr_pc_ssn(struct osmo_sccp_addr *addr, uint32_t pc, uint32
 	addr->pc = pc;
 }
 
-int osmo_sccp_tx_unitdata(struct osmo_sccp_link *link,
+int osmo_sccp_tx_unitdata(struct osmo_sccp_user *scu,
 			  const struct osmo_sccp_addr *calling_addr,
 			  const struct osmo_sccp_addr *called_addr,
-			  uint8_t *data, unsigned int len)
+			  const uint8_t *data, unsigned int len)
 {
-	struct msgb *msg = msgb_alloc(1024, "sccp_tx_unitdata");
+	struct msgb *msg = scu_msgb_alloc(__func__);
 	struct osmo_scu_prim *prim;
 	struct osmo_scu_unitdata_param *param;
 
@@ -55,13 +61,13 @@ int osmo_sccp_tx_unitdata(struct osmo_sccp_link *link,
 	msg->l2h = msgb_put(msg, len);
 	memcpy(msg->l2h, data, len);
 
-	return osmo_sua_user_link_down(link, &prim->oph);
+	return osmo_sccp_user_sap_down(scu, &prim->oph);
 }
 
-int osmo_sccp_tx_unitdata_ranap(struct osmo_sccp_link *link,
+int osmo_sccp_tx_unitdata_ranap(struct osmo_sccp_user *scu,
 				uint32_t src_point_code,
 				uint32_t dst_point_code,
-				uint8_t *data, unsigned int len)
+				const uint8_t *data, unsigned int len)
 {
 	struct osmo_sccp_addr calling_addr;
 	struct osmo_sccp_addr called_addr;
@@ -69,67 +75,70 @@ int osmo_sccp_tx_unitdata_ranap(struct osmo_sccp_link *link,
 				   OSMO_SCCP_SSN_RANAP);
 	osmo_sccp_make_addr_pc_ssn(&called_addr, dst_point_code,
 				   OSMO_SCCP_SSN_RANAP);
-	return osmo_sccp_tx_unitdata(link, &calling_addr, &called_addr,
+	return osmo_sccp_tx_unitdata(scu, &calling_addr, &called_addr,
 				     data, len);
 }
 
-int osmo_sccp_tx_unitdata_msg(struct osmo_sccp_link *link,
+int osmo_sccp_tx_unitdata_msg(struct osmo_sccp_user *scu,
 			      const struct osmo_sccp_addr *calling_addr,
 			      const struct osmo_sccp_addr *called_addr,
 			      struct msgb *msg)
 {
 	int rc;
 
-	rc = osmo_sccp_tx_unitdata(link, calling_addr, called_addr,
+	rc = osmo_sccp_tx_unitdata(scu, calling_addr, called_addr,
 				   msg->data, msgb_length(msg));
 	msgb_free(msg);
 
 	return rc;
 }
 
-int osmo_sccp_tx_conn_req(struct osmo_sccp_link *link, uint32_t conn_id,
+int osmo_sccp_tx_conn_req(struct osmo_sccp_user *scu, uint32_t conn_id,
 			  const struct osmo_sccp_addr *calling_addr,
 			  const struct osmo_sccp_addr *called_addr,
-			  uint8_t *data, unsigned int len)
+			  const uint8_t *data, unsigned int len)
 {
-	struct msgb *msg = msgb_alloc(1024, "sccp_tx_conn_req");
+	struct msgb *msg = scu_msgb_alloc(__func__);
 	struct osmo_scu_prim *prim;
+	struct osmo_scu_connect_param *param;
 
 	prim = (struct osmo_scu_prim *) msgb_put(msg, sizeof(*prim));
 	osmo_prim_init(&prim->oph, SCCP_SAP_USER,
 			OSMO_SCU_PRIM_N_CONNECT,
 			PRIM_OP_REQUEST, msg);
-	osmo_sccp_make_addr_pc_ssn(&prim->u.connect.calling_addr, 1,
-				   OSMO_SCCP_SSN_RANAP);
-	prim->u.connect.sccp_class = 2;
-	prim->u.connect.conn_id = conn_id;
+	param = &prim->u.connect;
+	if (calling_addr)
+		memcpy(&param->calling_addr, calling_addr, sizeof(*calling_addr));
+	memcpy(&param->called_addr, called_addr, sizeof(*called_addr));
+	param->sccp_class = 2;
+	param->conn_id = conn_id;
 
 	if (data && len) {
 		msg->l2h = msgb_put(msg, len);
 		memcpy(msg->l2h, data, len);
 	}
 
-	return osmo_sua_user_link_down(link, &prim->oph);
+	return osmo_sccp_user_sap_down(scu, &prim->oph);
 }
 
-int osmo_sccp_tx_conn_req_msg(struct osmo_sccp_link *link, uint32_t conn_id,
+int osmo_sccp_tx_conn_req_msg(struct osmo_sccp_user *scu, uint32_t conn_id,
 			      const struct osmo_sccp_addr *calling_addr,
 			      const struct osmo_sccp_addr *called_addr,
 			      struct msgb *msg)
 {
 	int rc;
 
-	rc = osmo_sccp_tx_conn_req(link, conn_id, calling_addr, called_addr,
+	rc = osmo_sccp_tx_conn_req(scu, conn_id, calling_addr, called_addr,
 				   msg->data, msgb_length(msg));
 	msgb_free(msg);
 
 	return rc;
 }
 
-int osmo_sccp_tx_data(struct osmo_sccp_link *link, uint32_t conn_id,
-		      uint8_t *data, unsigned int len)
+int osmo_sccp_tx_data(struct osmo_sccp_user *scu, uint32_t conn_id,
+		      const uint8_t *data, unsigned int len)
 {
-	struct msgb *msg = msgb_alloc(1024, "sccp_tx_data");
+	struct msgb *msg = scu_msgb_alloc(__func__);
 	struct osmo_scu_prim *prim;
 
 	prim = (struct osmo_scu_prim *) msgb_put(msg, sizeof(*prim));
@@ -141,18 +150,77 @@ int osmo_sccp_tx_data(struct osmo_sccp_link *link, uint32_t conn_id,
 	msg->l2h = msgb_put(msg, len);
 	memcpy(msg->l2h, data, len);
 
-	return osmo_sua_user_link_down(link, &prim->oph);
+	return osmo_sccp_user_sap_down(scu, &prim->oph);
 }
 
-int osmo_sccp_tx_data_msg(struct osmo_sccp_link *link, uint32_t conn_id,
+int osmo_sccp_tx_data_msg(struct osmo_sccp_user *scu, uint32_t conn_id,
 			  struct msgb *msg)
 {
 	int rc;
 
-	rc = osmo_sccp_tx_data(link, conn_id, msg->data, msgb_length(msg));
+	rc = osmo_sccp_tx_data(scu, conn_id, msg->data, msgb_length(msg));
 	msgb_free(msg);
 
 	return rc;
+}
+
+/* N-DISCONNECT.req */
+int osmo_sccp_tx_disconn(struct osmo_sccp_user *scu, uint32_t conn_id,
+			 const struct osmo_sccp_addr *resp_addr,
+			 uint32_t cause)
+{
+	struct msgb *msg = scu_msgb_alloc(__func__);
+	struct osmo_scu_prim *prim;
+	struct osmo_scu_disconn_param *param;
+
+	prim = (struct osmo_scu_prim *) msgb_put(msg, sizeof(*prim));
+	osmo_prim_init(&prim->oph, SCCP_SAP_USER,
+			OSMO_SCU_PRIM_N_DISCONNECT,
+			PRIM_OP_REQUEST, msg);
+	param = &prim->u.disconnect;
+	memset(param, 0, sizeof(*param));
+	param->originator = OSMO_SCCP_ORIG_NS_USER;
+	if (resp_addr)
+		memcpy(&param->responding_addr, resp_addr, sizeof(*resp_addr));
+	param->conn_id = conn_id;
+	param->cause = cause;
+
+	return osmo_sccp_user_sap_down(scu, &prim->oph);
+}
+
+/* N-CONNECT.resp */
+int osmo_sccp_tx_conn_resp_msg(struct osmo_sccp_user *scu, uint32_t conn_id,
+				const struct osmo_sccp_addr *resp_addr,
+				struct msgb *msg)
+{
+	struct osmo_scu_prim *prim;
+	struct osmo_scu_connect_param *param;
+
+	msg->l2h = msg->data;
+
+	prim = (struct osmo_scu_prim *) msgb_push(msg, sizeof(*prim));
+	osmo_prim_init(&prim->oph, SCCP_SAP_USER,
+			OSMO_SCU_PRIM_N_CONNECT,
+			PRIM_OP_RESPONSE, msg);
+	param = &prim->u.connect;
+	param->conn_id = conn_id;
+	memcpy(&param->responding_addr, resp_addr, sizeof(*resp_addr));
+	param->sccp_class = 2;
+
+	return osmo_sccp_user_sap_down(scu, &prim->oph);
+}
+
+int osmo_sccp_tx_conn_resp(struct osmo_sccp_user *scu, uint32_t conn_id,
+			   const struct osmo_sccp_addr *resp_addr,
+			   const uint8_t *data, unsigned int len)
+{
+	struct msgb *msg = scu_msgb_alloc(__func__);
+
+	if (data && len) {
+		msg->l2h = msgb_put(msg, len);
+		memcpy(msg->l2h, data, len);
+	}
+	return osmo_sccp_tx_conn_resp_msg(scu, conn_id, resp_addr, msg);
 }
 
 static void append_to_buf(char *buf, bool *comma, const char *fmt, ...)

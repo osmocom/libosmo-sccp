@@ -29,17 +29,20 @@
 #include <osmocom/core/logging.h>
 #include <osmocom/core/timer.h>
 #include <osmocom/core/socket.h>
+#include <osmocom/core/fsm.h>
 
 #include <osmocom/netif/stream.h>
 #include <osmocom/sigtran/xua_msg.h>
 
 #include <osmocom/sigtran/sccp_sap.h>
+#include <osmocom/sigtran/protocol/mtp.h>
 #include <osmocom/sigtran/protocol/sua.h>
-#include <osmocom/sigtran/sua.h>
+#include <osmocom/sigtran/protocol/m3ua.h>
+#include <osmocom/sigtran/osmo_ss7.h>
 
+#include "xua_asp_fsm.h"
 #include "xua_internal.h"
-
-#define SUA_MSGB_SIZE 1500
+#include "sccp_internal.h"
 
 /* Appendix C.4 of Q.714 (all in milliseconds) */
 #define CONNECTION_TIMER	( 1 * 60 * 100)
@@ -205,6 +208,7 @@ const struct xua_dialect xua_dialect_sua = {
 	.name = "SUA",
 	.ppid = SUA_PPID,
 	.port = SUA_PORT,
+	.log_subsys = DLSUA,
 	.class = {
 		[SUA_MSGC_MGMT] = &m3ua_msg_class_mgmt,
 		[SUA_MSGC_SNM] = &m3ua_msg_class_snm,
@@ -216,480 +220,81 @@ const struct xua_dialect xua_dialect_sua = {
 	},
 };
 
-
-static int DSUA = -1;
-
-struct osmo_sccp_user {
-	/* global list of SUA users? */
-	struct llist_head list;
-	/* set if we are a server */
-	struct osmo_stream_srv_link *server;
-	struct osmo_stream_cli *client;
-	struct llist_head links;
-	/* user call-back function in case of incoming primitives */
-	osmo_prim_cb prim_cb;
-	void *priv;
-};
-
-struct osmo_sccp_link {
-	/* list of SUA links per sua_user */
-	struct llist_head list;
-	/* sua user to which we belong */
-	struct osmo_sccp_user *user;
-	/* local list of (SCCP) connections in this link */
-	struct llist_head connections;
-	/* next connection local reference */
-	uint32_t next_id;
-	int is_server;
-	void *data;
-};
-
-enum sua_connection_state {
-	S_IDLE,
-	S_CONN_PEND_IN,
-	S_CONN_PEND_OUT,
-	S_ACTIVE,
-	S_DISCONN_PEND,
-	S_RESET_IN,
-	S_RESET_OUT,
-	S_BOTHWAY_RESET,
-	S_WAIT_CONN_CONF,
-};
-
-static const struct value_string conn_state_names[] = {
-	{ S_IDLE, 		"IDLE" },
-	{ S_CONN_PEND_IN,	"CONN_PEND_IN" },
-	{ S_CONN_PEND_OUT,	"CONN_PEND_OUT" },
-	{ S_ACTIVE,		"ACTIVE" },
-	{ S_DISCONN_PEND,	"DISCONN_PEND" },
-	{ S_RESET_IN,		"RESET_IN" },
-	{ S_RESET_OUT,		"RESET_OUT" },
-	{ S_BOTHWAY_RESET,	"BOTHWAY_RESET" },
-	{ S_WAIT_CONN_CONF,	"WAIT_CONN_CONF" },
-	{ 0, NULL }
-};
-
-struct sua_connection {
-	struct llist_head list;
-	struct osmo_sccp_link *link;
-	struct osmo_sccp_addr calling_addr;
-	struct osmo_sccp_addr called_addr;
-	uint32_t conn_id;
-	uint32_t remote_ref;
-	enum sua_connection_state state;
-	struct osmo_timer_list timer;
-	/* inactivity timers */
-	struct osmo_timer_list tias;
-	struct osmo_timer_list tiar;
-};
-
-
 /***********************************************************************
- * SUA Link and Connection handling
+ * ERROR generation
  ***********************************************************************/
 
-static struct osmo_sccp_link *sua_link_new(struct osmo_sccp_user *user, int is_server)
+static struct xua_msg *sua_gen_error(uint32_t err_code)
 {
-	struct osmo_sccp_link *link;
+	struct xua_msg *xua = xua_msg_alloc();
 
-	link = talloc_zero(user, struct osmo_sccp_link);
-	if (!link)
-		return NULL;
+	xua->hdr = XUA_HDR(SUA_MSGC_MGMT, SUA_MGMT_ERR);
+	xua->hdr.version = SUA_VERSION;
+	xua_msg_add_u32(xua, SUA_IEI_ERR_CODE, err_code);
 
-	link->user = user;
-	link->is_server = is_server;
-	INIT_LLIST_HEAD(&link->connections);
-
-	llist_add_tail(&link->list, &user->links);
-
-	return link;
+	return xua;
 }
 
-static void conn_destroy(struct sua_connection *conn);
-
-static void sua_link_destroy(struct osmo_sccp_link *link)
+static struct xua_msg *sua_gen_error_msg(uint32_t err_code, struct msgb *msg)
 {
-	struct sua_connection *conn;
+	struct xua_msg *xua = sua_gen_error(err_code);
+	unsigned int len_max_40 = msgb_length(msg);
 
-	llist_for_each_entry(conn, &link->connections, list)
-		conn_destroy(conn);
+	if (len_max_40 > 40)
+		len_max_40 = 40;
 
-	llist_del(&link->list);
+	xua_msg_add_data(xua, SUA_IEI_DIAG_INFO, len_max_40, msgb_data(msg));
 
-	/* FIXME: do we need to cleanup the sccp link? */
-
-	talloc_free(link);
+	return xua;
 }
 
-static int sua_link_send(struct osmo_sccp_link *link, struct msgb *msg)
+/***********************************************************************
+ * Transmitting SUA messsages to SCTP
+ ***********************************************************************/
+
+static int sua_tx_xua_asp(struct osmo_ss7_asp *asp, struct xua_msg *xua)
 {
+	struct msgb *msg = xua_to_msg(SUA_VERSION, xua);
+
+	OSMO_ASSERT(asp->cfg.proto == OSMO_SS7_ASP_PROT_SUA);
+
+	xua_msg_free(xua);
+
+	if (!msg) {
+		LOGPASP(asp, DLSUA, LOGL_ERROR, "Error encoding SUA Msg\n");
+		return -1;
+	}
+
 	msgb_sctp_ppid(msg) = SUA_PPID;
-
-	DEBUGP(DSUA, "sua_link_send(%s)\n", osmo_hexdump(msg->data, msgb_length(msg)));
-
-	if (link->is_server)
-		osmo_stream_srv_send(link->data, msg);
-	else
-		osmo_stream_cli_send(link->data, msg);
-
-	return 0;
+	return osmo_ss7_asp_send(asp, msg);
 }
 
-static struct sua_connection *conn_find_by_id(struct osmo_sccp_link *link, uint32_t id)
+/*! \brief Send a given xUA message via a given SUA Application Server
+ *  \param[in] as Application Server through which to send \ref xua
+ *  \param[in] xua xUA message to be sent
+ *  \return 0 on success; negative on error */
+int sua_tx_xua_as(struct osmo_ss7_as *as, struct xua_msg *xua)
 {
-	struct sua_connection *conn;
+	struct osmo_ss7_asp *asp;
+	unsigned int i;
 
-	llist_for_each_entry(conn, &link->connections, list) {
-		if (conn->conn_id == id)
-			return conn;
+	OSMO_ASSERT(as->cfg.proto == OSMO_SS7_ASP_PROT_SUA);
+
+	/* FIXME: Select ASP within AS depending on traffic mode */
+	for (i = 0; i < ARRAY_SIZE(as->cfg.asps); i++) {
+		asp = as->cfg.asps[i];
+		if (!asp)
+			continue;
+		if (asp)
+			break;
 	}
-	return NULL;
-}
-
-static void tx_inact_tmr_cb(void *data)
-{
-	struct sua_connection *conn = data;
-	struct xua_msg *xua = xua_msg_alloc();
-	struct msgb *outmsg;
-
-	/* encode + send the CLDT */
-	xua->hdr = XUA_HDR(SUA_MSGC_CO, SUA_CO_COIT);
-	xua_msg_add_u32(xua, SUA_IEI_ROUTE_CTX, 0);	/* FIXME */
-	xua_msg_add_u32(xua, SUA_IEI_PROTO_CLASS, 2);
-	xua_msg_add_u32(xua, SUA_IEI_SRC_REF, conn->conn_id);
-	xua_msg_add_u32(xua, SUA_IEI_DEST_REF, conn->remote_ref);
-	/* optional: sequence number; credit (both class 3 only) */
-
-	outmsg = xua_to_msg(1, xua);
-	xua_msg_free(xua);
-
-	sua_link_send(conn->link, outmsg);
-}
-
-static void rx_inact_tmr_cb(void *data)
-{
-	struct sua_connection *conn = data;
-
-	/* FIXME: release connection */
-	/* Send N-DISCONNECT.ind to local user */
-	/* Send RLSD to peer */
-	/* enter disconnect pending state with release timer pending */
-}
-
-
-static struct sua_connection *conn_create_id(struct osmo_sccp_link *link, uint32_t conn_id)
-{
-	struct sua_connection *conn = talloc_zero(link, struct sua_connection);
-
-	conn->conn_id = conn_id;
-	conn->link = link;
-	conn->state = S_IDLE;
-
-	llist_add_tail(&conn->list, &link->connections);
-
-	conn->tias.cb = tx_inact_tmr_cb;
-	conn->tias.data = conn;
-	conn->tiar.cb = rx_inact_tmr_cb;
-	conn->tiar.data = conn;
-
-	return conn;
-}
-
-static struct sua_connection *conn_create(struct osmo_sccp_link *link)
-{
-	uint32_t conn_id;
-
-	do {
-		conn_id = link->next_id++;
-	} while (conn_find_by_id(link, conn_id));
-
-	return conn_create_id(link, conn_id);
-}
-
-static void conn_destroy(struct sua_connection *conn)
-{
-	/* FIXME: do some cleanup; inform user? */
-	osmo_timer_del(&conn->tias);
-	osmo_timer_del(&conn->tiar);
-	llist_del(&conn->list);
-	talloc_free(conn);
-}
-
-static void conn_state_set(struct sua_connection *conn,
-			   enum sua_connection_state state)
-{
-	DEBUGP(DSUA, "(%u) state chg %s->", conn->conn_id,
-		get_value_string(conn_state_names, conn->state));
-	DEBUGPC(DSUA, "%s\n",
-		get_value_string(conn_state_names, state));
-	conn->state = state;
-}
-
-static void conn_restart_tx_inact_timer(struct sua_connection *conn)
-{
-	osmo_timer_schedule(&conn->tias, TX_INACT_TIMER / 100,
-			    (TX_INACT_TIMER % 100) * 10);
-}
-
-static void conn_restart_rx_inact_timer(struct sua_connection *conn)
-{
-	osmo_timer_schedule(&conn->tiar, RX_INACT_TIMER / 100,
-			    (RX_INACT_TIMER % 100) * 10);
-}
-
-static void conn_start_inact_timers(struct sua_connection *conn)
-{
-	conn_restart_tx_inact_timer(conn);
-	conn_restart_rx_inact_timer(conn);
-}
-
-/***********************************************************************
- * Handling of messages from the User SAP
- ***********************************************************************/
-
-/* user program sends us a N-CONNNECT.req to initiate a new connection */
-static int sua_connect_req(struct osmo_sccp_link *link, struct osmo_scu_prim *prim)
-{
-	struct osmo_scu_connect_param *par = &prim->u.connect;
-	struct xua_msg *xua = xua_msg_alloc();
-	struct sua_connection *conn;
-	struct msgb *outmsg;
-
-	if (par->sccp_class != 2) {
-		LOGP(DSUA, LOGL_ERROR, "N-CONNECT.req for unsupported "
-			"SCCP class %u\n", par->sccp_class);
-		/* FIXME: Send primitive to user */
-		return -EINVAL;
-	}
-
-	conn = conn_create_id(link, par->conn_id);
-	if (!conn) {
-		/* FIXME: Send primitive to user */
-		return -EINVAL;
-	}
-
-	memcpy(&conn->called_addr, &par->called_addr,
-		sizeof(conn->called_addr));
-	memcpy(&conn->calling_addr, &par->calling_addr,
-		sizeof(conn->calling_addr));
-
-	/* encode + send the CLDT */
-	xua->hdr = XUA_HDR(SUA_MSGC_CO, SUA_CO_CORE);
-	xua_msg_add_u32(xua, SUA_IEI_ROUTE_CTX, 0);	/* FIXME */
-	xua_msg_add_u32(xua, SUA_IEI_PROTO_CLASS, par->sccp_class);
-	xua_msg_add_u32(xua, SUA_IEI_SRC_REF, conn->conn_id);
-	xua_msg_add_sccp_addr(xua, SUA_IEI_DEST_ADDR, &par->called_addr);
-	xua_msg_add_u32(xua, SUA_IEI_SEQ_CTRL, 0); /* FIXME */
-	/* sequence number */
-	if (par->calling_addr.presence)
-		xua_msg_add_sccp_addr(xua, SUA_IEI_SRC_ADDR, &par->calling_addr);
-	/* optional: hop count; importance; priority; credit */
-	if (msgb_l2(prim->oph.msg))
-		xua_msg_add_data(xua, SUA_IEI_DATA, msgb_l2len(prim->oph.msg),
-				 msgb_l2(prim->oph.msg));
-
-	outmsg = xua_to_msg(1, xua);
-	xua_msg_free(xua);
-
-	/* FIXME: Start CONNECTION_TIMER */
-	conn_state_set(conn, S_CONN_PEND_OUT);
-
-	return sua_link_send(link, outmsg);
-}
-
-/* user program sends us a N-CONNNECT.resp, presumably against a
- * N-CONNECT.ind */
-static int sua_connect_resp(struct osmo_sccp_link *link, struct osmo_scu_prim *prim)
-{
-	struct osmo_scu_connect_param *par = &prim->u.connect;
-	struct xua_msg *xua = xua_msg_alloc();
-	struct sua_connection *conn;
-	struct msgb *outmsg;
-
-	/* check if we already know a connection for this conn_id */
-	conn = conn_find_by_id(link, par->conn_id);
-	if (!conn) {
-		LOGP(DSUA, LOGL_ERROR, "N-CONNECT.resp for unknown "
-			"connection ID %u\n", par->conn_id);
-		/* FIXME: Send primitive to user */
+	if (!asp) {
+		LOGP(DLSUA, LOGL_ERROR, "No ASP in AS, dropping message\n");
+		xua_msg_free(xua);
 		return -ENODEV;
 	}
 
-	if (conn->state != S_CONN_PEND_IN) {
-		LOGP(DSUA, LOGL_ERROR, "N-CONNECT.resp in wrong state %s\n",
-			get_value_string(conn_state_names, conn->state));
-		/* FIXME: Send primitive to user */
-		return -EINVAL;
-	}
-
-	/* encode + send the COAK message */
-	xua = xua_msg_alloc();
-	xua->hdr = XUA_HDR(SUA_MSGC_CO, SUA_CO_COAK);
-	xua_msg_add_u32(xua, SUA_IEI_ROUTE_CTX, 0);	/* FIXME */
-	xua_msg_add_u32(xua, SUA_IEI_PROTO_CLASS, par->sccp_class);
-	xua_msg_add_u32(xua, SUA_IEI_DEST_REF, conn->remote_ref);
-	xua_msg_add_u32(xua, SUA_IEI_SRC_REF, conn->conn_id);
-	xua_msg_add_u32(xua, SUA_IEI_SEQ_CTRL, 0);	/* FIXME */
-	/* sequence number */
-	if (par->calling_addr.presence)
-		xua_msg_add_sccp_addr(xua, SUA_IEI_SRC_ADDR, &par->calling_addr);
-	/* optional: hop count; importance; priority */
-	/* FIXME: destination address will be present in case the CORE
-	 * message conveys the source address parameter */
-	if (par->called_addr.presence)
-		xua_msg_add_sccp_addr(xua, SUA_IEI_DEST_ADDR, &par->called_addr);
-	if (msgb_l2(prim->oph.msg))
-		xua_msg_add_data(xua, SUA_IEI_DATA, msgb_l2len(prim->oph.msg),
-				 msgb_l2(prim->oph.msg));
-
-	outmsg = xua_to_msg(1, xua);
-	xua_msg_free(xua);
-
-	conn_state_set(conn, S_ACTIVE);
-	conn_start_inact_timers(conn);
-
-	return sua_link_send(link, outmsg);
-}
-
-/* user wants to send connection-oriented data */
-static int sua_data_req(struct osmo_sccp_link *link, struct osmo_scu_prim *prim)
-{
-	struct osmo_scu_data_param *par = &prim->u.data;
-	struct xua_msg *xua;
-	struct sua_connection *conn;
-	struct msgb *outmsg;
-
-	/* check if we know about this conncetion, and obtain reference */
-	conn = conn_find_by_id(link, par->conn_id);
-	if (!conn) {
-		LOGP(DSUA, LOGL_ERROR, "N-DATA.req for unknown "
-			"connection ID %u\n", par->conn_id);
-		/* FIXME: Send primitive to user */
-		return -ENODEV;
-	}
-
-	if (conn->state != S_ACTIVE) {
-		LOGP(DSUA, LOGL_ERROR, "N-DATA.req in wrong state %s\n",
-			get_value_string(conn_state_names, conn->state));
-		/* FIXME: Send primitive to user */
-		return -EINVAL;
-	}
-
-	conn_restart_tx_inact_timer(conn);
-
-	/* encode + send the CODT message */
-	xua = xua_msg_alloc();
-	xua->hdr = XUA_HDR(SUA_MSGC_CO, SUA_CO_CODT);
-	xua_msg_add_u32(xua, SUA_IEI_ROUTE_CTX, 0);	/* FIXME */
-	/* Sequence number only in expedited data */
-	xua_msg_add_u32(xua, SUA_IEI_DEST_REF, conn->remote_ref);
-	/* optional: priority; correlation id */
-	xua_msg_add_data(xua, SUA_IEI_DATA, msgb_l2len(prim->oph.msg),
-			 msgb_l2(prim->oph.msg));
-
-	outmsg = xua_to_msg(1, xua);
-	xua_msg_free(xua);
-
-	return sua_link_send(link, outmsg);
-}
-
-/* user wants to disconnect a connection */
-static int sua_disconnect_req(struct osmo_sccp_link *link, struct osmo_scu_prim *prim)
-{
-	struct osmo_scu_disconn_param *par = &prim->u.disconnect;
-	struct xua_msg *xua;
-	struct sua_connection *conn;
-	struct msgb *outmsg;
-
-	/* resolve reference of connection */
-	conn = conn_find_by_id(link, par->conn_id);
-	if (!conn) {
-		LOGP(DSUA, LOGL_ERROR, "N-DISCONNECT.req for unknown "
-			"connection ID %u\n", par->conn_id);
-		/* FIXME: Send primitive to user */
-		return -ENODEV;
-	}
-
-	/* encode + send the RELRE */
-	xua = xua_msg_alloc();
-	xua->hdr = XUA_HDR(SUA_MSGC_CO, SUA_CO_RELRE);
-	xua_msg_add_u32(xua, SUA_IEI_ROUTE_CTX, 0);	/* FIXME */
-	xua_msg_add_u32(xua, SUA_IEI_DEST_REF, conn->remote_ref);
-	xua_msg_add_u32(xua, SUA_IEI_SRC_REF, conn->conn_id);
-	xua_msg_add_u32(xua, SUA_IEI_CAUSE, par->cause);
-	/* optional: importance */
-	if (msgb_l2(prim->oph.msg))
-		xua_msg_add_data(xua, SUA_IEI_DATA, msgb_l2len(prim->oph.msg),
-				 msgb_l2(prim->oph.msg));
-
-	outmsg = xua_to_msg(1, xua);
-	xua_msg_free(xua);
-
-	conn_state_set(conn, S_DISCONN_PEND);
-	conn_destroy(conn);
-
-	LOGP(DSUA, LOGL_NOTICE, "About to send the SUA RELRE\n");
-	return sua_link_send(link, outmsg);
-}
-
-/* user wants to send connectionless data */
-static int sua_unitdata_req(struct osmo_sccp_link *link, struct osmo_scu_prim *prim)
-{
-	struct osmo_scu_unitdata_param *par = &prim->u.unitdata;
-	struct xua_msg *xua = xua_msg_alloc();
-	struct msgb *outmsg;
-
-	/* encode + send the CLDT */
-	xua->hdr = XUA_HDR(SUA_MSGC_CL, SUA_CL_CLDT);
-	xua_msg_add_u32(xua, SUA_IEI_ROUTE_CTX, 0);	/* FIXME */
-	xua_msg_add_u32(xua, SUA_IEI_PROTO_CLASS, 0);
-	xua_msg_add_sccp_addr(xua, SUA_IEI_SRC_ADDR, &par->calling_addr);
-	xua_msg_add_sccp_addr(xua, SUA_IEI_DEST_ADDR, &par->called_addr);
-	xua_msg_add_u32(xua, SUA_IEI_SEQ_CTRL, par->in_sequence_control);
-	/* optional: importance, ... correlation id? */
-	xua_msg_add_data(xua, SUA_IEI_DATA, msgb_l2len(prim->oph.msg),
-			 msgb_l2(prim->oph.msg));
-
-	outmsg = xua_to_msg(1, xua);
-	xua_msg_free(xua);
-
-	return sua_link_send(link, outmsg);
-}
-
-/* user hands us a SCCP-USER SAP primitive down into the stack */
-int osmo_sua_user_link_down(struct osmo_sccp_link *link, struct osmo_prim_hdr *oph)
-{
-	struct osmo_scu_prim *prim = (struct osmo_scu_prim *) oph;
-	struct msgb *msg = prim->oph.msg;
-	int rc = 0;
-
-	LOGP(DSUA, LOGL_DEBUG, "Received SCCP User Primitive (%s)\n",
-		osmo_scu_prim_name(&prim->oph));
-
-	switch (OSMO_PRIM_HDR(&prim->oph)) {
-	case OSMO_PRIM(OSMO_SCU_PRIM_N_CONNECT, PRIM_OP_REQUEST):
-		rc = sua_connect_req(link, prim);
-		break;
-	case OSMO_PRIM(OSMO_SCU_PRIM_N_CONNECT, PRIM_OP_RESPONSE):
-		rc = sua_connect_resp(link, prim);
-		break;
-	case OSMO_PRIM(OSMO_SCU_PRIM_N_DATA, PRIM_OP_REQUEST):
-		rc = sua_data_req(link, prim);
-		break;
-	case OSMO_PRIM(OSMO_SCU_PRIM_N_DISCONNECT, PRIM_OP_REQUEST):
-		rc = sua_disconnect_req(link, prim);
-		break;
-	case OSMO_PRIM(OSMO_SCU_PRIM_N_UNITDATA, PRIM_OP_REQUEST):
-		rc = sua_unitdata_req(link, prim);
-		break;
-	default:
-		rc = -1;
-	}
-
-	if (rc != 1)
-		msgb_free(msg);
-
-	return rc;
+	return sua_tx_xua_asp(asp, xua);
 }
 
 /***********************************************************************
@@ -750,12 +355,12 @@ int sua_addr_parse_part(struct osmo_sccp_addr *out,
 
 	memset(out, 0, sizeof(*out));
 
-	LOGP(DSUA, LOGL_DEBUG, "%s(IEI=0x%04x) (%d) %s\n", __func__,
+	LOGP(DLSUA, LOGL_DEBUG, "%s(IEI=0x%04x) (%d) %s\n", __func__,
 	     param->tag, param->len,
 	     osmo_hexdump(param->dat, param->len));
 
 	if (param->len < 4) {
-		LOGP(DSUA, LOGL_ERROR, "SUA IEI 0x%04x: invalid address length: %d\n",
+		LOGP(DLSUA, LOGL_ERROR, "SUA IEI 0x%04x: invalid address length: %d\n",
 		     param->tag, param->len);
 		return -EINVAL;
 	}
@@ -778,14 +383,14 @@ int sua_addr_parse_part(struct osmo_sccp_addr *out,
 		break;
 	case SUA_RI_HOST:
 	default:
-		LOGP(DSUA, LOGL_ERROR, "SUA IEI 0x%04x: Routing Indicator not supported yet: %d\n",
+		LOGP(DLSUA, LOGL_ERROR, "SUA IEI 0x%04x: Routing Indicator not supported yet: %d\n",
 		     param->tag, ri);
 		return -ENOTSUP;
 	}
 
 	if (ai != 7) {
 #if 0
-		LOGP(DSUA, LOGL_ERROR, "SUA IEI 0x%04x: Address Indicator not supported yet: %x\n",
+		LOGP(DLSUA, LOGL_ERROR, "SUA IEI 0x%04x: Address Indicator not supported yet: %x\n",
 		     param->tag, ai);
 		return -ENOTSUP;
 #endif
@@ -805,7 +410,7 @@ int sua_addr_parse_part(struct osmo_sccp_addr *out,
 		par_len = ntohs(par->len);
 		par_datalen = par_len - sizeof(*par);
 
-		LOGP(DSUA, LOGL_DEBUG, "SUA IEI 0x%04x pos %hu/%hu: subpart tag 0x%04x, len %hu\n",
+		LOGP(DLSUA, LOGL_DEBUG, "SUA IEI 0x%04x pos %hu/%hu: subpart tag 0x%04x, len %hu\n",
 		     param->tag, pos, param->len, par_tag, par_len);
 
 		switch (par_tag) {
@@ -838,7 +443,7 @@ int sua_addr_parse_part(struct osmo_sccp_addr *out,
 			out->presence |= OSMO_SCCP_ADDR_T_IPv4;
 			break;
 		default:
-			LOGP(DSUA, LOGL_ERROR, "SUA IEI 0x%04x: Unknown subpart tag %hd\n",
+			LOGP(DLSUA, LOGL_ERROR, "SUA IEI 0x%04x: Unknown subpart tag %hd\n",
 			     param->tag, par_tag);
 			goto subpar_fail;
 		}
@@ -849,7 +454,7 @@ int sua_addr_parse_part(struct osmo_sccp_addr *out,
 	return 0;
 
 subpar_fail:
-	LOGP(DSUA, LOGL_ERROR, "Failed to parse subparts of address IEI=0x%04x\n",
+	LOGP(DLSUA, LOGL_ERROR, "Failed to parse subparts of address IEI=0x%04x\n",
 	     param->tag);
 	return -EINVAL;
 }
@@ -870,809 +475,205 @@ int sua_addr_parse(struct osmo_sccp_addr *out, struct xua_msg *xua, uint16_t iei
 	return sua_addr_parse_part(out, param);
 }
 
-static int sua_rx_cldt(struct osmo_sccp_link *link, struct xua_msg *xua)
+/* connectionless messages received from socket */
+static int sua_rx_cl(struct osmo_ss7_asp *asp, struct xua_msg *xua)
 {
-	struct osmo_scu_prim *prim;
-	struct osmo_scu_unitdata_param *param;
-	struct xua_msg_part *data_ie = xua_msg_find_tag(xua, SUA_IEI_DATA);
-	struct msgb *upmsg = sccp_msgb_alloc(__func__);
-	uint32_t protocol_class;
+	struct osmo_sccp_instance *inst = asp->inst->sccp;
 
-	/* fill primitive */
-	prim = (struct osmo_scu_prim *) msgb_put(upmsg, sizeof(*prim));
-	param = &prim->u.unitdata;
-	osmo_prim_init(&prim->oph, SCCP_SAP_USER,
-			OSMO_SCU_PRIM_N_UNITDATA,
-			PRIM_OP_INDICATION, upmsg);
-	sua_addr_parse(&param->called_addr, xua, SUA_IEI_DEST_ADDR);
-	sua_addr_parse(&param->calling_addr, xua, SUA_IEI_SRC_ADDR);
-	param->in_sequence_control = xua_msg_get_u32(xua, SUA_IEI_SEQ_CTRL);
-	protocol_class = xua_msg_get_u32(xua, SUA_IEI_PROTO_CLASS);
-	param->return_option = protocol_class & 0x80;
-	param->importance = xua_msg_get_u32(xua, SUA_IEI_IMPORTANCE);
-
-	/* copy data */
-	upmsg->l2h = msgb_put(upmsg, data_ie->len);
-	memcpy(upmsg->l2h, data_ie->dat, data_ie->len);
-
-	/* send to user SAP */
-	link->user->prim_cb(&prim->oph, link);
-
-	return 0;
+	/* We feed into SCRC, which then hands the message into
+	 * either SCLC or SCOC, or forwards it to MTP */
+	return scrc_rx_mtp_xfer_ind_xua(inst, xua);
 }
-
-
-/* connectioness messages received from socket */
-static int sua_rx_cl(struct osmo_sccp_link *link,
-		     struct xua_msg *xua, struct msgb *msg)
-{
-	int rc = -1;
-
-	switch (xua->hdr.msg_type) {
-	case SUA_CL_CLDT:
-		rc = sua_rx_cldt(link, xua);
-		break;
-	case SUA_CL_CLDR:
-	default:
-		break;
-	}
-
-	return rc;
-}
-
-/* RFC 3868 3.3.3 / SCCP CR (Connection Request) */
-static int sua_rx_core(struct osmo_sccp_link *link, struct xua_msg *xua)
-{
-	struct osmo_scu_prim *prim;
-	struct osmo_scu_connect_param *param;
-	struct xua_msg_part *data_ie = xua_msg_find_tag(xua, SUA_IEI_DATA);
-	struct msgb *upmsg;
-	struct sua_connection *conn;
-
-	/* fill conn */
-	conn = conn_create(link);
-	sua_addr_parse(&conn->called_addr, xua, SUA_IEI_DEST_ADDR);
-	sua_addr_parse(&conn->calling_addr, xua, SUA_IEI_SRC_ADDR);
-	conn->remote_ref = xua_msg_get_u32(xua, SUA_IEI_SRC_REF);
-
-	/* fill primitive */
-	upmsg = sccp_msgb_alloc(__func__);
-	prim = (struct osmo_scu_prim *) msgb_put(upmsg, sizeof(*prim));
-	param = &prim->u.connect;
-	osmo_prim_init(&prim->oph, SCCP_SAP_USER,
-			OSMO_SCU_PRIM_N_CONNECT,
-			PRIM_OP_INDICATION, upmsg);
-	param->conn_id = conn->conn_id;
-	memcpy(&param->called_addr, &conn->called_addr,
-		sizeof(param->called_addr));
-	memcpy(&param->calling_addr, &conn->calling_addr,
-		sizeof(param->calling_addr));
-	//param->in_sequence_control;
-	param->sccp_class = xua_msg_get_u32(xua, SUA_IEI_PROTO_CLASS) & 3;
-	param->importance = xua_msg_get_u32(xua, SUA_IEI_IMPORTANCE);
-
-	if (data_ie) {
-		/* copy data */
-		upmsg->l2h = msgb_put(upmsg, data_ie->len);
-		memcpy(upmsg->l2h, data_ie->dat, data_ie->len);
-	}
-
-	conn_state_set(conn, S_CONN_PEND_IN);
-
-	/* send to user SAP */
-	link->user->prim_cb(&prim->oph, link);
-
-	return 0;
-}
-
-/* RFC 3868 3.3.4 / SCCP CC (Connection Confirm) */
-static int sua_rx_coak(struct osmo_sccp_link *link, struct xua_msg *xua)
-{
-	struct osmo_scu_prim *prim;
-	struct sua_connection *conn;
-	struct osmo_scu_connect_param *param;
-	struct xua_msg_part *data_ie = xua_msg_find_tag(xua, SUA_IEI_DATA);
-	struct msgb *upmsg;
-	uint32_t conn_id = xua_msg_get_u32(xua, SUA_IEI_DEST_REF);
-
-	/* resolve conn */
-	conn = conn_find_by_id(link, conn_id);
-	if (!conn) {
-		LOGP(DSUA, LOGL_ERROR, "COAK for unknown reference %u\n",
-			conn_id);
-		/* FIXME: send error reply down the sua link? */
-		return -1;
-	}
-	conn_restart_rx_inact_timer(conn);
-
-	if (conn->state != S_CONN_PEND_OUT) {
-		LOGP(DSUA, LOGL_ERROR, "COAK in wrong state %s\n",
-			get_value_string(conn_state_names, conn->state));
-		/* FIXME: send error reply down the sua link? */
-		return -EINVAL;
-	}
-
-	/* track remote reference */
-	conn->remote_ref = xua_msg_get_u32(xua, SUA_IEI_SRC_REF);
-
-	/* fill primitive */
-	upmsg = sccp_msgb_alloc(__func__);
-	prim = (struct osmo_scu_prim *) msgb_put(upmsg, sizeof(*prim));
-	param = &prim->u.connect;
-	osmo_prim_init(&prim->oph, SCCP_SAP_USER,
-			OSMO_SCU_PRIM_N_CONNECT,
-			PRIM_OP_CONFIRM, upmsg);
-	param->conn_id = conn->conn_id;
-	memcpy(&param->called_addr, &conn->called_addr,
-		sizeof(param->called_addr));
-	memcpy(&param->calling_addr, &conn->calling_addr,
-		sizeof(param->calling_addr));
-	//param->in_sequence_control;
-	param->sccp_class = xua_msg_get_u32(xua, SUA_IEI_PROTO_CLASS) & 3;
-	param->importance = xua_msg_get_u32(xua, SUA_IEI_IMPORTANCE);
-
-	if (data_ie) {
-		/* copy data */
-		upmsg->l2h = msgb_put(upmsg, data_ie->len);
-		memcpy(upmsg->l2h, data_ie->dat, data_ie->len);
-	}
-
-	conn_state_set(conn, S_ACTIVE);
-	conn_start_inact_timers(conn);
-
-	/* send to user SAP */
-	link->user->prim_cb(&prim->oph, link);
-
-	return 0;
-}
-
-/* RFC 3868 3.3.5 / SCCP CREF (Connection Refused) */
-static int sua_rx_coref(struct osmo_sccp_link *link, struct xua_msg *xua)
-{
-	struct osmo_scu_prim *prim;
-	struct sua_connection *conn;
-	struct osmo_scu_disconn_param *param;
-	struct xua_msg_part *data_ie = xua_msg_find_tag(xua, SUA_IEI_DATA);
-	struct msgb *upmsg;
-	uint32_t conn_id = xua_msg_get_u32(xua, SUA_IEI_DEST_REF);
-	uint32_t cause;
-
-	/* resolve conn */
-	conn = conn_find_by_id(link, conn_id);
-	if (!conn) {
-		LOGP(DSUA, LOGL_ERROR, "COREF for unknown reference %u\n",
-			conn_id);
-		/* FIXME: send error reply down the sua link? */
-		return -1;
-	}
-	conn_restart_rx_inact_timer(conn);
-
-	/* fill primitive */
-	upmsg = sccp_msgb_alloc(__func__);
-	prim = (struct osmo_scu_prim *) msgb_put(upmsg, sizeof(*prim));
-	param = &prim->u.disconnect;
-	osmo_prim_init(&prim->oph, SCCP_SAP_USER,
-			OSMO_SCU_PRIM_N_DISCONNECT,
-			PRIM_OP_INDICATION, upmsg);
-	param->conn_id = conn_id;
-	param->responding_addr = conn->called_addr;
-	param->originator = OSMO_SCCP_ORIG_UNDEFINED;
-	//param->in_sequence_control;
-	/* TODO evaluate cause:
-	 * cause = xua_msg_get_u32(xua, SUA_IEI_CAUSE); */
-	/* optional: src addr */
-	/* optional: dest addr */
-	param->importance = xua_msg_get_u32(xua, SUA_IEI_IMPORTANCE);
-	if (data_ie) {
-		/* copy data */
-		upmsg->l2h = msgb_put(upmsg, data_ie->len);
-		memcpy(upmsg->l2h, data_ie->dat, data_ie->len);
-	}
-
-	/* send to user SAP */
-	link->user->prim_cb(&prim->oph, link);
-
-	conn_state_set(conn, S_IDLE);
-	conn_destroy(conn);
-
-	return 0;
-}
-
-/* RFC 3868 3.3.6 / SCCP RLSD (Released) */
-static int sua_rx_relre(struct osmo_sccp_link *link, struct xua_msg *xua)
-{
-	struct osmo_scu_prim *prim;
-	struct sua_connection *conn;
-	struct osmo_scu_disconn_param *param;
-	struct xua_msg_part *data_ie = xua_msg_find_tag(xua, SUA_IEI_DATA);
-	struct msgb *upmsg;
-	uint32_t conn_id = xua_msg_get_u32(xua, SUA_IEI_DEST_REF);
-	uint32_t cause;
-
-	/* resolve conn */
-	conn = conn_find_by_id(link, conn_id);
-	if (!conn) {
-		LOGP(DSUA, LOGL_ERROR, "RELRE for unknown reference %u\n",
-			conn_id);
-		/* FIXME: send error reply down the sua link? */
-		return -1;
-	}
-
-	/* fill primitive */
-	upmsg = sccp_msgb_alloc(__func__);
-	prim = (struct osmo_scu_prim *) msgb_put(upmsg, sizeof(*prim));
-	param = &prim->u.disconnect;
-	osmo_prim_init(&prim->oph, SCCP_SAP_USER,
-			OSMO_SCU_PRIM_N_DISCONNECT,
-			PRIM_OP_INDICATION, upmsg); /* what primitive? */
-
-	param->conn_id = conn_id;
-	/* source reference */
-	cause = xua_msg_get_u32(xua, SUA_IEI_CAUSE);
-	param->importance = xua_msg_get_u32(xua, SUA_IEI_IMPORTANCE);
-	if (data_ie) {
-		/* copy data */
-		upmsg->l2h = msgb_put(upmsg, data_ie->len);
-		memcpy(upmsg->l2h, data_ie->dat, data_ie->len);
-	}
-
-	param->responding_addr = conn->called_addr;
-	param->originator = OSMO_SCCP_ORIG_UNDEFINED;
-
-	/* send to user SAP */
-	link->user->prim_cb(&prim->oph, link);
-
-	conn_state_set(conn, S_IDLE);
-	conn_destroy(conn);
-
-	return 0;
-}
-
-/* RFC 3868 3.3.7 / SCCP RLC (Release Complete)*/
-static int sua_rx_relco(struct osmo_sccp_link *link, struct xua_msg *xua)
-{
-	struct osmo_scu_prim *prim;
-	struct sua_connection *conn;
-	struct osmo_scu_disconn_param *param;
-	struct msgb *upmsg;
-	uint32_t conn_id = xua_msg_get_u32(xua, SUA_IEI_DEST_REF);
-
-	/* resolve conn */
-	conn = conn_find_by_id(link, conn_id);
-	if (!conn) {
-		LOGP(DSUA, LOGL_ERROR, "RELCO for unknown reference %u\n",
-			conn_id);
-		/* FIXME: send error reply down the sua link? */
-		return -1;
-	}
-	conn_restart_rx_inact_timer(conn);
-
-	/* fill primitive */
-	upmsg = sccp_msgb_alloc(__func__);
-	prim = (struct osmo_scu_prim *) msgb_put(upmsg, sizeof(*prim));
-	param = &prim->u.disconnect;
-	osmo_prim_init(&prim->oph, SCCP_SAP_USER,
-			OSMO_SCU_PRIM_N_DISCONNECT,
-			PRIM_OP_CONFIRM, upmsg); /* what primitive? */
-
-	param->conn_id = conn_id;
-	/* source reference */
-	param->importance = xua_msg_get_u32(xua, SUA_IEI_IMPORTANCE);
-
-	param->responding_addr = conn->called_addr;
-	param->originator = OSMO_SCCP_ORIG_UNDEFINED;
-
-	/* send to user SAP */
-	link->user->prim_cb(&prim->oph, link);
-
-	conn_destroy(conn);
-
-	return 0;
-
-}
-
-/* RFC3868 3.3.1 / SCCP DT1 (Data Form 1) */
-static int sua_rx_codt(struct osmo_sccp_link *link, struct xua_msg *xua)
-{
-	struct osmo_scu_prim *prim;
-	struct sua_connection *conn;
-	struct osmo_scu_data_param *param;
-	struct xua_msg_part *data_ie = xua_msg_find_tag(xua, SUA_IEI_DATA);
-	struct msgb *upmsg;
-	uint32_t conn_id = xua_msg_get_u32(xua, SUA_IEI_DEST_REF);
-
-	/* resolve conn */
-	conn = conn_find_by_id(link, conn_id);
-	if (!conn) {
-		LOGP(DSUA, LOGL_ERROR, "DT1 for unknown reference %u\n",
-			conn_id);
-		/* FIXME: send error reply down the sua link? */
-		return -1;
-	}
-
-	if (conn->state != S_ACTIVE) {
-		LOGP(DSUA, LOGL_ERROR, "DT1 in invalid state %s\n",
-			get_value_string(conn_state_names, conn->state));
-		/* FIXME: send error reply down the sua link? */
-		return -1;
-	}
-
-	conn_restart_rx_inact_timer(conn);
-
-	/* fill primitive */
-	upmsg = sccp_msgb_alloc(__func__);
-	prim = (struct osmo_scu_prim *) msgb_put(upmsg, sizeof(*prim));
-	param = &prim->u.data;
-	osmo_prim_init(&prim->oph, SCCP_SAP_USER,
-			OSMO_SCU_PRIM_N_DATA,
-			PRIM_OP_INDICATION, upmsg);
-	param->conn_id = conn_id;
-	param->importance = xua_msg_get_u32(xua, SUA_IEI_IMPORTANCE);
-
-	/* copy data */
-	upmsg->l2h = msgb_put(upmsg, data_ie->len);
-	memcpy(upmsg->l2h, data_ie->dat, data_ie->len);
-
-	/* send to user SAP */
-	link->user->prim_cb(&prim->oph, link);
-
-	return 0;
-}
-
 
 /* connection-oriented messages received from socket */
-static int sua_rx_co(struct osmo_sccp_link *link,
-		     struct xua_msg *xua, struct msgb *msg)
+static int sua_rx_co(struct osmo_ss7_asp *asp, struct xua_msg *xua)
 {
-	int rc = -1;
+	struct osmo_sccp_instance *inst = asp->inst->sccp;
 
-	switch (xua->hdr.msg_type) {
-	case SUA_CO_CORE:
-		rc = sua_rx_core(link, xua);
-		break;
-	case SUA_CO_COAK:
-		rc = sua_rx_coak(link, xua);
-		break;
-	case SUA_CO_COREF:
-		rc = sua_rx_coref(link, xua);
-		break;
-	case SUA_CO_RELRE:
-		rc = sua_rx_relre(link, xua);
-		break;
-	case SUA_CO_RELCO:
-		rc = sua_rx_relco(link, xua);
-		break;
-	case SUA_CO_CODT:
-		rc = sua_rx_codt(link, xua);
-		break;
-	case SUA_CO_RESCO:
-	case SUA_CO_RESRE:
-	case SUA_CO_CODA:
-	case SUA_CO_COERR:
-	case SUA_CO_COIT:
-		/* FIXME */
-	default:
-		break;
-	}
-
-	return rc;
+	/* We feed into SCRC, which then hands the message into
+	 * either SCLC or SCOC, or forwards it to MTP */
+	return scrc_rx_mtp_xfer_ind_xua(inst, xua);
 }
 
-/* process SUA message received from socket */
-static int sua_rx_msg(struct osmo_sccp_link *link, struct msgb *msg)
+static int sua_rx_mgmt_err(struct osmo_ss7_asp *asp, struct xua_msg *xua)
 {
-	struct xua_msg *xua;
-	int rc = -1;
+	uint32_t err_code = xua_msg_get_u32(xua, SUA_IEI_ERR_CODE);
 
-	xua = xua_from_msg(1, msgb_length(msg), msg->data);
-	if (!xua) {
-		LOGP(DSUA, LOGL_ERROR, "Unable to parse incoming "
-			"SUA message\n");
+	LOGPASP(asp, DLSUA, LOGL_ERROR, "Received MGMT_ERR '%s': %s\n",
+		get_value_string(m3ua_err_names, err_code),
+		xua_msg_dump(xua, &xua_dialect_sua));
+
+	/* NEVER return != 0 here, as we cannot respont to an ERR
+	 * message with another ERR! */
+	return 0;
+}
+
+static int sua_rx_mgmt_ntfy(struct osmo_ss7_asp *asp, struct xua_msg *xua)
+{
+	struct m3ua_notify_params ntfy;
+	const char *type_name, *info_name;
+
+	m3ua_decode_notify(&ntfy, asp, xua);
+
+	type_name = get_value_string(m3ua_ntfy_type_names, ntfy.status_type);
+
+	switch (ntfy.status_type) {
+	case M3UA_NOTIFY_T_STATCHG:
+		info_name = get_value_string(m3ua_ntfy_stchg_names,
+						ntfy.status_info);
+		break;
+	case M3UA_NOTIFY_T_OTHER:
+		info_name = get_value_string(m3ua_ntfy_other_names,
+						ntfy.status_info);
+		break;
+	default:
+		info_name = "NULL";
+		break;
+	}
+	LOGPASP(asp, DLSUA, LOGL_NOTICE, "Received NOTIFY Type %s:%s (%s)\n",
+		type_name, info_name,
+		ntfy.info_string ? ntfy.info_string : "");
+
+	if (ntfy.info_string)
+		talloc_free(ntfy.info_string);
+
+	/* TODO: should we report this soemwhere? */
+	return 0;
+}
+
+static int sua_rx_mgmt(struct osmo_ss7_asp *asp, struct xua_msg *xua)
+{
+	switch (xua->hdr.msg_type) {
+	case SUA_MGMT_ERR:
+		return sua_rx_mgmt_err(asp, xua);
+	case SUA_MGMT_NTFY:
+		return sua_rx_mgmt_ntfy(asp, xua);
+	default:
+		return SUA_ERR_UNSUPP_MSG_TYPE;
+	}
+}
+
+/* map from SUA ASPSM/ASPTM to xua_asp_fsm event */
+static const struct xua_msg_event_map sua_aspxm_map[] = {
+	{ SUA_MSGC_ASPSM, SUA_ASPSM_UP, XUA_ASP_E_ASPSM_ASPUP },
+	{ SUA_MSGC_ASPSM, SUA_ASPSM_DOWN, XUA_ASP_E_ASPSM_ASPDN },
+	{ SUA_MSGC_ASPSM, SUA_ASPSM_BEAT, XUA_ASP_E_ASPSM_BEAT },
+	{ SUA_MSGC_ASPSM, SUA_ASPSM_UP_ACK, XUA_ASP_E_ASPSM_ASPUP_ACK },
+	{ SUA_MSGC_ASPSM, SUA_ASPSM_DOWN_ACK, XUA_ASP_E_ASPSM_ASPDN_ACK },
+	{ SUA_MSGC_ASPSM, SUA_ASPSM_BEAT_ACK, XUA_ASP_E_ASPSM_BEAT_ACK },
+	{ SUA_MSGC_ASPTM, SUA_ASPTM_ACTIVE, XUA_ASP_E_ASPTM_ASPAC },
+	{ SUA_MSGC_ASPTM, SUA_ASPTM_INACTIVE, XUA_ASP_E_ASPTM_ASPIA },
+	{ SUA_MSGC_ASPTM, SUA_ASPTM_ACTIVE_ACK, XUA_ASP_E_ASPTM_ASPAC_ACK },
+	{ SUA_MSGC_ASPTM, SUA_ASPTM_INACTIVE_ACK, XUA_ASP_E_ASPTM_ASPIA_ACK },
+};
+
+static int sua_rx_asp(struct osmo_ss7_asp *asp, struct xua_msg *xua)
+{
+	int event;
+
+	/* map from the SUA message class and message type to the XUA
+	 * ASP FSM event number */
+	event = xua_msg_event_map(xua, sua_aspxm_map,
+				      ARRAY_SIZE(sua_aspxm_map));
+	if (event < 0)
+		return SUA_ERR_UNSUPP_MSG_TYPE;
+
+	/* deliver that event to the ASP FSM */
+	osmo_fsm_inst_dispatch(asp->fi, event, xua);
+
+	return 0;
+}
+
+/*! \brief process SUA message received from socket
+ *  \param[in] asp Application Server Process receiving \ref msg
+ *  \param[in] msg received message buffer
+ *  \returns 0 on success; negative on error */
+int sua_rx_msg(struct osmo_ss7_asp *asp, struct msgb *msg)
+{
+	struct xua_msg *xua = NULL, *err = NULL;
+	int rc = 0;
+
+	OSMO_ASSERT(asp->cfg.proto == OSMO_SS7_ASP_PROT_SUA);
+
+	/* caller owns msg memory, we shall neither free it here nor
+	 * keep references beyon the execution of this function and its
+	 * callees. */
+
+	if (!asp->inst->sccp) {
+		LOGP(DLSUA, LOGL_ERROR, "%s(asp->inst->sccp=NULL)\n", __func__);
 		return -EIO;
 	}
 
-	LOGP(DSUA, LOGL_DEBUG, "Received SUA Message (%s)\n",
+	xua = xua_from_msg(1, msgb_length(msg), msg->data);
+	if (!xua) {
+		struct xua_common_hdr *hdr = (struct xua_common_hdr *) msg->data;
+
+		LOGPASP(asp, DLSUA, LOGL_ERROR, "Unable to parse incoming "
+			"SUA message\n");
+
+		if (hdr->version != SUA_VERSION)
+			err = sua_gen_error_msg(SUA_ERR_INVALID_VERSION, msg);
+		else
+			err = sua_gen_error_msg(SUA_ERR_PARAM_FIELD_ERR, msg);
+		goto out;
+	}
+
+#if 0
+	xua->mtp.opc = ;
+	xua->mtp.dpc = ;
+#endif
+	xua->mtp.sio = MTP_SI_SCCP;
+
+	LOGPASP(asp, DLSUA, LOGL_DEBUG, "Received SUA Message (%s)\n",
 		xua_hdr_dump(xua, &xua_dialect_sua));
 
-	if (!xua_dialect_check_all_mand_ies(&xua_dialect_sua, xua))
-		return -1;
+	if (!xua_dialect_check_all_mand_ies(&xua_dialect_sua, xua)) {
+		/* FIXME: Return error? */
+		err = sua_gen_error_msg(SUA_ERR_MISSING_PARAM, msg);
+		goto out;
+	}
+
+	/* TODO: check for SCTP Strema ID */
+	/* TODO: check if any AS configured in ASP */
+	/* TODO: check for valid routing context */
 
 	switch (xua->hdr.msg_class) {
 	case SUA_MSGC_CL:
-		rc = sua_rx_cl(link, xua, msg);
+		rc = sua_rx_cl(asp, xua);
 		break;
 	case SUA_MSGC_CO:
-		rc = sua_rx_co(link, xua, msg);
+		rc = sua_rx_co(asp, xua);
 		break;
-	case SUA_MSGC_MGMT:
-	case SUA_MSGC_SNM:
 	case SUA_MSGC_ASPSM:
 	case SUA_MSGC_ASPTM:
+		rc = sua_rx_asp(asp, xua);
+		break;
+	case SUA_MSGC_MGMT:
+		rc = sua_rx_mgmt(asp, xua);
+		break;
+	case SUA_MSGC_SNM:
 	case SUA_MSGC_RKM:
 		/* FIXME */
+		LOGPASP(asp, DLSUA, LOGL_NOTICE, "Received unsupported SUA "
+			"Message Class %u\n", xua->hdr.msg_class);
+		err = sua_gen_error_msg(SUA_ERR_UNSUPP_MSG_CLASS, msg);
+		break;
 	default:
+		LOGPASP(asp, DLSUA, LOGL_NOTICE, "Received unknown SUA "
+			"Message Class %u\n", xua->hdr.msg_class);
+		err = sua_gen_error_msg(SUA_ERR_UNSUPP_MSG_CLASS, msg);
 		break;
 	}
+
+	if (rc > 0)
+		err = sua_gen_error_msg(rc, msg);
+
+out:
+	if (err)
+		sua_tx_xua_asp(asp, err);
 
 	xua_msg_free(xua);
 
 	return rc;
 }
 
-/***********************************************************************
- * libosmonetif integration
- ***********************************************************************/
-
-#include <osmocom/netif/stream.h>
-#include <netinet/sctp.h>
-
-static const struct value_string sctp_assoc_chg_vals[] = {
-	{ SCTP_COMM_UP, "COMM_UP" },
-	{ SCTP_COMM_LOST, "COMM_LOST" },
-	{ SCTP_RESTART, "RESTART" },
-	{ SCTP_SHUTDOWN_COMP, "SHUTDOWN_COMP" },
-	{ SCTP_CANT_STR_ASSOC, "CANT_STR_ASSOC" },
-	{ 0, NULL }
-};
-
-static const struct value_string sctp_sn_type_vals[] = {
-	{ SCTP_ASSOC_CHANGE,		"ASSOC_CHANGE" },
-	{ SCTP_PEER_ADDR_CHANGE,	"PEER_ADDR_CHANGE" },
-	{ SCTP_SHUTDOWN_EVENT, 		"SHUTDOWN_EVENT" },
-	{ SCTP_SEND_FAILED,		"SEND_FAILED" },
-	{ SCTP_REMOTE_ERROR,		"REMOTE_ERROR" },
-	{ SCTP_PARTIAL_DELIVERY_EVENT,	"PARTIAL_DELIVERY_EVENT" },
-	{ SCTP_ADAPTATION_INDICATION,	"ADAPTATION_INDICATION" },
-#ifdef SCTP_AUTHENTICATION_INDICATION
-	{ SCTP_AUTHENTICATION_INDICATION, "UTHENTICATION_INDICATION" },
-#endif
-#ifdef SCTP_SENDER_DRY_EVENT
-	{ SCTP_SENDER_DRY_EVENT,	"SENDER_DRY_EVENT" },
-#endif
-	{ 0, NULL }
-};
-
-static int get_logevel_by_sn_type(int sn_type)
-{
-	switch (sn_type) {
-	case SCTP_ADAPTATION_INDICATION:
-	case SCTP_PEER_ADDR_CHANGE:
-#ifdef SCTP_AUTHENTICATION_INDICATION
-	case SCTP_AUTHENTICATION_INDICATION:
-#endif
-#ifdef SCTP_SENDER_DRY_EVENT
-	case SCTP_SENDER_DRY_EVENT:
-#endif
-		return LOGL_INFO;
-	case SCTP_ASSOC_CHANGE:
-		return LOGL_NOTICE;
-	case SCTP_SHUTDOWN_EVENT:
-	case SCTP_PARTIAL_DELIVERY_EVENT:
-		return LOGL_NOTICE;
-	case SCTP_SEND_FAILED:
-	case SCTP_REMOTE_ERROR:
-		return LOGL_ERROR;
-	default:
-		return LOGL_NOTICE;
-	}
-}
-
-static void log_sctp_notification(int fd, const char *pfx,
-				  union sctp_notification *notif)
-{
-	int log_level;
-	char *conn_id = osmo_sock_get_name(NULL, fd);
-
-	LOGP(DSUA, LOGL_INFO, "%s %s SCTP NOTIFICATION %u flags=0x%0x\n",
-		conn_id, pfx, notif->sn_header.sn_type,
-		notif->sn_header.sn_flags);
-
-	log_level = get_logevel_by_sn_type(notif->sn_header.sn_type);
-
-	switch (notif->sn_header.sn_type) {
-	case SCTP_ASSOC_CHANGE:
-		LOGP(DSUA, log_level, "%s %s SCTP_ASSOC_CHANGE: %s\n",
-			conn_id, pfx, get_value_string(sctp_assoc_chg_vals,
-				notif->sn_assoc_change.sac_state));
-		break;
-	default:
-		LOGP(DSUA, log_level, "%s %s %s\n",
-			conn_id, pfx, get_value_string(sctp_sn_type_vals,
-				notif->sn_header.sn_type));
-		break;
-	}
-
-	talloc_free(conn_id);
-}
-
-/* netif code tells us we can read something from the socket */
-static int sua_srv_conn_cb(struct osmo_stream_srv *conn)
-{
-	struct osmo_fd *ofd = osmo_stream_srv_get_ofd(conn);
-	struct osmo_sccp_link *link = osmo_stream_srv_get_data(conn);
-	struct msgb *msg = msgb_alloc(SUA_MSGB_SIZE, "SUA Server Rx");
-	struct sctp_sndrcvinfo sinfo;
-	unsigned int ppid;
-	int flags = 0;
-	int rc;
-
-	if (!msg)
-		return -ENOMEM;
-
-	/* read SUA message from socket and process it */
-	rc = sctp_recvmsg(ofd->fd, msgb_data(msg), msgb_tailroom(msg),
-			  NULL, NULL, &sinfo, &flags);
-	LOGP(DSUA, LOGL_DEBUG, "sua_srv_conn_cb(): sctp_recvmsg() returned %d\n",
-	     rc);
-	if (rc < 0) {
-		close(ofd->fd);
-		osmo_fd_unregister(ofd);
-		ofd->fd = -1;
-		return rc;
-	} else if (rc == 0) {
-		close(ofd->fd);
-		osmo_fd_unregister(ofd);
-		ofd->fd = -1;
-	} else {
-		msgb_put(msg, rc);
-	}
-
-	if (flags & MSG_NOTIFICATION) {
-		union sctp_notification *notif = (union sctp_notification *) msgb_data(msg);
-
-		log_sctp_notification(ofd->fd, "SUA SRV", notif);
-
-		switch (notif->sn_header.sn_type) {
-		case SCTP_SHUTDOWN_EVENT:
-			close(ofd->fd);
-			osmo_fd_unregister(ofd);
-			ofd->fd = -1;
-			break;
-		default:
-			break;
-		}
-		msgb_free(msg);
-		return 0;
-	}
-
-	ppid = ntohl(sinfo.sinfo_ppid);
-	msgb_sctp_ppid(msg) = ppid;
-	msgb_sctp_stream(msg) = ntohl(sinfo.sinfo_stream);
-	msg->dst = link;
-
-	switch (ppid) {
-	case SUA_PPID:
-		rc = sua_rx_msg(link, msg);
-		break;
-	default:
-		LOGP(DSUA, LOGL_NOTICE, "SCTP chunk for unknown PPID %u "
-			"received\n", ppid);
-		rc = 0;
-		break;
-	}
-
-	msgb_free(msg);
-	return rc;
-}
-
-static int sua_srv_conn_closed_cb(struct osmo_stream_srv *srv)
-{
-	struct osmo_sccp_link *sual = osmo_stream_srv_get_data(srv);
-	struct sua_connection *conn;
-
-	LOGP(DSUA, LOGL_INFO, "SCTP connection closed\n");
-
-	/* remove from per-user list of sua links */
-	llist_del(&sual->list);
-
-	llist_for_each_entry(conn, &sual->connections, list) {
-		/* FIXME: send RELEASE request */
-	}
-	talloc_free(sual);
-	osmo_stream_srv_set_data(srv, NULL);
-
-	return 0;
-}
-
-static int sua_accept_cb(struct osmo_stream_srv_link *link, int fd)
-{
-	struct osmo_sccp_user *user = osmo_stream_srv_link_get_data(link);
-	struct osmo_stream_srv *srv;
-	struct osmo_sccp_link *sual;
-
-	LOGP(DSUA, LOGL_INFO, "New SCTP connection accepted\n");
-
-	srv = osmo_stream_srv_create(user, link, fd,
-				     sua_srv_conn_cb,
-				     sua_srv_conn_closed_cb, NULL);
-	if (!srv) {
-		close(fd);
-		return -1;
-	}
-
-	/* create new SUA link and connect both data structures */
-	sual = sua_link_new(user, 1);
-	if (!sual) {
-		osmo_stream_srv_destroy(srv);
-		return -1;
-	}
-	sual->data = srv;
-	osmo_stream_srv_set_data(srv, sual);
-
-	return 0;
-}
-
-int osmo_sua_server_listen(struct osmo_sccp_user *user, const char *hostname, uint16_t port)
-{
-	int rc;
-
-	if (user->server)
-		osmo_stream_srv_link_close(user->server);
-	else {
-		user->server = osmo_stream_srv_link_create(user);
-		osmo_stream_srv_link_set_data(user->server, user);
-		osmo_stream_srv_link_set_accept_cb(user->server, sua_accept_cb);
-	}
-
-	osmo_stream_srv_link_set_addr(user->server, hostname);
-	osmo_stream_srv_link_set_port(user->server, port);
-	osmo_stream_srv_link_set_proto(user->server, IPPROTO_SCTP);
-
-	rc = osmo_stream_srv_link_open(user->server);
-	if (rc < 0) {
-		osmo_stream_srv_link_destroy(user->server);
-		user->server = NULL;
-		return rc;
-	}
-
-	return 0;
-}
-
-/* netif code tells us we can read something from the socket */
-static int sua_cli_read_cb(struct osmo_stream_cli *conn)
-{
-	struct osmo_fd *ofd = osmo_stream_cli_get_ofd(conn);
-	struct osmo_sccp_link *link = osmo_stream_cli_get_data(conn);
-	struct msgb *msg = msgb_alloc(SUA_MSGB_SIZE, "SUA Client Rx");
-	struct sctp_sndrcvinfo sinfo;
-	unsigned int ppid;
-	int flags = 0;
-	int rc;
-
-	LOGP(DSUA, LOGL_DEBUG, "sua_cli_read_cb() rx\n");
-
-	if (!msg)
-		return -ENOMEM;
-
-	/* read SUA message from socket and process it */
-	rc = sctp_recvmsg(ofd->fd, msgb_data(msg), msgb_tailroom(msg),
-			  NULL, NULL, &sinfo, &flags);
-	if (rc < 0) {
-		close(ofd->fd);
-		osmo_fd_unregister(ofd);
-		ofd->fd = -1;
-		return rc;
-	} else if (rc == 0) {
-		close(ofd->fd);
-		osmo_fd_unregister(ofd);
-		ofd->fd = -1;
-	} else {
-		msgb_put(msg, rc);
-	}
-
-	if (flags & MSG_NOTIFICATION) {
-		union sctp_notification *notif = (union sctp_notification *) msgb_data(msg);
-
-		log_sctp_notification(ofd->fd, "SUA CLNT", notif);
-
-		switch (notif->sn_header.sn_type) {
-		case SCTP_SHUTDOWN_EVENT:
-			close(ofd->fd);
-			osmo_fd_unregister(ofd);
-			ofd->fd = -1;
-			break;
-		default:
-			break;
-		}
-		msgb_free(msg);
-		return 0;
-	}
-
-	ppid = ntohl(sinfo.sinfo_ppid);
-	msgb_sctp_ppid(msg) = ppid;
-	msgb_sctp_stream(msg) = ntohl(sinfo.sinfo_stream);
-	msg->dst = link;
-
-	switch (ppid) {
-	case SUA_PPID:
-		rc = sua_rx_msg(link, msg);
-		break;
-	default:
-		LOGP(DSUA, LOGL_NOTICE, "SCTP chunk for unknown PPID %u "
-			"received\n", ppid);
-		rc = 0;
-		break;
-	}
-
-	msgb_free(msg);
-	return rc;
-}
-
-int osmo_sua_client_connect(struct osmo_sccp_user *user, const char *hostname, uint16_t port)
-{
-	struct osmo_stream_cli *cli;
-	struct osmo_sccp_link *sual;
-	int rc;
-
-	cli = osmo_stream_cli_create(user);
-	if (!cli)
-		return -1;
-	osmo_stream_cli_set_addr(cli, hostname);
-	osmo_stream_cli_set_port(cli, port);
-	osmo_stream_cli_set_proto(cli, IPPROTO_SCTP);
-	osmo_stream_cli_set_reconnect_timeout(cli, 5);
-	osmo_stream_cli_set_read_cb(cli, sua_cli_read_cb);
-
-	/* create SUA link and associate it with stream_cli */
-	sual = sua_link_new(user, 0);
-	if (!sual) {
-		osmo_stream_cli_destroy(cli);
-		return -1;
-	}
-	sual->data = cli;
-	osmo_stream_cli_set_data(cli, sual);
-
-	rc = osmo_stream_cli_open2(cli, 1);
-	if (rc < 0) {
-		sua_link_destroy(sual);
-		osmo_stream_cli_destroy(cli);
-		return rc;
-	}
-	user->client = cli;
-
-	return 0;
-}
-
-struct osmo_sccp_link *osmo_sua_client_get_link(struct osmo_sccp_user *user)
-{
-	return osmo_stream_cli_get_data(user->client);
-}
-
-static LLIST_HEAD(sua_users);
-
-struct osmo_sccp_user *osmo_sua_user_create(void *ctx, osmo_prim_cb prim_cb,
-					    void *priv)
-{
-	struct osmo_sccp_user *user = talloc_zero(ctx, struct osmo_sccp_user);
-
-	user->prim_cb = prim_cb;
-	user->priv = priv;
-	INIT_LLIST_HEAD(&user->links);
-
-	llist_add_tail(&user->list, &sua_users);
-
-	return user;
-}
-
-void *osmo_sccp_link_get_user_priv(struct osmo_sccp_link *slink)
-{
-	return slink->user->priv;
-}
-
-void osmo_sua_user_destroy(struct osmo_sccp_user *user)
-{
-	struct osmo_sccp_link *link;
-
-	llist_del(&user->list);
-
-	llist_for_each_entry(link, &user->links, list)
-		sua_link_destroy(link);
-
-	talloc_free(user);
-}
-
-void osmo_sua_set_log_area(int area)
-{
-	xua_set_log_area(area);
-	DSUA = area;
-}
