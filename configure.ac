@@ -27,6 +27,7 @@ fi
 PKG_PROG_PKG_CONFIG([0.20])
 
 PKG_CHECK_MODULES(LIBOSMOCORE, libosmocore >= 0.3.0)
+PKG_CHECK_MODULES(LIBOSMOVTY, libosmovty >= 0.3.0)
 PKG_CHECK_MODULES(LIBOSMONETIF, libosmo-netif >= 0.0.6)
 
 old_LIBS=$LIBS
@@ -68,5 +69,6 @@ AC_OUTPUT(
     tests/m2ua/Makefile
     tests/xua/Makefile
     tests/ss7/Makefile
+    examples/Makefile
     Makefile)
 
