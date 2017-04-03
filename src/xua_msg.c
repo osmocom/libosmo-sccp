@@ -1,5 +1,6 @@
 /* Routines for generating and parsing messages */
 /* (C) 2011 by Holger Hans Peter Freyther <zecke@selfish.org>
+ * (C) 2016-2017 by Harald Welte <laforge@gnumonks.org>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -271,19 +272,77 @@ uint32_t xua_msg_get_u32(struct xua_msg *xua, uint16_t iei)
 	return xua_msg_part_get_u32(part);
 }
 
+void xua_part_add_gt(struct msgb *msg, const struct osmo_sccp_gt *gt)
+{
+	uint16_t *len_ptr;
+	unsigned int num_digits = strlen(gt->digits);
+	unsigned int num_digit_bytes;
+	unsigned int i, j;
+
+	/* Tag + Length */
+	msgb_put_u16(msg, SUA_IEI_GT);
+	len_ptr = (uint16_t *) msgb_put(msg, sizeof(uint16_t));
+
+	/* first dword: padding + GT */
+	msgb_put_u32(msg, gt->gti);
+
+	/* second header dword */
+	msgb_put_u8(msg, strlen(gt->digits));
+	msgb_put_u8(msg, gt->tt);
+	msgb_put_u8(msg, gt->npi);
+	msgb_put_u8(msg, gt->nai);
+
+	/* actual digits */
+	num_digit_bytes = num_digits / 2;
+	if (num_digits & 1)
+		num_digit_bytes++;
+	for (i = 0, j = 0; i < num_digit_bytes; i++) {
+		uint8_t byte;
+		byte = osmo_char2bcd(gt->digits[j++]);
+		if (j < num_digits) {
+			byte |= osmo_char2bcd(gt->digits[j++]) << 4;
+		}
+		msgb_put_u8(msg, byte);
+	}
+	/* pad to 32bit */
+	if (num_digit_bytes % 4)
+		msgb_put(msg, 4 - (num_digit_bytes % 4));
+	*len_ptr = htons(msg->tail - (uint8_t *)len_ptr + 2);
+}
+
 int xua_msg_add_sccp_addr(struct xua_msg *xua, uint16_t iei, const struct osmo_sccp_addr *addr)
 {
 	struct msgb *tmp = msgb_alloc(128, "SCCP Address");
+	uint16_t addr_ind = 0;
 	int rc;
 
 	if (!tmp)
 		return -ENOMEM;
 
-	msgb_put_u16(tmp, SUA_RI_SSN_PC); /* route on SSN + PC */
-	msgb_put_u16(tmp, 7); /* always put all addresses on SCCP side */
+	switch (addr->ri) {
+	case OSMO_SCCP_RI_GT:
+		msgb_put_u16(tmp, SUA_RI_GT);
+		break;
+	case OSMO_SCCP_RI_SSN_PC:
+		msgb_put_u16(tmp, SUA_RI_SSN_PC);
+		break;
+	case OSMO_SCCP_RI_SSN_IP:
+		msgb_put_u16(tmp, SUA_RI_SSN_IP);
+		break;
+	default:
+		return -EINVAL;
+	}
+	if (addr->presence & OSMO_SCCP_ADDR_T_SSN)
+		addr_ind |= 0x0001;
+	if (addr->presence & OSMO_SCCP_ADDR_T_PC)
+		addr_ind |= 0x0002;
+	if (addr->presence & OSMO_SCCP_ADDR_T_GT)
+		addr_ind |= 0x0004;
+
+	msgb_put_u16(tmp, addr_ind);
 
 	if (addr->presence & OSMO_SCCP_ADDR_T_GT) {
-		/* FIXME */
+		xua_part_add_gt(tmp, &addr->gt);
 	}
 	if (addr->presence & OSMO_SCCP_ADDR_T_PC) {
 		msgb_t16l16vp_put_u32(tmp, SUA_IEI_PC, addr->pc);

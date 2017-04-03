@@ -25,6 +25,7 @@
 
 struct msgb;
 struct osmo_sccp_addr;
+struct osmo_sccp_gt;
 
 struct xua_msg {
 	struct xua_common_hdr hdr;
@@ -82,6 +83,7 @@ int msgb_t16l16vp_put_u32(struct msgb *msg, uint16_t tag, uint32_t val);
 int xua_msg_add_u32(struct xua_msg *xua, uint16_t iei, uint32_t val);
 uint32_t xua_msg_part_get_u32(struct xua_msg_part *part);
 uint32_t xua_msg_get_u32(struct xua_msg *xua, uint16_t iei);
+void xua_part_add_gt(struct msgb *msg, const struct osmo_sccp_gt *gt);
 int xua_msg_add_sccp_addr(struct xua_msg *xua, uint16_t iei, const struct osmo_sccp_addr *addr);
 
 const char *xua_class_msg_name(const struct xua_msg_class *xmc, uint16_t msg_type);
