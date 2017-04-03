@@ -8,9 +8,7 @@ Copyright: 2009-2010,2013  On-Waves
            2010            Harald Welte <laforge@gnumonks.org>
 License: GPL-2+
 
-Files: include/sigtran/xua_msg.h
-       src/xua_msg.c
-       tests/m2ua/m2ua_test.c
+Files: tests/m2ua/m2ua_test.c
 Copyright: 2011            Holger Hans Peter Freyther <zecke@selfish.org>
 License: AGPL-3+
 
