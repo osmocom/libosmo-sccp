@@ -351,7 +351,7 @@ int xua_msg_add_sccp_addr(struct xua_msg *xua, uint16_t iei, const struct osmo_s
 		msgb_t16l16vp_put_u32(tmp, SUA_IEI_SSN, addr->ssn);
 	}
 	if (addr->presence & OSMO_SCCP_ADDR_T_IPv4) {
-		/* FIXME: IPv4 address */
+		msgb_t16l16vp_put_u32(tmp, SUA_IEI_IPv4, ntohl(addr->ip.v4.s_addr));
 	} else if (addr->presence & OSMO_SCCP_ADDR_T_IPv6) {
 		/* FIXME: IPv6 address */
 	}
