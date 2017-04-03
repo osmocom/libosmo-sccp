@@ -198,6 +198,15 @@ struct osmo_scu_unitdata_param {
 	/* user data */
 };
 
+/* OSMO_SCU_PRIM_N_NOTICE */
+struct osmo_scu_notice_param {
+	struct osmo_sccp_addr called_addr;
+	struct osmo_sccp_addr calling_addr;
+	uint32_t cause;
+	uint32_t importance;
+	/* user data */
+};
+
 struct osmo_scu_prim {
 	struct osmo_prim_hdr oph;
 	union {
@@ -206,6 +215,7 @@ struct osmo_scu_prim {
 		struct osmo_scu_disconn_param disconnect;
 		struct osmo_scu_reset_param reset;
 		struct osmo_scu_unitdata_param unitdata;
+		struct osmo_scu_notice_param notice;
 	} u;
 };
 
