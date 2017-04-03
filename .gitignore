@@ -60,6 +60,7 @@ tests/package.m4
 tests/testsuite
 tests/testsuite.log
 
+examples/m3ua_example
 
 *.pc
 config.*
