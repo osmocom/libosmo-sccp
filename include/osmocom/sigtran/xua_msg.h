@@ -60,6 +60,12 @@ struct xua_dialect {
 	const struct xua_msg_class *class[256];
 };
 
+struct xua_msg_event_map {
+	uint8_t msg_class;
+	uint8_t msg_type;
+	int event;
+};
+
 extern const struct xua_dialect xua_dialect_sua;
 extern const struct xua_dialect xua_dialect_m3ua;
 
@@ -94,3 +100,6 @@ char *xua_hdr_dump(struct xua_msg *xua, const struct xua_dialect *dialect);
 char *xua_msg_dump(struct xua_msg *xua, const struct xua_dialect *dialect);
 int xua_dialect_check_all_mand_ies(const struct xua_dialect *dialect, struct xua_msg *xua);
 
+int xua_msg_event_map(const struct xua_msg *xua,
+		      const struct xua_msg_event_map *maps,
+		      unsigned int num_maps);

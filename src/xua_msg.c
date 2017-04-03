@@ -361,6 +361,27 @@ int xua_msg_add_sccp_addr(struct xua_msg *xua, uint16_t iei, const struct osmo_s
 	return rc;
 }
 
+/*! \brief Map from a xua_msg (class+type) to an event
+ *  \param[in] xua xUA message which is to be mapped
+ *  \param[in] maps Table containing msg type+class -> event maps
+ *  \[aram[in] num_maps number of entries in \ref maps
+ *  \returns event >= 0; negative on error (no map found) */
+int xua_msg_event_map(const struct xua_msg *xua,
+		      const struct xua_msg_event_map *maps,
+		      unsigned int num_maps)
+{
+	int i;
+
+	for (i= 0; i < num_maps; i++) {
+		const struct xua_msg_event_map *map = &maps[i];
+		if (xua->hdr.msg_class == map->msg_class &&
+		    xua->hdr.msg_type == map->msg_type) {
+			return map->event;
+		}
+	}
+	return -1;
+}
+
 const char *xua_class_msg_name(const struct xua_msg_class *xmc, uint16_t msg_type)
 {
 	static char class_buf[64];
