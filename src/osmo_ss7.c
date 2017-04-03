@@ -1,0 +1,1490 @@
+/* Core SS7 Instance/Linkset/Link/AS/ASP Handling */
+
+/* (C) 2015-2017 by Harald Welte <laforge@gnumonks.org>
+ * All Rights Reserved
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
+
+#include <string.h>
+#include <errno.h>
+#include <unistd.h>
+
+#include <netdb.h>
+#include <netinet/in.h>
+#include <netinet/sctp.h>
+
+#include <osmocom/sigtran/osmo_ss7.h>
+#include <osmocom/sigtran/mtp_sap.h>
+#include <osmocom/sigtran/protocol/sua.h>
+#include <osmocom/sigtran/protocol/m3ua.h>
+
+#include <osmocom/core/linuxlist.h>
+#include <osmocom/core/select.h>
+#include <osmocom/core/utils.h>
+#include <osmocom/core/talloc.h>
+#include <osmocom/core/logging.h>
+#include <osmocom/core/msgb.h>
+#include <osmocom/core/socket.h>
+
+#include <osmocom/netif/stream.h>
+
+#include "xua_internal.h"
+#include "xua_asp_fsm.h"
+#include "xua_as_fsm.h"
+
+#define ASP_MSGB_SIZE	1500
+#define MAX_PC_STR_LEN 32
+
+static bool ss7_initialized = false;
+
+static LLIST_HEAD(ss7_instances);
+static LLIST_HEAD(ss7_xua_servers);
+
+struct value_string osmo_ss7_as_traffic_mode_vals[] = {
+	{ OSMO_SS7_AS_TMOD_BCAST,	"broadcast" },
+	{ OSMO_SS7_AS_TMOD_LOADSHARE,	"loadshare" },
+	{ OSMO_SS7_AS_TMOD_ROUNDROBIN,	"round-robin" },
+	{ OSMO_SS7_AS_TMOD_OVERRIDE,	"override" },
+	{ 0, NULL }
+};
+
+struct value_string osmo_ss7_asp_protocol_vals[] = {
+	{ OSMO_SS7_ASP_PROT_NONE,	"none" },
+	{ OSMO_SS7_ASP_PROT_SUA,	"sua" },
+	{ OSMO_SS7_ASP_PROT_M3UA,	"m3ua" },
+	{ 0, NULL }
+};
+
+#define LOGSS7(inst, level, fmt, args ...)	\
+	LOGP(DLSS7, level, "%u: " fmt, (inst)->cfg.id, ## args)
+
+
+/***********************************************************************
+ * SS7 Point Code Parsing / Printing
+ ***********************************************************************/
+
+/* like strcat() but appends a single character */
+static int strnappendchar(char *str, char c, size_t n)
+{
+	unsigned int curlen = strlen(str);
+
+	if (n < curlen + 2)
+		return -1;
+
+	str[curlen] = c;
+	str[curlen+1] = '\0';
+
+	return curlen+1;
+}
+
+/* generate a format string for formatting a point code. The result can
+ * e.g. be used with sscanf() or sprintf() */
+static const char *gen_pc_fmtstr(struct osmo_ss7_instance *inst,
+				 unsigned int *num_comp_exp)
+{
+	static char buf[MAX_PC_STR_LEN];
+	unsigned int num_comp = 0;
+
+	buf[0] = '\0';
+	strcat(buf, "%u");
+	num_comp++;
+
+	if (inst->cfg.pc_fmt.component_len[1] == 0)
+		goto out;
+	strnappendchar(buf, inst->cfg.pc_fmt.delimiter, sizeof(buf));
+	strcat(buf, "%u");
+	num_comp++;
+
+	if (inst->cfg.pc_fmt.component_len[2] == 0)
+		goto out;
+	strnappendchar(buf, inst->cfg.pc_fmt.delimiter, sizeof(buf));
+	strcat(buf, "%u");
+	num_comp++;
+out:
+	if (num_comp_exp)
+		*num_comp_exp = num_comp;
+	return buf;
+}
+
+/* get number of components we expect for a point code, depending on the
+ * configuration of this ss7_instance */
+static unsigned int num_pc_comp_exp(struct osmo_ss7_instance *inst)
+{
+	unsigned int num_comp_exp = 1;
+
+	if (inst->cfg.pc_fmt.component_len[1])
+		num_comp_exp++;
+	if (inst->cfg.pc_fmt.component_len[2])
+		num_comp_exp++;
+
+	return num_comp_exp;
+}
+
+/* get the total width (in bits) of the point-codes in this ss7_instance */
+static unsigned int get_pc_width(struct osmo_ss7_instance *inst)
+{
+	return inst->cfg.pc_fmt.component_len[0] +
+		inst->cfg.pc_fmt.component_len[1] +
+		inst->cfg.pc_fmt.component_len[2];
+}
+
+/* get the number of bits we must shift the given component of a point
+ * code in this ss7_instance */
+static unsigned int get_pc_comp_shift(struct osmo_ss7_instance *inst,
+					unsigned int comp_num)
+{
+	uint32_t pc_width = get_pc_width(inst);
+	switch (comp_num) {
+	case 0:
+		return pc_width - inst->cfg.pc_fmt.component_len[0];
+	case 1:
+		return pc_width - inst->cfg.pc_fmt.component_len[0] -
+			inst->cfg.pc_fmt.component_len[1];
+	case 2:
+		return 0;
+	default:
+		return -EINVAL;
+	}
+}
+
+static uint32_t pc_comp_shift_and_mask(struct osmo_ss7_instance *inst,
+					unsigned int comp_num, uint32_t pc)
+{
+	unsigned int shift = get_pc_comp_shift(inst, comp_num);
+	uint32_t mask = (1 << inst->cfg.pc_fmt.component_len[comp_num]) - 1;
+
+	return (pc >> shift) & mask;
+}
+
+/* parse a point code according to the structure configured for this
+ * ss7_instance */
+int osmo_ss7_pointcode_parse(struct osmo_ss7_instance *inst, const char *str)
+{
+	unsigned int component[3];
+	unsigned int num_comp_exp = num_pc_comp_exp(inst);
+	const char *fmtstr = gen_pc_fmtstr(inst, &num_comp_exp);
+	int i, rc;
+
+	rc = sscanf(str, fmtstr, &component[0], &component[1], &component[2]);
+	/* ensure all components were parsed */
+	if (rc != num_comp_exp)
+		goto err;
+
+	/* check none of the component values exceeds what can be
+	 * represented within its bit-width */
+	for (i = 0; i < num_comp_exp; i++) {
+		if (component[i] >= (1 << inst->cfg.pc_fmt.component_len[i]))
+			goto err;
+	}
+
+	/* shift them all together */
+	rc = (component[0] << get_pc_comp_shift(inst, 0));
+	if (num_comp_exp > 1)
+		rc |= (component[1] << get_pc_comp_shift(inst, 1));
+	if (num_comp_exp > 2)
+		rc |= (component[2] << get_pc_comp_shift(inst, 2));
+
+	return rc;
+
+err:
+	LOGSS7(inst, LOGL_NOTICE, "Error parsing Pointcode '%s'\n", str);
+	return -EINVAL;
+}
+
+/* print a pointcode according to the structure configured for this
+ * ss7_instance */
+const char *osmo_ss7_pointcode_print(struct osmo_ss7_instance *inst, uint32_t pc)
+{
+	static char buf[MAX_PC_STR_LEN];
+	unsigned int num_comp_exp = num_pc_comp_exp(inst);
+	const char *fmtstr = gen_pc_fmtstr(inst, &num_comp_exp);
+
+	OSMO_ASSERT(fmtstr);
+	snprintf(buf, sizeof(buf), fmtstr,
+		 pc_comp_shift_and_mask(inst, 0, pc),
+		 pc_comp_shift_and_mask(inst, 1, pc),
+		 pc_comp_shift_and_mask(inst, 2, pc));
+
+	return buf;
+}
+
+int osmo_ss7_pointcode_parse_mask_or_len(struct osmo_ss7_instance *inst, const char *in)
+{
+	unsigned int width = get_pc_width(inst);
+
+	if (in[0] == '/') {
+		/* parse mask by length */
+		int masklen = atoi(in+1);
+		if (masklen < 0 || masklen > 32)
+			return -EINVAL;
+		if (masklen == 0)
+			return 0;
+		return (0xFFFFFFFF << (width - masklen)) & ((1 << width)-1);
+	} else {
+		/* parse mask as point code */
+		return osmo_ss7_pointcode_parse(inst, in);
+	}
+}
+
+static const uint16_t prot2port[] = {
+	[OSMO_SS7_ASP_PROT_NONE] = 0,
+	[OSMO_SS7_ASP_PROT_SUA] = SUA_PORT,
+	[OSMO_SS7_ASP_PROT_M3UA] = M3UA_PORT,
+};
+
+int osmo_ss7_asp_protocol_port(enum osmo_ss7_asp_protocol prot)
+{
+	if (prot >= ARRAY_SIZE(prot2port))
+		return -EINVAL;
+	else
+		return prot2port[prot];
+}
+
+/***********************************************************************
+ * SS7 Instance
+ ***********************************************************************/
+
+/*! \brief Find a SS7 Instance with given ID
+ *  \param[in] id ID for which to search
+ *  \returns \ref osmo_ss7_instance on success; NULL on error */
+struct osmo_ss7_instance *
+osmo_ss7_instance_find(uint32_t id)
+{
+	OSMO_ASSERT(ss7_initialized);
+
+	struct osmo_ss7_instance *inst;
+	llist_for_each_entry(inst, &ss7_instances, list) {
+		if (inst->cfg.id == id)
+			return inst;
+	}
+	return NULL;
+}
+
+/*! \brief Find or create a SS7 Instance
+ *  \param[in] ctx talloc allocation context to use for allocations
+ *  \param[in] id ID of SS7 Instance
+ *  \returns \ref osmo_ss7_instance on success; NULL on error */
+struct osmo_ss7_instance *
+osmo_ss7_instance_find_or_create(void *ctx, uint32_t id)
+{
+	struct osmo_ss7_instance *inst;
+
+	OSMO_ASSERT(ss7_initialized);
+
+	inst = osmo_ss7_instance_find(id);
+	if (!inst)
+		inst = talloc_zero(ctx, struct osmo_ss7_instance);
+	if (!inst)
+		return NULL;
+
+	inst->cfg.id = id;
+	LOGSS7(inst, LOGL_INFO, "Creating SS7 Instance\n");
+
+	INIT_LLIST_HEAD(&inst->linksets);
+	INIT_LLIST_HEAD(&inst->as_list);
+	INIT_LLIST_HEAD(&inst->asp_list);
+	INIT_LLIST_HEAD(&inst->rtable_list);
+	inst->rtable_system = osmo_ss7_route_table_find_or_create(inst, "system");
+
+	/* default point code structure + formatting */
+	inst->cfg.pc_fmt.delimiter = '.';
+	inst->cfg.pc_fmt.component_len[0] = 3;
+	inst->cfg.pc_fmt.component_len[1] = 8;
+	inst->cfg.pc_fmt.component_len[2] = 3;
+
+	llist_add(&inst->list, &ss7_instances);
+
+	return inst;
+}
+
+/*! \brief Destroy a SS7 Instance
+ *  \param[in] inst SS7 Instance to be destroyed */
+void osmo_ss7_instance_destroy(struct osmo_ss7_instance *inst)
+{
+	struct osmo_ss7_linkset *lset;
+	struct osmo_ss7_as *as;
+	struct osmo_ss7_asp *asp;
+
+	OSMO_ASSERT(ss7_initialized);
+	LOGSS7(inst, LOGL_INFO, "Destroying SS7 Instance\n");
+
+	llist_for_each_entry(asp, &inst->asp_list, list)
+		osmo_ss7_asp_destroy(asp);
+
+	llist_for_each_entry(as, &inst->as_list, list)
+		osmo_ss7_as_destroy(as);
+
+	llist_for_each_entry(lset, &inst->linksets, list)
+		osmo_ss7_linkset_destroy(lset);
+
+	llist_del(&inst->list);
+	talloc_free(inst);
+}
+
+/*! \brief Set the point code format used in given SS7 instance */
+int osmo_ss7_instance_set_pc_fmt(struct osmo_ss7_instance *inst,
+				uint8_t c0, uint8_t c1, uint8_t c2)
+{
+	if (c0+c1+c2 > 32)
+		return -EINVAL;
+
+	if (c0+c1+c2 > 14)
+		LOGSS7(inst, LOGL_NOTICE, "Point Code Format %u-%u-%u "
+			"is longer than 14 bits, odd?\n", c0, c1, c2);
+
+	inst->cfg.pc_fmt.component_len[0] = c0;
+	inst->cfg.pc_fmt.component_len[1] = c1;
+	inst->cfg.pc_fmt.component_len[2] = c2;
+
+	return 0;
+}
+
+/***********************************************************************
+ * MTP Users (Users of MTP, such as SCCP or ISUP)
+ ***********************************************************************/
+
+/*! \brief Register a MTP user for a given service indicator
+ *  \param[in] inst SS7 instance for which we register the user
+ *  \param[in] service_ind Service (ISUP, SCCP, ...)
+ *  \param[in] user SS7 user (including primitive call-back)
+ *  \returns 0 on success; negative on error */
+int osmo_ss7_user_register(struct osmo_ss7_instance *inst, uint8_t service_ind,
+			   struct osmo_ss7_user *user)
+{
+	if (service_ind >= ARRAY_SIZE(inst->user))
+		return -EINVAL;
+
+	if (inst->user[service_ind])
+		return -EBUSY;
+
+	DEBUGP(DLSS7, "registering user=%s for SI %u with priv %p\n",
+		user->name, service_ind, user->priv);
+
+	user->inst = inst;
+	inst->user[service_ind] = user;
+
+	return 0;
+}
+
+/*! \brief Unregister a MTP user for a given service indicator
+ *  \param[in] inst SS7 instance for which we register the user
+ *  \param[in] service_ind Service (ISUP, SCCP, ...)
+ *  \param[in] user (optional) SS7 user. If present, we will not
+ * 		unregister other users 
+ *  \returns 0 on success; negative on error */
+int osmo_ss7_user_unregister(struct osmo_ss7_instance *inst, uint8_t service_ind,
+			     struct osmo_ss7_user *user)
+{
+	if (service_ind >= ARRAY_SIZE(inst->user))
+		return -EINVAL;
+
+	if (!inst->user[service_ind])
+		return -ENODEV;
+
+	if (user && (inst->user[service_ind] != user))
+		return -EINVAL;
+
+	user->inst = NULL;
+	inst->user[service_ind] = NULL;
+
+	return 0;
+}
+
+/* deliver to a local MTP user */
+int osmo_ss7_mtp_to_user(struct osmo_ss7_instance *inst, struct osmo_mtp_prim *omp)
+{
+	uint32_t service_ind;
+	const struct osmo_ss7_user *osu;
+
+	if (omp->oph.sap != MTP_SAP_USER ||
+	    omp->oph.primitive != OSMO_MTP_PRIM_TRANSFER ||
+	    omp->oph.operation != PRIM_OP_INDICATION) {
+		LOGP(DLSS7, LOGL_ERROR, "Unsupported Primitive\n");
+		return -EINVAL;
+	}
+
+	service_ind = omp->u.transfer.sio & 0xF;
+	osu = inst->user[service_ind];
+
+	if (!osu) {
+		LOGP(DLSS7, LOGL_NOTICE, "No MTP-User for SI %u\n", service_ind);
+		return -ENODEV;
+	}
+
+	DEBUGP(DLSS7, "delivering MTP-TRANSFER.ind to user %s, priv=%p\n",
+		osu->name, osu->priv);
+	return osu->prim_cb(&omp->oph, (void *) osu->priv);
+}
+
+/***********************************************************************
+ * SS7 Linkset
+ ***********************************************************************/
+
+/*! \brief Destroy a SS7 Linkset
+ *  \param[in] lset Linkset to be destroyed */
+void osmo_ss7_linkset_destroy(struct osmo_ss7_linkset *lset)
+{
+	unsigned int i;
+
+	OSMO_ASSERT(ss7_initialized);
+	LOGSS7(lset->inst, LOGL_INFO, "Destroying Linkset %s\n",
+		lset->cfg.name);
+
+	for (i = 0; i < ARRAY_SIZE(lset->links); i++) {
+		struct osmo_ss7_link *link = lset->links[i];
+		if (!link)
+			continue;
+		osmo_ss7_link_destroy(link);
+	}
+	llist_del(&lset->list);
+	talloc_free(lset);
+}
+
+/*! \brief Find SS7 Linkset by given name
+ *  \param[in] inst SS7 Instance in which to look
+ *  \param[in] name Name of SS7 Linkset
+ *  \returns pointer to linkset on success; NULL on error */
+struct osmo_ss7_linkset *
+osmo_ss7_linkset_find_by_name(struct osmo_ss7_instance *inst, const char *name)
+{
+	struct osmo_ss7_linkset *lset;
+	OSMO_ASSERT(ss7_initialized);
+	llist_for_each_entry(lset, &inst->linksets, list) {
+		if (!strcmp(name, lset->cfg.name))
+			return lset;
+	}
+	return NULL;
+}
+
+/*! \brief Find or allocate SS7 Linkset
+ *  \param[in] inst SS7 Instance in which we operate
+ *  \param[in] name Name of SS7 Linkset
+ *  \param[in] pc Adjacent Pointcode
+ *  \returns pointer to Linkset on success; NULL on error */
+struct osmo_ss7_linkset *
+osmo_ss7_linkset_find_or_create(struct osmo_ss7_instance *inst, const char *name, uint32_t pc)
+{
+	struct osmo_ss7_linkset *lset;
+
+	OSMO_ASSERT(ss7_initialized);
+	lset = osmo_ss7_linkset_find_by_name(inst, name);
+	if (lset && lset->cfg.adjacent_pc != pc)
+		return NULL;
+
+	if (!lset) {
+		LOGSS7(inst, LOGL_INFO, "Creating Linkset %s\n", name);
+		lset = talloc_zero(inst, struct osmo_ss7_linkset);
+		lset->inst = inst;
+		lset->cfg.adjacent_pc = pc;
+		lset->cfg.name = talloc_strdup(lset, name);
+		llist_add_tail(&lset->list, &inst->linksets);
+	}
+
+	return lset;
+}
+
+/***********************************************************************
+ * SS7 Link
+ ***********************************************************************/
+
+/*! \brief Destryo SS7 Link
+ *  \param[in] link SS7 Link to be destroyed */
+void osmo_ss7_link_destroy(struct osmo_ss7_link *link)
+{
+	struct osmo_ss7_linkset *lset = link->linkset;
+
+	OSMO_ASSERT(ss7_initialized);
+	LOGSS7(lset->inst, LOGL_INFO, "Destroying Link %s:%u\n",
+		lset->cfg.name, link->cfg.id);
+	/* FIXME: do cleanup */
+	lset->links[link->cfg.id] = NULL;
+	talloc_free(link);
+}
+
+/*! \brief Find or create SS7 Link with given ID in given Linkset
+ *  \param[in] lset SS7 Linkset on which we operate
+ *  \param[in] id Link number within Linkset
+ *  \returns pointer to SS7 Link on success; NULL on error */
+struct osmo_ss7_link *
+osmo_ss7_link_find_or_create(struct osmo_ss7_linkset *lset, uint32_t id)
+{
+	struct osmo_ss7_link *link;
+
+	OSMO_ASSERT(ss7_initialized);
+	if (id >= ARRAY_SIZE(lset->links))
+		return NULL;
+
+	if (lset->links[id]) {
+		link = lset->links[id];
+	} else {
+		LOGSS7(lset->inst, LOGL_INFO, "Creating Link %s:%u\n",
+			lset->cfg.name, id);
+		link = talloc_zero(lset, struct osmo_ss7_link);
+		if (!link)
+			return NULL;
+		link->linkset = lset;
+		lset->links[id] = link;
+		link->cfg.id = id;
+	}
+
+	return link;
+}
+
+
+/***********************************************************************
+ * SS7 Route Tables
+ ***********************************************************************/
+
+struct osmo_ss7_route_table *
+osmo_ss7_route_table_find(struct osmo_ss7_instance *inst, const char *name)
+{
+	struct osmo_ss7_route_table *rtbl;
+	OSMO_ASSERT(ss7_initialized);
+	llist_for_each_entry(rtbl, &inst->rtable_list, list) {
+		if (!strcmp(rtbl->cfg.name, name))
+			return rtbl;
+	}
+	return NULL;
+}
+
+struct osmo_ss7_route_table *
+osmo_ss7_route_table_find_or_create(struct osmo_ss7_instance *inst, const char *name)
+{
+	struct osmo_ss7_route_table *rtbl;
+
+	OSMO_ASSERT(ss7_initialized);
+	rtbl = osmo_ss7_route_table_find(inst, name);
+	if (!rtbl) {
+		LOGSS7(inst, LOGL_INFO, "Creating Route Table %s\n", name);
+		rtbl = talloc_zero(inst, struct osmo_ss7_route_table);
+		rtbl->inst = inst;
+		rtbl->cfg.name = talloc_strdup(rtbl, name);
+		INIT_LLIST_HEAD(&rtbl->routes);
+		llist_add_tail(&rtbl->list, &inst->rtable_list);
+	}
+	return rtbl;
+}
+
+void osmo_ss7_route_table_destroy(struct osmo_ss7_route_table *rtbl)
+{
+	llist_del(&rtbl->list);
+	/* routes are allocated as children of route table, will be
+	 * automatically freed() */
+	talloc_free(rtbl);
+}
+
+/***********************************************************************
+ * SS7 Routes
+ ***********************************************************************/
+
+/*! \brief Find a SS7 route for given destination point code in given table */
+struct osmo_ss7_route *
+osmo_ss7_route_find_dpc(struct osmo_ss7_route_table *rtbl, uint32_t dpc)
+{
+	struct osmo_ss7_route *rt;
+
+	OSMO_ASSERT(ss7_initialized);
+	/* we assume the routes are sorted by mask length, i.e. more
+	 * specific routes first, and less specific routes with shorter
+	 * mask later */
+	llist_for_each_entry(rt, &rtbl->routes, list) {
+		if ((dpc & rt->cfg.mask) == rt->cfg.pc)
+			return rt;
+	}
+	return NULL;
+}
+
+/*! \brief Find a SS7 route for given destination point code + mask in given table */
+struct osmo_ss7_route *
+osmo_ss7_route_find_dpc_mask(struct osmo_ss7_route_table *rtbl, uint32_t dpc,
+				uint32_t mask)
+{
+	struct osmo_ss7_route *rt;
+
+	OSMO_ASSERT(ss7_initialized);
+	/* we assume the routes are sorted by mask length, i.e. more
+	 * specific routes first, and less specific routes with shorter
+	 * mask later */
+	llist_for_each_entry(rt, &rtbl->routes, list) {
+		if (dpc == rt->cfg.pc && mask == rt->cfg.mask)
+			return rt;
+	}
+	return NULL;
+}
+
+/*! \brief Find a SS7 route for given destination point code in given SS7 */
+struct osmo_ss7_route *
+osmo_ss7_route_lookup(struct osmo_ss7_instance *inst, uint32_t dpc)
+{
+	OSMO_ASSERT(ss7_initialized);
+	return osmo_ss7_route_find_dpc(inst->rtable_system, dpc);
+}
+
+/* insert the route in the ordered list of routes. The list is sorted by
+ * mask length, so that the more specific (longer mask) routes are
+ * first, while the less specific routes with shorter masks are last.
+ * Hence, the first matching route in a linear iteration is the most
+ * specific match. */
+static void route_insert_sorted(struct osmo_ss7_route_table *rtbl,
+				struct osmo_ss7_route *cmp)
+{
+	struct osmo_ss7_route *rt;
+
+	llist_for_each_entry(rt, &rtbl->routes, list) {
+		if (rt->cfg.mask < cmp->cfg.mask) {
+			/* insert before the current entry */
+			llist_add(&cmp->list, rt->list.prev);
+			return;
+		}
+	}
+	/* not added, i.e. no smaller mask length found: we are the
+	 * smallest mask and thus should go last */
+	llist_add_tail(&cmp->list, &rtbl->routes);
+}
+
+/*! \brief Create a new route in the given routing table
+ *  \param[in] rtbl Routing Table in which the route is to be created
+ *  \param[in] pc Point Code of the destination of the route
+ *  \param[in] mask Mask of the destination Point Code \ref pc
+ *  \param[in] linkset_name string name of the linkset to be used
+ *  \returns caller-allocated + initialized route, NULL on error
+ */
+struct osmo_ss7_route *
+osmo_ss7_route_create(struct osmo_ss7_route_table *rtbl, uint32_t pc,
+		      uint32_t mask, const char *linkset_name)
+{
+	struct osmo_ss7_route *rt;
+	struct osmo_ss7_linkset *lset;
+	struct osmo_ss7_as *as;
+
+	OSMO_ASSERT(ss7_initialized);
+	lset = osmo_ss7_linkset_find_by_name(rtbl->inst, linkset_name);
+	if (!lset) {
+		as = osmo_ss7_as_find_by_name(rtbl->inst, linkset_name);
+		if (!as)
+			return NULL;
+	}
+
+	rt = talloc_zero(rtbl, struct osmo_ss7_route);
+	if (!rt)
+		return NULL;
+
+	rt->cfg.pc = pc;
+	rt->cfg.mask = mask;
+	rt->cfg.linkset_name = talloc_strdup(rt, linkset_name);
+	if (lset)
+		rt->dest.linkset = lset;
+	else
+		rt->dest.as = as;
+	rt->rtable = rtbl;
+
+	route_insert_sorted(rtbl, rt);
+
+	return rt;
+}
+
+/*! \brief Destroy a given SS7 route */
+void osmo_ss7_route_destroy(struct osmo_ss7_route *rt)
+{
+	OSMO_ASSERT(ss7_initialized);
+	llist_del(&rt->list);
+	talloc_free(rt);
+}
+
+/***********************************************************************
+ * SS7 Application Server
+ ***********************************************************************/
+
+/*! \brief Find Application Server by given name
+ *  \param[in] inst SS7 Instance on which we operate
+ *  \param[in] name Name of AS
+ *  \returns pointer to Application Server on success; NULL otherwise */
+struct osmo_ss7_as *
+osmo_ss7_as_find_by_name(struct osmo_ss7_instance *inst, const char *name)
+{
+	struct osmo_ss7_as *as;
+
+	OSMO_ASSERT(ss7_initialized);
+	llist_for_each_entry(as, &inst->as_list, list) {
+		if (!strcmp(name, as->cfg.name))
+			return as;
+	}
+	return NULL;
+}
+
+/*! \brief Find Application Server by given routing context
+ *  \param[in] inst SS7 Instance on which we operate
+ *  \param[in] rctx Routing Context
+ *  \returns pointer to Application Server on success; NULL otherwise */
+struct osmo_ss7_as *
+osmo_ss7_as_find_by_rctx(struct osmo_ss7_instance *inst, uint32_t rctx)
+{
+	struct osmo_ss7_as *as;
+
+	OSMO_ASSERT(ss7_initialized);
+	llist_for_each_entry(as, &inst->as_list, list) {
+		if (as->cfg.routing_key.context == rctx)
+			return as;
+	}
+	return NULL;
+}
+
+/*! \brief Find or Create Application Server
+ *  \param[in] inst SS7 Instance on which we operate
+ *  \param[in] name Name of Application Server
+ *  \param[in] proto Protocol of Application Server
+ *  \returns pointer to Application Server on suuccess; NULL otherwise */
+struct osmo_ss7_as *
+osmo_ss7_as_find_or_create(struct osmo_ss7_instance *inst, const char *name,
+			   enum osmo_ss7_asp_protocol proto)
+{
+	struct osmo_ss7_as *as;
+
+	OSMO_ASSERT(ss7_initialized);
+	as = osmo_ss7_as_find_by_name(inst, name);
+
+	if (as && as->cfg.proto != proto)
+		return NULL;
+
+	if (!as) {
+		LOGSS7(inst, LOGL_INFO, "Creating AS %s\n", name);
+		as = talloc_zero(inst, struct osmo_ss7_as);
+		if (!as)
+			return NULL;
+		as->inst = inst;
+		as->cfg.name = talloc_strdup(as, name);
+		as->cfg.proto = proto;
+		as->cfg.mode = OSMO_SS7_AS_TMOD_LOADSHARE;
+		as->cfg.recovery_timeout_msec = 2000;
+		as->fi = xua_as_fsm_start(as, LOGL_DEBUG);
+		llist_add_tail(&as->list, &inst->as_list);
+	}
+
+	return as;
+}
+
+/*! \brief Add given ASP to given AS
+ *  \param[in] as Application Server to which \ref asp is added
+ *  \param[in] asp Application Server Process to be added to \ref as
+ *  \returns 0 on success; negative in case of error */
+int osmo_ss7_as_add_asp(struct osmo_ss7_as *as, const char *asp_name)
+{
+	struct osmo_ss7_asp *asp;
+	unsigned int i;
+
+	OSMO_ASSERT(ss7_initialized);
+	asp = osmo_ss7_asp_find_by_name(as->inst, asp_name);
+	if (!asp)
+		return -ENODEV;
+
+	LOGSS7(as->inst, LOGL_INFO, "Adding ASP %s to AS %s\n",
+		asp->cfg.name, as->cfg.name);
+
+	if (osmo_ss7_as_has_asp(as, asp))
+		return 0;
+
+	for (i = 0; i < ARRAY_SIZE(as->cfg.asps); i++) {
+		if (!as->cfg.asps[i]) {
+			as->cfg.asps[i] = asp;
+			return 0;
+		}
+	}
+
+	return -ENOSPC;
+}
+
+/*! \brief Delete given ASP from given AS
+ *  \param[in] as Application Server from which \ref asp is deleted
+ *  \param[in] asp Application Server Process to delete from \ref as
+ *  \returns 0 on success; negative in case of error */
+int osmo_ss7_as_del_asp(struct osmo_ss7_as *as, const char *asp_name)
+{
+	struct osmo_ss7_asp *asp;
+	unsigned int i;
+
+	OSMO_ASSERT(ss7_initialized);
+	asp = osmo_ss7_asp_find_by_name(as->inst, asp_name);
+	if (!asp)
+		return -ENODEV;
+
+	LOGSS7(as->inst, LOGL_INFO, "Removing ASP %s from AS %s\n",
+		asp->cfg.name, as->cfg.name);
+
+	for (i = 0; i < ARRAY_SIZE(as->cfg.asps); i++) {
+		if (as->cfg.asps[i] == asp) {
+			as->cfg.asps[i] = NULL;
+			return 0;
+		}
+	}
+
+	return -EINVAL;
+}
+
+/*! \brief Destroy given Application Server
+ *  \param[in] as Application Server to destroy */
+void osmo_ss7_as_destroy(struct osmo_ss7_as *as)
+{
+	OSMO_ASSERT(ss7_initialized);
+	LOGSS7(as->inst, LOGL_INFO, "Destroying AS %s\n", as->cfg.name);
+
+	if (as->fi)
+		osmo_fsm_inst_term(as->fi, OSMO_FSM_TERM_REQUEST, NULL);
+
+	as->inst = NULL;
+	llist_del(&as->list);
+	talloc_free(as);
+}
+
+/*! \brief Determine if given AS contains ASP
+ *  \param[in] as Application Server in which to look for \ref asp
+ *  \param[in] asp Application Server Process to look for in \ref as
+ *  \returns true in case \ref asp is part of \ref as; false otherwise */
+bool osmo_ss7_as_has_asp(struct osmo_ss7_as *as,
+			 struct osmo_ss7_asp *asp)
+{
+	unsigned int i;
+
+	OSMO_ASSERT(ss7_initialized);
+	for (i = 0; i < ARRAY_SIZE(as->cfg.asps); i++) {
+		if (as->cfg.asps[i] == asp)
+			return true;
+	}
+	return false;
+}
+
+/***********************************************************************
+ * SS7 Application Server Process
+ ***********************************************************************/
+
+struct osmo_ss7_asp *
+osmo_ss7_asp_find_by_name(struct osmo_ss7_instance *inst, const char *name)
+{
+	struct osmo_ss7_asp *asp;
+
+	OSMO_ASSERT(ss7_initialized);
+	llist_for_each_entry(asp, &inst->asp_list, list) {
+		if (!strcmp(name, asp->cfg.name))
+			return asp;
+	}
+	return NULL;
+}
+
+static uint16_t get_in_port(struct sockaddr *sa)
+{
+	switch (sa->sa_family) {
+	case AF_INET:
+		return (((struct sockaddr_in*)sa)->sin_port);
+	case AF_INET6:
+	        return (((struct sockaddr_in6*)sa)->sin6_port);
+	default:
+		return 0;
+	}
+}
+
+/*! \brief Find an ASP definition matching the local+remote IP/PORT of given fd
+ *  \param[in] fd socket descriptor of given socket
+ *  \returns SS7 ASP in case a matching one is found; NULL otherwise */
+static struct osmo_ss7_asp *
+osmo_ss7_asp_find_by_socket_addr(int fd)
+{
+	struct osmo_ss7_instance *inst;
+	struct sockaddr sa_l, sa_r;
+	socklen_t sa_len_l = sizeof(sa_l);
+	socklen_t sa_len_r = sizeof(sa_r);
+	char hostbuf_l[64], hostbuf_r[64];
+	uint16_t local_port, remote_port;
+	int rc;
+
+	OSMO_ASSERT(ss7_initialized);
+	/* convert local and remote IP to string */
+	rc = getsockname(fd, &sa_l, &sa_len_l);
+	if (rc < 0)
+		return NULL;
+	rc = getnameinfo(&sa_l, sa_len_l, hostbuf_l, sizeof(hostbuf_l),
+			 NULL, 0, NI_NUMERICHOST);
+	if (rc < 0)
+		return NULL;
+	local_port = ntohs(get_in_port(&sa_l));
+
+	rc = getpeername(fd, &sa_r, &sa_len_r);
+	if (rc < 0)
+		return NULL;
+	rc = getnameinfo(&sa_r, sa_len_r, hostbuf_r, sizeof(hostbuf_r),
+			 NULL, 0, NI_NUMERICHOST);
+	if (rc < 0)
+		return NULL;
+	remote_port = ntohs(get_in_port(&sa_r));
+
+	/* check all instances for any ASP definition matching the
+	 * address combination of local/remote ip/port */
+	llist_for_each_entry(inst, &ss7_instances, list) {
+		struct osmo_ss7_asp *asp;
+		llist_for_each_entry(asp, &inst->asp_list, list) {
+			if (asp->cfg.local.port == local_port &&
+			    (!asp->cfg.remote.port ||asp->cfg.remote.port == remote_port) &&
+			    (!asp->cfg.local.host || !strcmp(asp->cfg.local.host, hostbuf_l)) &&
+			    (!asp->cfg.remote.host || !strcmp(asp->cfg.remote.host, hostbuf_r)))
+				return asp;
+		}
+	}
+
+	return NULL;
+}
+
+struct osmo_ss7_asp *
+osmo_ss7_asp_find_or_create(struct osmo_ss7_instance *inst, const char *name,
+			    uint16_t remote_port, uint16_t local_port,
+			    enum osmo_ss7_asp_protocol proto)
+{
+	struct osmo_ss7_asp *asp;
+
+	OSMO_ASSERT(ss7_initialized);
+	asp = osmo_ss7_asp_find_by_name(inst, name);
+
+	if (asp && (asp->cfg.remote.port != remote_port ||
+		    asp->cfg.local.port != local_port ||
+		    asp->cfg.proto != proto))
+		return NULL;
+
+	if (!asp) {
+		/* FIXME: check if local port has SCTP? */
+		asp = talloc_zero(inst, struct osmo_ss7_asp);
+		asp->inst = inst;
+		asp->cfg.remote.port = remote_port;
+		asp->cfg.local.port = local_port;
+		asp->cfg.proto = proto;
+		asp->cfg.name = talloc_strdup(asp, name);
+		llist_add_tail(&asp->list, &inst->asp_list);
+	}
+	return asp;
+}
+
+void osmo_ss7_asp_destroy(struct osmo_ss7_asp *asp)
+{
+	struct osmo_ss7_as *as;
+
+	OSMO_ASSERT(ss7_initialized);
+	LOGSS7(asp->inst, LOGL_INFO, "Destroying ASP %s\n", asp->cfg.name);
+
+	if (asp->server)
+		osmo_stream_srv_destroy(asp->server);
+	if (asp->client)
+		osmo_stream_cli_destroy(asp->client);
+	if (asp->fi)
+		osmo_fsm_inst_term(asp->fi, OSMO_FSM_TERM_REQUEST, NULL);
+
+	/* unlink from all ASs we are part of */
+	llist_for_each_entry(as, &asp->inst->as_list, list) {
+		unsigned int i;
+		for (i = 0; i < ARRAY_SIZE(as->cfg.asps); i++) {
+			if (as->cfg.asps[i] == asp) {
+				as->cfg.asps[i] = NULL;
+			}
+		}
+	}
+	/* unlink from ss7_instance */
+	asp->inst = NULL;
+	llist_del(&asp->list);
+	/* release memory */
+	talloc_free(asp);
+}
+
+static int xua_cli_read_cb(struct osmo_stream_cli *conn);
+static int xua_cli_connect_cb(struct osmo_stream_cli *cli);
+
+int osmo_ss7_asp_restart(struct osmo_ss7_asp *asp)
+{
+	int rc;
+	enum xua_asp_role role;
+
+	OSMO_ASSERT(ss7_initialized);
+	LOGSS7(asp->inst, LOGL_INFO, "Restarting ASP %s\n", asp->cfg.name);
+
+	if (!asp->cfg.is_server) {
+		/* We are in client mode now */
+		if (asp->server) {
+			/* if we previously were in server mode,
+			 * destroy it */
+			osmo_stream_srv_destroy(asp->server);
+			asp->server = NULL;
+		}
+		if (!asp->client)
+			asp->client = osmo_stream_cli_create(asp);
+		if (!asp->client) {
+			LOGSS7(asp->inst, LOGL_ERROR, "Unable to create stream"
+				" client for ASP %s\n", asp->cfg.name);
+			return -1;
+		}
+		osmo_stream_cli_set_addr(asp->client, asp->cfg.remote.host);
+		osmo_stream_cli_set_port(asp->client, asp->cfg.remote.port);
+		osmo_stream_cli_set_proto(asp->client, IPPROTO_SCTP);
+		osmo_stream_cli_set_reconnect_timeout(asp->client, 5);
+		osmo_stream_cli_set_connect_cb(asp->client, xua_cli_connect_cb);
+		osmo_stream_cli_set_read_cb(asp->client, xua_cli_read_cb);
+		osmo_stream_cli_set_data(asp->client, asp);
+		rc = osmo_stream_cli_open2(asp->client, 1);
+		if (rc < 0) {
+			LOGSS7(asp->inst, LOGL_ERROR, "Unable to open stream"
+				" client for ASP %s\n", asp->cfg.name);
+		}
+		/* TODO: make this configurable and not implicit */
+		role = XUA_ASPFSM_ROLE_ASP;
+	} else {
+		/* We are in server mode now */
+		if (asp->client) {
+			/* if we previously were in client mode,
+			 * destroy it */
+			osmo_stream_cli_destroy(asp->client);
+			asp->client = NULL;
+		}
+		/* FIXME: ensure we have a SCTP server */
+		LOGSS7(asp->inst, LOGL_NOTICE, "ASP Restart for server "
+			"not implemented yet!\n");
+		/* TODO: make this configurable and not implicit */
+		role = XUA_ASPFSM_ROLE_SG;
+	}
+
+	/* (re)start the ASP FSM */
+	if (asp->fi)
+		osmo_fsm_inst_term(asp->fi, OSMO_FSM_TERM_REQUEST, NULL);
+	asp->fi = xua_asp_fsm_start(asp, role, LOGL_DEBUG);
+
+	return 0;
+}
+
+/***********************************************************************
+ * libosmo-netif integration for SCTP stream server/client
+ ***********************************************************************/
+
+static const struct value_string sctp_assoc_chg_vals[] = {
+	{ SCTP_COMM_UP,		"COMM_UP" },
+	{ SCTP_COMM_LOST,	"COMM_LOST" },
+	{ SCTP_RESTART,		"RESTART" },
+	{ SCTP_SHUTDOWN_COMP,	"SHUTDOWN_COMP" },
+	{ SCTP_CANT_STR_ASSOC,	"CANT_STR_ASSOC" },
+	{ 0, NULL }
+};
+
+static const struct value_string sctp_sn_type_vals[] = {
+	{ SCTP_ASSOC_CHANGE,		"ASSOC_CHANGE" },
+	{ SCTP_PEER_ADDR_CHANGE,	"PEER_ADDR_CHANGE" },
+	{ SCTP_SHUTDOWN_EVENT, 		"SHUTDOWN_EVENT" },
+	{ SCTP_SEND_FAILED,		"SEND_FAILED" },
+	{ SCTP_REMOTE_ERROR,		"REMOTE_ERROR" },
+	{ SCTP_PARTIAL_DELIVERY_EVENT,	"PARTIAL_DELIVERY_EVENT" },
+	{ SCTP_ADAPTATION_INDICATION,	"ADAPTATION_INDICATION" },
+#ifdef SCTP_AUTHENTICATION_INDICATION
+	{ SCTP_AUTHENTICATION_INDICATION, "UTHENTICATION_INDICATION" },
+#endif
+#ifdef SCTP_SENDER_DRY_EVENT
+	{ SCTP_SENDER_DRY_EVENT,	"SENDER_DRY_EVENT" },
+#endif
+	{ 0, NULL }
+};
+
+static int get_logevel_by_sn_type(int sn_type)
+{
+	switch (sn_type) {
+	case SCTP_ADAPTATION_INDICATION:
+	case SCTP_PEER_ADDR_CHANGE:
+#ifdef SCTP_AUTHENTICATION_INDICATION
+	case SCTP_AUTHENTICATION_INDICATION:
+#endif
+#ifdef SCTP_SENDER_DRY_EVENT
+	case SCTP_SENDER_DRY_EVENT:
+#endif
+		return LOGL_INFO;
+	case SCTP_ASSOC_CHANGE:
+		return LOGL_NOTICE;
+	case SCTP_SHUTDOWN_EVENT:
+	case SCTP_PARTIAL_DELIVERY_EVENT:
+		return LOGL_NOTICE;
+	case SCTP_SEND_FAILED:
+	case SCTP_REMOTE_ERROR:
+		return LOGL_ERROR;
+	default:
+		return LOGL_NOTICE;
+	}
+}
+
+static void log_sctp_notification(struct osmo_ss7_asp *asp, const char *pfx,
+				  union sctp_notification *notif)
+{
+	int log_level;
+
+	LOGPASP(asp, DLSS7, LOGL_INFO, "%s SCTP NOTIFICATION %u flags=0x%0x\n",
+		pfx, notif->sn_header.sn_type,
+		notif->sn_header.sn_flags);
+
+	log_level = get_logevel_by_sn_type(notif->sn_header.sn_type);
+
+	switch (notif->sn_header.sn_type) {
+	case SCTP_ASSOC_CHANGE:
+		LOGPASP(asp, DLSS7, log_level, "%s SCTP_ASSOC_CHANGE: %s\n",
+			pfx, get_value_string(sctp_assoc_chg_vals,
+				notif->sn_assoc_change.sac_state));
+		break;
+	default:
+		LOGPASP(asp, DLSS7, log_level, "%s %s\n",
+			pfx, get_value_string(sctp_sn_type_vals,
+				notif->sn_header.sn_type));
+		break;
+	}
+}
+
+/* netif code tells us we can read something from the socket */
+static int xua_srv_conn_cb(struct osmo_stream_srv *conn)
+{
+	struct osmo_fd *ofd = osmo_stream_srv_get_ofd(conn);
+	struct osmo_ss7_asp *asp = osmo_stream_srv_get_data(conn);
+	struct msgb *msg = msgb_alloc(ASP_MSGB_SIZE, "xUA Server Rx");
+	struct sctp_sndrcvinfo sinfo;
+	unsigned int ppid;
+	int flags = 0;
+	int rc;
+
+	if (!msg)
+		return -ENOMEM;
+
+	/* read xUA message from socket and process it */
+	rc = sctp_recvmsg(ofd->fd, msgb_data(msg), msgb_tailroom(msg),
+			  NULL, NULL, &sinfo, &flags);
+	LOGPASP(asp, DLSS7, LOGL_DEBUG, "%s(): sctp_recvmsg() returned %d\n",
+		__func__, rc);
+	if (rc < 0) {
+		osmo_stream_srv_destroy(conn);
+		goto out;
+	} else if (rc == 0) {
+		osmo_stream_srv_destroy(conn);
+		goto out;
+	} else {
+		msgb_put(msg, rc);
+	}
+
+	if (flags & MSG_NOTIFICATION) {
+		union sctp_notification *notif = (union sctp_notification *) msgb_data(msg);
+
+		log_sctp_notification(asp, "xUA SRV", notif);
+
+		switch (notif->sn_header.sn_type) {
+		case SCTP_SHUTDOWN_EVENT:
+			osmo_stream_srv_destroy(conn);
+			osmo_fsm_inst_dispatch(asp->fi, XUA_ASP_E_SCTP_COMM_DOWN_IND, asp);
+			break;
+		default:
+			break;
+		}
+		rc = 0;
+		goto out;
+	}
+
+	ppid = ntohl(sinfo.sinfo_ppid);
+	msgb_sctp_ppid(msg) = ppid;
+	msgb_sctp_stream(msg) = ntohl(sinfo.sinfo_stream);
+	msg->dst = asp;
+
+	if (ppid == M3UA_PPID && asp->cfg.proto == OSMO_SS7_ASP_PROT_M3UA)
+		rc = m3ua_rx_msg(asp, msg);
+	else {
+		LOGPASP(asp, DLSS7, LOGL_NOTICE, "SCTP chunk for unknown PPID %u "
+			"received\n", ppid);
+		rc = 0;
+	}
+
+out:
+	msgb_free(msg);
+	return rc;
+}
+
+/* client has established SCTP connection to server */
+static int xua_cli_connect_cb(struct osmo_stream_cli *cli)
+{
+	struct osmo_fd *ofd = osmo_stream_cli_get_ofd(cli);
+	struct osmo_ss7_asp *asp = osmo_stream_cli_get_data(cli);
+
+	/* update the socket name */
+	osmo_talloc_replace_string(asp, &asp->sock_name, osmo_sock_get_name(asp, ofd->fd));
+
+	LOGPASP(asp, DLSS7, LOGL_INFO, "Client connected %s\n", asp->sock_name);
+
+	/* Notify the ASP FSM that the connection has just been
+	 * established */
+	osmo_fsm_inst_dispatch(asp->fi, XUA_ASP_E_M_ASP_UP_REQ, NULL);
+
+	return 0;
+}
+
+static int xua_cli_read_cb(struct osmo_stream_cli *conn)
+{
+	struct osmo_fd *ofd = osmo_stream_cli_get_ofd(conn);
+	struct osmo_ss7_asp *asp = osmo_stream_cli_get_data(conn);
+	struct msgb *msg = msgb_alloc(ASP_MSGB_SIZE, "xUA Client Rx");
+	struct sctp_sndrcvinfo sinfo;
+	unsigned int ppid;
+	int flags = 0;
+	int rc;
+
+	if (!msg)
+		return -ENOMEM;
+
+	/* read xUA message from socket and process it */
+	rc = sctp_recvmsg(ofd->fd, msgb_data(msg), msgb_tailroom(msg),
+			  NULL, NULL, &sinfo, &flags);
+	LOGPASP(asp, DLSS7, LOGL_DEBUG, "%s(): sctp_recvmsg() returned %d (flags=%d)\n",
+		__func__, rc, flags);
+	if (rc < 0) {
+		osmo_stream_cli_reconnect(conn);
+		goto out;
+	} else if (rc == 0) {
+		osmo_stream_cli_reconnect(conn);
+	} else {
+		msgb_put(msg, rc);
+	}
+
+	if (flags & MSG_NOTIFICATION) {
+		union sctp_notification *notif = (union sctp_notification *) msgb_data(msg);
+
+		log_sctp_notification(asp, "xUA CLNT", notif);
+
+		switch (notif->sn_header.sn_type) {
+		case SCTP_SHUTDOWN_EVENT:
+			osmo_fsm_inst_dispatch(asp->fi, XUA_ASP_E_SCTP_COMM_DOWN_IND, asp);
+			osmo_stream_cli_reconnect(conn);
+			break;
+		default:
+			break;
+		}
+		rc = 0;
+		goto out;
+	}
+
+	if (rc == 0)
+		goto out;
+
+	ppid = ntohl(sinfo.sinfo_ppid);
+	msgb_sctp_ppid(msg) = ppid;
+	msgb_sctp_stream(msg) = ntohl(sinfo.sinfo_stream);
+	msg->dst = asp;
+
+	if (ppid == M3UA_PPID && asp->cfg.proto == OSMO_SS7_ASP_PROT_M3UA)
+		rc = m3ua_rx_msg(asp, msg);
+	else {
+		LOGPASP(asp, DLSS7, LOGL_NOTICE, "SCTP chunk for unknown PPID %u "
+			"received\n", ppid);
+		rc = 0;
+	}
+
+out:
+	msgb_free(msg);
+	return rc;
+}
+
+static int xua_srv_conn_closed_cb(struct osmo_stream_srv *srv)
+{
+	struct osmo_ss7_asp *asp = osmo_stream_srv_get_data(srv);
+
+	LOGP(DLSS7, LOGL_INFO, "%s: SCTP connection closed\n",
+		asp ? asp->cfg.name : "?");
+
+	/* FIXME: somehow notify ASP FSM and everyone else */
+
+	return 0;
+}
+
+
+/* server has accept()ed a new SCTP association, let's find the ASP for
+ * it (if any) */
+static int xua_accept_cb(struct osmo_stream_srv_link *link, int fd)
+{
+	struct osmo_xua_server *oxs = osmo_stream_srv_link_get_data(link);
+	struct osmo_stream_srv *srv;
+	struct osmo_ss7_asp *asp;
+	char *sock_name = osmo_sock_get_name(link, fd);
+
+	LOGP(DLSS7, LOGL_INFO, "%s: New SCTP connection accepted\n",
+		sock_name);
+
+	srv = osmo_stream_srv_create(oxs, link, fd,
+				     xua_srv_conn_cb,
+				     xua_srv_conn_closed_cb, NULL);
+	if (!srv) {
+		LOGP(DLSS7, LOGL_ERROR, "%s: Unable to create stream server "
+		     "for SCTP connection\n", sock_name);
+		close(fd);
+		talloc_free(sock_name);
+		return -1;
+	}
+
+	asp = osmo_ss7_asp_find_by_socket_addr(fd);
+	if (!asp) {
+		LOGP(DLSS7, LOGL_NOTICE, "%s: SCTP connection without matching "
+		     "ASP definition, terminating\n", sock_name);
+		osmo_stream_srv_destroy(srv);
+		talloc_free(sock_name);
+		return -1;
+	}
+	LOGP(DLSS7, LOGL_INFO, "%s: matched connection to ASP %s\n",
+		sock_name, asp->cfg.name);
+	/* update the ASP reference back to the server over which the
+	 * connection came in */
+	asp->server = srv;
+	/* update the ASP socket name */
+	if (asp->sock_name)
+		talloc_free(asp->sock_name);
+	asp->sock_name = talloc_reparent(link, asp, sock_name);
+	/* make sure the conn_cb() is called with the asp as private
+	 * data */
+	osmo_stream_srv_set_data(srv, asp);
+
+	return 0;
+}
+
+/*! \brief send a fully encoded msgb via a given ASP
+ *  \param[in] asp Application Server Process through which to send
+ *  \param[in] msg message buffer to transmit. Ownership transferred.
+ *  \returns 0 on success; negative in case of error */
+int osmo_ss7_asp_send(struct osmo_ss7_asp *asp, struct msgb *msg)
+{
+	OSMO_ASSERT(ss7_initialized);
+
+	switch (asp->cfg.proto) {
+	case OSMO_SS7_ASP_PROT_SUA:
+		msgb_sctp_ppid(msg) = SUA_PPID;
+		break;
+	case OSMO_SS7_ASP_PROT_M3UA:
+		msgb_sctp_ppid(msg) = M3UA_PPID;
+		break;
+	default:
+		OSMO_ASSERT(0);
+	}
+
+	if (asp->cfg.is_server)
+		osmo_stream_srv_send(asp->server, msg);
+	else
+		osmo_stream_cli_send(asp->client, msg);
+
+	return 0;
+}
+
+/***********************************************************************
+ * SS7 xUA Server
+ ***********************************************************************/
+
+struct osmo_xua_server *
+osmo_ss7_xua_server_find(struct osmo_ss7_instance *inst, enum osmo_ss7_asp_protocol proto,
+			 uint16_t local_port)
+{
+	struct osmo_xua_server *xs;
+
+	OSMO_ASSERT(ss7_initialized);
+	llist_for_each_entry(xs, &ss7_xua_servers, list) {
+		if (proto == xs->cfg.proto &&
+		    local_port == xs->cfg.local.port)
+			return xs;
+	}
+	return NULL;
+}
+
+/*! \brief create a new xUA server listening to given ip/port
+ *  \param[in] ctx talloc allocation context
+ *  \param[in] proto protocol (xUA variant) to use
+ *  \param[in] local_port local SCTP port to bind/listen to
+ *  \param[in] local_host local IP address to bind/listen to (optional)
+ *  \returns callee-allocated \ref osmo_xua_server in case of success
+ */
+struct osmo_xua_server *
+osmo_ss7_xua_server_create(struct osmo_ss7_instance *inst, enum osmo_ss7_asp_protocol proto,
+			   uint16_t local_port, const char *local_host)
+{
+	struct osmo_xua_server *oxs = talloc_zero(inst, struct osmo_xua_server);
+	int rc;
+
+	OSMO_ASSERT(ss7_initialized);
+	if (!oxs)
+		return NULL;
+
+	LOGP(DLSS7, LOGL_INFO, "Creating XUA Server %s:%u\n",
+		local_host, local_port);
+
+	oxs->cfg.proto = proto;
+	oxs->cfg.local.port = local_port;
+	oxs->cfg.local.host = talloc_strdup(oxs, local_host);
+
+	oxs->server = osmo_stream_srv_link_create(oxs);
+	osmo_stream_srv_link_set_data(oxs->server, oxs);
+	osmo_stream_srv_link_set_accept_cb(oxs->server, xua_accept_cb);
+
+	osmo_stream_srv_link_set_addr(oxs->server, oxs->cfg.local.host);
+	osmo_stream_srv_link_set_port(oxs->server, oxs->cfg.local.port);
+	osmo_stream_srv_link_set_proto(oxs->server, IPPROTO_SCTP);
+
+	rc = osmo_stream_srv_link_open(oxs->server);
+	if (rc < 0) {
+		osmo_stream_srv_link_destroy(oxs->server);
+		oxs->server = NULL;
+		talloc_free(oxs);
+	}
+
+	oxs->inst = inst;
+	llist_add_tail(&oxs->list, &ss7_xua_servers);
+
+	return oxs;
+}
+
+int
+osmo_ss7_xua_server_set_local_host(struct osmo_xua_server *xs, const char *local_host)
+{
+	OSMO_ASSERT(ss7_initialized);
+	if (xs->cfg.local.host)
+		talloc_free(xs->cfg.local.host);
+	xs->cfg.local.host = talloc_strdup(xs, local_host);
+
+	osmo_stream_srv_link_set_addr(xs->server, xs->cfg.local.host);
+
+	return 0;
+}
+
+void osmo_ss7_xua_server_destroy(struct osmo_xua_server *xs)
+{
+	if (xs->server) {
+		osmo_stream_srv_link_close(xs->server);
+		osmo_stream_srv_link_destroy(xs->server);
+	}
+	/* FIXME: add asp_list to xua_server so we can iterate it here
+	 * and close all connections established in relation with this
+	 * server */
+	llist_del(&xs->list);
+	talloc_free(xs);
+}
+
+bool osmo_ss7_pc_is_local(struct osmo_ss7_instance *inst, uint32_t pc)
+{
+	OSMO_ASSERT(ss7_initialized);
+	if (pc == inst->cfg.primary_pc)
+		return true;
+	/* FIXME: Secondary and Capability Point Codes */
+	return false;
+}
+
+int osmo_ss7_init(void)
+{
+	if (ss7_initialized)
+		return 1;
+	osmo_fsm_register(&xua_as_fsm);
+	osmo_fsm_register(&xua_asp_fsm);
+	ss7_initialized = true;
+	return 0;
+}
