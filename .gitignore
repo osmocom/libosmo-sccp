@@ -70,3 +70,5 @@ tests/testsuite.log
 
 *.pc
 config.*
+
+tags
