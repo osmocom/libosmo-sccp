@@ -127,11 +127,10 @@ enum osmo_sccp_ssn {
 
 struct osmo_sccp_gt {
 	uint8_t gti;
-	uint8_t nr_digits;
 	uint8_t tt;
 	uint32_t npi;
 	uint32_t nai;
-	uint8_t digits[32];
+	char digits[32];
 };
 
 struct osmo_sccp_addr {
