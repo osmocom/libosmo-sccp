@@ -135,6 +135,7 @@ struct osmo_sccp_gt {
 
 struct osmo_sccp_addr {
 	uint32_t presence;
+	enum osmo_sccp_routing_ind ri;
 	struct osmo_sccp_gt gt;
 	uint32_t pc;
 	uint32_t ssn;
