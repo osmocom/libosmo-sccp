@@ -301,3 +301,109 @@ int xua_msg_add_sccp_addr(struct xua_msg *xua, uint16_t iei, const struct osmo_s
 
 	return rc;
 }
+
+const char *xua_class_msg_name(const struct xua_msg_class *xmc, uint16_t msg_type)
+{
+	static char class_buf[64];
+
+	if (xmc && xmc->msgt_names)
+		return get_value_string(xmc->msgt_names, msg_type);
+	else {
+		snprintf(class_buf, sizeof(class_buf), "Unknown 0x%04x", msg_type);
+		return class_buf;
+	}
+}
+
+const char *xua_class_iei_name(const struct xua_msg_class *xmc, uint16_t iei)
+{
+	static char iei_buf[64];
+
+	if (xmc && xmc->iei_names)
+		return get_value_string(xmc->iei_names, iei);
+	else {
+		snprintf(iei_buf, sizeof(iei_buf), "Unknown 0x%04x", iei);
+		return iei_buf;
+	}
+}
+
+char *xua_hdr_dump(struct xua_msg *xua, const struct xua_dialect *dialect)
+{
+	const struct xua_msg_class *xmc = NULL;
+	static char buf[128];
+
+	if (dialect)
+		xmc = dialect->class[xua->hdr.msg_class];
+	if (!xmc)
+		snprintf(buf, sizeof(buf), "%u:%u", xua->hdr.msg_class, xua->hdr.msg_type);
+	else
+		snprintf(buf, sizeof(buf), "%s:%s", xmc->name,
+			xua_class_msg_name(xmc, xua->hdr.msg_type));
+	return buf;
+}
+
+int xua_dialect_check_all_mand_ies(const struct xua_dialect *dialect, struct xua_msg *xua)
+{
+	uint8_t msg_class = xua->hdr.msg_class;
+	uint8_t msg_type = xua->hdr.msg_type;
+	const struct xua_msg_class *xmc = dialect->class[msg_class];
+	const uint16_t *ies;
+	uint16_t ie;
+
+	/* unknown class? */
+	if (!xmc)
+		return 1;
+
+	ies = xmc->mand_ies[msg_type];
+	/* no mandatory IEs? */
+	if (!ies)
+		return 1;
+
+	for (ie = *ies; ie; ie = *ies++) {
+		if (!xua_msg_find_tag(xua, ie)) {
+			LOGP(dialect->log_subsys, LOGL_ERROR,
+				"%s Message %s:%s should "
+				"contain IE %s, but doesn't\n",
+				dialect->name, xmc->name,
+				xua_class_msg_name(xmc, msg_type),
+				xua_class_iei_name(xmc, ie));
+			return 0;
+		}
+	}
+
+	return 1;
+}
+
+static void append_to_buf(char *buf, bool *comma, const char *fmt, ...)
+{
+	va_list ap;
+
+	va_start(ap, fmt);
+	if (!comma || *comma == true) {
+		strcat(buf, ",");
+	} else if (comma)
+		*comma = true;
+	vsprintf(buf+strlen(buf), fmt, ap);
+	va_end(ap);
+}
+
+char *xua_msg_dump(struct xua_msg *xua, const struct xua_dialect *dialect)
+{
+	static char buf[1024];
+	struct xua_msg_part *part;
+	const struct xua_msg_class *xmc = NULL;
+
+	if (dialect)
+		xmc = dialect->class[xua->hdr.msg_class];
+
+	buf[0] = '\0';
+
+	append_to_buf(buf, NULL, "HDR=(%s,V=%u,LEN=%u)",
+			xua_hdr_dump(xua, dialect),
+			xua->hdr.version, xua->hdr.msg_length);
+	buf[0] = ' ';
+	llist_for_each_entry(part, &xua->headers, entry)
+		append_to_buf(buf, NULL, "\n\tPART(T=%s,L=%u,D=%s)",
+				xua_class_iei_name(xmc, part->tag), part->len,
+				osmo_hexdump_nospc(part->dat, part->len));
+	return buf;
+}
