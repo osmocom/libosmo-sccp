@@ -1,0 +1,49 @@
+0: Creating SS7 Instance
+[0;m0: Creating Route Table system
+[0;m0: Point Code Format 8-8-8 is longer than 14 bits, odd?
+[0;mregistering user=testuser for SI 1 with priv 0x1234
+[0;mdelivering MTP-TRANSFER.ind to user testuser, priv=0x1234
+[0;mNo MTP-User for SI 1
+[0;mUnsupported Primitive
+[0;m0: Creating Route Table foobar
+[0;m0: Creating Linkset a
+[0;m0: Creating Linkset b
+[0;m0: Destroying Linkset a
+[0;m0: Destroying Linkset b
+[0;m0: Creating Linkset a
+[0;m0: Creating Linkset b
+[0;m0: Creating Link a:1
+[0;m0: Creating Link a:2
+[0;m0: Destroying Link a:1
+[0;m0: Destroying Link a:2
+[0;m0: Destroying Linkset a
+[0;m0: Destroying Linkset b
+[0;m0: Creating AS as1
+[0;mXUA_AS(as1){AS_DOWN}: Allocated
+[0;m0: Adding ASP asp1 to AS as1
+[0;m0: Restarting ASP asp1
+[0;munable to connect/bind socket: (null):0: Connection refused
+[0;mconnection closed
+[0;mretrying in 5 seconds...
+[0;m0: Unable to open stream client for ASP asp1
+[0;mXUA_ASP(asp1){ASP_DOWN}: Allocated
+[0;mXUA_ASP(asp1){ASP_DOWN}: Received Event M-ASP_UP.req
+[0;mXUA_ASP(asp1){ASP_DOWN}: Received Event ASPSM-ASP_UP_ACK
+[0;mXUA_ASP(asp1){ASP_DOWN}: T(ack) stopped
+[0;mXUA_ASP(asp1){ASP_DOWN}: state_chg to ASP_INACTIVE
+[0;mXUA_ASP(asp1){ASP_INACTIVE}: Received Event M-ASP_ACTIVE.req
+[0;mXUA_ASP(asp1){ASP_INACTIVE}: Received Event ASPTM-ASP_AC_ACK
+[0;mXUA_ASP(asp1){ASP_INACTIVE}: T(ack) stopped
+[0;mXUA_ASP(asp1){ASP_INACTIVE}: state_chg to ASP_ACTIVE
+[0;m0: Removing ASP asp1 from AS as1
+[0;m0: Removing ASP asp1 from AS as1
+[0;m0: Destroying ASP asp1
+[0;mXUA_ASP(asp1){ASP_ACTIVE}: Terminating (cause = OSMO_FSM_TERM_REQUEST)
+[0;mXUA_ASP(asp1){ASP_ACTIVE}: Freeing instance
+[0;mXUA_ASP(asp1){ASP_ACTIVE}: Deallocated
+[0;m0: Destroying AS as1
+[0;mXUA_AS(as1){AS_DOWN}: Terminating (cause = OSMO_FSM_TERM_REQUEST)
+[0;mXUA_AS(as1){AS_DOWN}: Freeing instance
+[0;mXUA_AS(as1){AS_DOWN}: Deallocated
+[0;m0: Destroying SS7 Instance
+[0;m

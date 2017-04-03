@@ -29,6 +29,17 @@ PKG_PROG_PKG_CONFIG([0.20])
 PKG_CHECK_MODULES(LIBOSMOCORE, libosmocore >= 0.3.0)
 PKG_CHECK_MODULES(LIBOSMONETIF, libosmo-netif >= 0.0.6)
 
+old_LIBS=$LIBS
+AC_SEARCH_LIBS([sctp_send], [sctp], [
+	AC_DEFINE(HAVE_LIBSCTP, 1, [Define 1 to enable SCTP support])
+	AC_SUBST(HAVE_LIBSCTP, [1])
+	if test -n "$ac_lib"; then
+		AC_SUBST(LIBSCTP_LIBS, [-l$ac_lib])
+	fi
+	], [
+	AC_MSG_ERROR([sctp_send not found in searched libs])])
+LIBS=$old_LIBS
+
 # The following test is taken from WebKit's webkit.m4
 saved_CFLAGS="$CFLAGS"
 CFLAGS="$CFLAGS -fvisibility=hidden "
@@ -56,5 +67,6 @@ AC_OUTPUT(
     tests/mtp/Makefile
     tests/m2ua/Makefile
     tests/sigtran/Makefile
+    tests/ss7/Makefile
     Makefile)
 

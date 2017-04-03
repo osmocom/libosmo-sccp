@@ -1,0 +1,27 @@
+Testing ITU-style point code format
+test_pc_transcode(0) -> 0.0.0 -> 0
+test_pc_transcode(1) -> 0.0.1 -> 1
+test_pc_transcode(8) -> 0.1.0 -> 8
+test_pc_transcode(2048) -> 1.0.0 -> 2048
+test_pc_transcode(14336) -> 7.0.0 -> 14336
+test_pc_transcode(100) -> 0.12.4 -> 100
+test_pc_transcode(2342) -> 1.36.6 -> 2342
+test_pc_transcode(16383) -> 7.255.7 -> 16383
+mask /1 => 8192 (0x2000) 4.0.0
+mask 7.0.0 => 14336 (0x3800) 7.0.0
+mask /14 => 16383 (0x3fff) 7.255.7
+Testing ANSI-style point code format
+test_pc_transcode(0) -> 0-0-0 -> 0
+test_pc_transcode(1) -> 0-0-1 -> 1
+test_pc_transcode(256) -> 0-1-0 -> 256
+test_pc_transcode(65536) -> 1-0-0 -> 65536
+test_pc_transcode(2048) -> 0-8-0 -> 2048
+test_pc_transcode(16777215) -> 255-255-255 -> 16777215
+test_pc_transcode(100) -> 0-0-100 -> 100
+test_pc_transcode(2342) -> 0-9-38 -> 2342
+mask /1 => 8388608 (0x800000) 128-0-0
+mask /16 => 16776960 (0xffff00) 255-255-0
+mask /24 => 16777215 (0xffffff) 255-255-255
+Testing SS7 user
+Testing SS7 routing
+Testing SS7 linkset/link

@@ -1,6 +1,8 @@
 AM_CPPFLAGS = $(all_includes) -I$(top_srcdir)/include -I$(top_builddir)
 AM_CFLAGS=-Wall $(LIBOSMOCORE_CFLAGS) $(LIBOSMONETIF_CFLAGS)
 
+noinst_HEADERS = xua_asp_fsm.h xua_as_fsm.h xua_internal.h
+
 # Legacy static libs
 
 sccpdir = $(libdir)
@@ -24,6 +26,7 @@ lib_LTLIBRARIES = libosmo-sigtran.la
 # documentation before making any modification
 LIBVERSION=0:0:0
 
-libosmo_sigtran_la_SOURCES = sccp_sap.c sua.c xua_msg.c sccp_helpers.c
+libosmo_sigtran_la_SOURCES = sccp_sap.c sua.c m3ua.c xua_msg.c sccp_helpers.c \
+			     osmo_ss7.c osmo_ss7_hmrt.c xua_asp_fsm.c xua_as_fsm.c
 libosmo_sigtran_la_LDFLAGS = -version-info $(LIBVERSION) -no-undefined -export-symbols-regex '^osmo_'
 libosmo_sigtran_la_LIBADD = $(LIBOSMOCORE_LIBS) $(LIBOSMONETIF_LIBS) $(LIBSCTP_LIBS)
