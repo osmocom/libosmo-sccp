@@ -222,3 +222,23 @@ struct osmo_scu_prim {
 #define msgb_scu_prim(msg) ((struct osmo_scu_prim *)(msg)->l1h)
 
 char *osmo_scu_prim_name(struct osmo_prim_hdr *oph);
+
+struct osmo_ss7_instance;
+struct osmo_sccp_instance;
+struct osmo_sccp_user;
+
+struct osmo_sccp_instance *
+osmo_sccp_instance_create(struct osmo_ss7_instance *ss7, void *priv);
+void osmo_sccp_instance_destroy(struct osmo_sccp_instance *inst);
+
+void osmo_sccp_user_unbind(struct osmo_sccp_user *scu);
+
+struct osmo_sccp_user *
+osmo_sccp_user_bind_pc(struct osmo_sccp_instance *inst, const char *name,
+		       osmo_prim_cb prim_cb, uint16_t ssn, uint32_t pc);
+
+struct osmo_sccp_user *
+osmo_sccp_user_bind(struct osmo_sccp_instance *inst, const char *name,
+		    osmo_prim_cb prim_cb, uint16_t ssn);
+
+int osmo_sccp_user_sap_down(struct osmo_sccp_user *scu, struct osmo_prim_hdr *oph);
