@@ -50,7 +50,10 @@ void xua_msg_free(struct xua_msg *msg);
 
 int xua_msg_add_data(struct xua_msg *msg, uint16_t tag, uint16_t len, uint8_t *dat);
 
-struct xua_msg_part *xua_msg_find_tag(struct xua_msg *msg, uint16_t tag);
+struct xua_msg_part *xua_msg_find_tag(const struct xua_msg *msg, uint16_t tag);
+int xua_msg_free_tag(struct xua_msg *xua, uint16_t tag);
+int xua_msg_copy_part(struct xua_msg *xua_out, uint16_t tag_out,
+		      const struct xua_msg *xua_in, uint16_t tag_in);
 
 struct xua_msg *xua_from_msg(const int version, uint16_t len, uint8_t *data);
 struct msgb *xua_to_msg(const int version, struct xua_msg *msg);
