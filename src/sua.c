@@ -51,6 +51,17 @@
 #define GUARD_TIMER		(23 * 60 * 100)
 #define RESET_TIMER		(     10 * 100)
 
+#define SCCP_MSG_SIZE 2048
+#define SCCP_MSG_HEADROOM 512
+
+struct msgb *sccp_msgb_alloc(const char *name)
+{
+	if (!name)
+		name = "SCCP";
+	return msgb_alloc_headroom(SCCP_MSG_SIZE+SCCP_MSG_HEADROOM,
+				   SCCP_MSG_HEADROOM, name);
+}
+
 /***********************************************************************
  * Protocol Definition (string tables, mandatory IE checking)
  ***********************************************************************/
@@ -431,13 +442,6 @@ static void conn_start_inact_timers(struct sua_connection *conn)
 	conn_restart_tx_inact_timer(conn);
 	conn_restart_rx_inact_timer(conn);
 }
-
-
-static struct msgb *sua_msgb_alloc(void)
-{
-	return msgb_alloc(SUA_MSGB_SIZE, "SUA Primitive");
-}
-
 
 /***********************************************************************
  * Handling of messages from the User SAP
@@ -871,7 +875,7 @@ static int sua_rx_cldt(struct osmo_sccp_link *link, struct xua_msg *xua)
 	struct osmo_scu_prim *prim;
 	struct osmo_scu_unitdata_param *param;
 	struct xua_msg_part *data_ie = xua_msg_find_tag(xua, SUA_IEI_DATA);
-	struct msgb *upmsg = sua_msgb_alloc();
+	struct msgb *upmsg = sccp_msgb_alloc(__func__);
 	uint32_t protocol_class;
 
 	/* fill primitive */
@@ -932,7 +936,7 @@ static int sua_rx_core(struct osmo_sccp_link *link, struct xua_msg *xua)
 	conn->remote_ref = xua_msg_get_u32(xua, SUA_IEI_SRC_REF);
 
 	/* fill primitive */
-	upmsg = sua_msgb_alloc();
+	upmsg = sccp_msgb_alloc(__func__);
 	prim = (struct osmo_scu_prim *) msgb_put(upmsg, sizeof(*prim));
 	param = &prim->u.connect;
 	osmo_prim_init(&prim->oph, SCCP_SAP_USER,
@@ -992,7 +996,7 @@ static int sua_rx_coak(struct osmo_sccp_link *link, struct xua_msg *xua)
 	conn->remote_ref = xua_msg_get_u32(xua, SUA_IEI_SRC_REF);
 
 	/* fill primitive */
-	upmsg = sua_msgb_alloc();
+	upmsg = sccp_msgb_alloc(__func__);
 	prim = (struct osmo_scu_prim *) msgb_put(upmsg, sizeof(*prim));
 	param = &prim->u.connect;
 	osmo_prim_init(&prim->oph, SCCP_SAP_USER,
@@ -1044,7 +1048,7 @@ static int sua_rx_coref(struct osmo_sccp_link *link, struct xua_msg *xua)
 	conn_restart_rx_inact_timer(conn);
 
 	/* fill primitive */
-	upmsg = sua_msgb_alloc();
+	upmsg = sccp_msgb_alloc(__func__);
 	prim = (struct osmo_scu_prim *) msgb_put(upmsg, sizeof(*prim));
 	param = &prim->u.disconnect;
 	osmo_prim_init(&prim->oph, SCCP_SAP_USER,
@@ -1095,7 +1099,7 @@ static int sua_rx_relre(struct osmo_sccp_link *link, struct xua_msg *xua)
 	}
 
 	/* fill primitive */
-	upmsg = sua_msgb_alloc();
+	upmsg = sccp_msgb_alloc(__func__);
 	prim = (struct osmo_scu_prim *) msgb_put(upmsg, sizeof(*prim));
 	param = &prim->u.disconnect;
 	osmo_prim_init(&prim->oph, SCCP_SAP_USER,
@@ -1144,7 +1148,7 @@ static int sua_rx_relco(struct osmo_sccp_link *link, struct xua_msg *xua)
 	conn_restart_rx_inact_timer(conn);
 
 	/* fill primitive */
-	upmsg = sua_msgb_alloc();
+	upmsg = sccp_msgb_alloc(__func__);
 	prim = (struct osmo_scu_prim *) msgb_put(upmsg, sizeof(*prim));
 	param = &prim->u.disconnect;
 	osmo_prim_init(&prim->oph, SCCP_SAP_USER,
@@ -1196,7 +1200,7 @@ static int sua_rx_codt(struct osmo_sccp_link *link, struct xua_msg *xua)
 	conn_restart_rx_inact_timer(conn);
 
 	/* fill primitive */
-	upmsg = sua_msgb_alloc();
+	upmsg = sccp_msgb_alloc(__func__);
 	prim = (struct osmo_scu_prim *) msgb_put(upmsg, sizeof(*prim));
 	param = &prim->u.data;
 	osmo_prim_init(&prim->oph, SCCP_SAP_USER,

@@ -1,7 +1,7 @@
 AM_CPPFLAGS = $(all_includes) -I$(top_srcdir)/include -I$(top_builddir)
 AM_CFLAGS=-Wall $(LIBOSMOCORE_CFLAGS) $(LIBOSMONETIF_CFLAGS)
 
-noinst_HEADERS = xua_asp_fsm.h xua_as_fsm.h xua_internal.h
+noinst_HEADERS = sccp_internal.h xua_asp_fsm.h xua_as_fsm.h xua_internal.h
 
 # Legacy static libs
 
