@@ -21,6 +21,9 @@
 #pragma once
 #include <stdint.h>
 
+#include <osmocom/sigtran/protocol/m3ua.h>
+
+#define SUA_VERSION	1
 #define SUA_PPID	4
 #define SUA_PORT 	14001
 
@@ -76,8 +79,16 @@
 #define SUA_CO_COERR		10
 #define SUA_CO_COIT		11 /* Connection Oriented Inactiviy Test */
 
-#define SUA_IEI_ROUTE_CTX	0x0006
-#define SUA_IEI_CORR_ID		0x0013
+#define SUA_IEI_INFO_STRING	M3UA_IEI_INFO_STRING
+#define SUA_IEI_ROUTE_CTX	M3UA_IEI_ROUTE_CTX
+#define SUA_IEI_DIAG_INFO	M3UA_IEI_DIAG_INFO
+#define SUA_IEI_HEARTBT_DATA	M3UA_IEI_HEARDBT_DATA
+#define SUA_IEI_TRAF_MODE_TYP	M3UA_IEI_TRAF_MODE_TYP
+#define SUA_IEI_ERR_CODE	M3UA_IEI_ERR_CODE
+#define SUA_IEI_STATUS		M3UA_IEI_STATUS
+#define SUA_IEI_ASP_ID		M3UA_IEI_ASP_ID
+#define SUA_IEI_AFFECTED_PC	M3UA_IEI_AFFECTED_PC
+#define SUA_IEI_CORR_ID		M3UA_IEI_CORR_ID
 #define SUA_IEI_REG_RESULT	0x0014
 #define SUA_IEI_DEREG_RESULT	0x0015
 
