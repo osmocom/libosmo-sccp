@@ -130,6 +130,16 @@ void osmo_sccp_user_unbind(struct osmo_sccp_user *scu)
 	talloc_free(scu);
 }
 
+void osmo_sccp_user_set_priv(struct osmo_sccp_user *scu, void *priv)
+{
+	scu->priv = priv;
+}
+
+void *osmo_sccp_user_get_priv(struct osmo_sccp_user *scu)
+{
+	return scu->priv;
+}
+
 /*! \brief Send a SCCP User SAP Primitive up to the User
  *  \param[in] scu SCCP User to whom to send the primitive
  *  \param[in] prim Primitive to send to the user

@@ -232,6 +232,8 @@ osmo_sccp_instance_create(struct osmo_ss7_instance *ss7, void *priv);
 void osmo_sccp_instance_destroy(struct osmo_sccp_instance *inst);
 
 void osmo_sccp_user_unbind(struct osmo_sccp_user *scu);
+void osmo_sccp_user_set_priv(struct osmo_sccp_user *scu, void *priv);
+void *osmo_sccp_user_get_priv(struct osmo_sccp_user *scu);
 
 struct osmo_sccp_user *
 osmo_sccp_user_bind_pc(struct osmo_sccp_instance *inst, const char *name,
