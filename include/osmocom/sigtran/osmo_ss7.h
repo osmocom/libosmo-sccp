@@ -229,10 +229,10 @@ struct osmo_ss7_routing_key {
 };
 
 enum osmo_ss7_as_traffic_mode {
+	OSMO_SS7_AS_TMOD_OVERRIDE = 0,	/* default */
 	OSMO_SS7_AS_TMOD_BCAST,
 	OSMO_SS7_AS_TMOD_LOADSHARE,
 	OSMO_SS7_AS_TMOD_ROUNDROBIN,
-	OSMO_SS7_AS_TMOD_OVERRIDE,
 	_NUM_OSMO_SS7_ASP_TMOD
 };
 
