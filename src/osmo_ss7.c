@@ -53,6 +53,7 @@ static bool ss7_initialized = false;
 
 static LLIST_HEAD(ss7_instances);
 static LLIST_HEAD(ss7_xua_servers);
+static int32_t next_rctx = 1;
 
 struct value_string osmo_ss7_as_traffic_mode_vals[] = {
 	{ OSMO_SS7_AS_TMOD_BCAST,	"broadcast" },
@@ -72,6 +73,16 @@ struct value_string osmo_ss7_asp_protocol_vals[] = {
 #define LOGSS7(inst, level, fmt, args ...)	\
 	LOGP(DLSS7, level, "%u: " fmt, (inst)->cfg.id, ## args)
 
+int osmo_ss7_find_free_rctx(struct osmo_ss7_instance *inst)
+{
+	int32_t rctx;
+
+	for (rctx = next_rctx; rctx; rctx = ++next_rctx) {
+		if (!osmo_ss7_as_find_by_rctx(inst, next_rctx))
+			return rctx;
+	}
+	return -1;
+}
 
 /***********************************************************************
  * SS7 Point Code Parsing / Printing

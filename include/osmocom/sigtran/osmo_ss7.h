@@ -15,6 +15,7 @@ struct osmo_sccp_instance;
 struct osmo_mtp_prim;
 
 int osmo_ss7_init(void);
+int osmo_ss7_find_free_rctx(struct osmo_ss7_instance *inst);
 
 bool osmo_ss7_pc_is_local(struct osmo_ss7_instance *inst, uint32_t pc);
 int osmo_ss7_pointcode_parse(struct osmo_ss7_instance *inst, const char *str);
