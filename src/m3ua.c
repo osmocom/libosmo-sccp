@@ -666,8 +666,10 @@ int m3ua_rx_msg(struct osmo_ss7_asp *asp, struct msgb *msg)
 	case M3UA_MSGC_MGMT:
 		rc = m3ua_rx_mgmt(asp, xua);
 		break;
-	case M3UA_MSGC_SNM:
 	case M3UA_MSGC_RKM:
+		rc = m3ua_rx_rkm(asp, xua);
+		break;
+	case M3UA_MSGC_SNM:
 		/* FIXME */
 		LOGPASP(asp, DLM3UA, LOGL_NOTICE, "Received unsupported M3UA "
 			"Message Class %u\n", xua->hdr.msg_class);

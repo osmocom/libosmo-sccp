@@ -58,3 +58,4 @@ struct m3ua_notify_params {
 struct xua_msg *m3ua_encode_notify(const struct m3ua_notify_params *npar);
 int m3ua_decode_notify(struct m3ua_notify_params *npar, void *ctx,
 			const struct xua_msg *xua);
+int m3ua_rx_rkm(struct osmo_ss7_asp *asp, struct xua_msg *xua);
