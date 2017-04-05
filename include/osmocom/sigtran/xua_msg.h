@@ -82,6 +82,8 @@ int xua_msg_copy_part(struct xua_msg *xua_out, uint16_t tag_out,
 struct xua_msg *xua_from_msg(const int version, uint16_t len, uint8_t *data);
 struct msgb *xua_to_msg(const int version, struct xua_msg *msg);
 
+struct xua_msg *xua_from_nested(struct xua_msg_part *outer);
+
 int msgb_t16l16vp_put(struct msgb *msg, uint16_t tag, uint16_t len, const uint8_t *data);
 int msgb_t16l16vp_put_u32(struct msgb *msg, uint16_t tag, uint32_t val);
 int xua_msg_add_u32(struct xua_msg *xua, uint16_t iei, uint32_t val);

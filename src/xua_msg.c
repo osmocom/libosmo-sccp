@@ -112,12 +112,39 @@ int xua_msg_copy_part(struct xua_msg *xua_out, uint16_t tag_out,
 	return xua_msg_add_data(xua_out, tag_out, part->len, part->dat);
 }
 
-struct xua_msg *xua_from_msg(const int version, uint16_t len, uint8_t *data)
+static int xua_from_msg_common(struct xua_msg *msg, const uint8_t *data, uint16_t pos, uint16_t len)
 {
 	struct xua_parameter_hdr *par;
+	uint16_t par_len, padding;
+	int rc;
+
+	while (pos + sizeof(*par) < len) {
+		par = (struct xua_parameter_hdr *) &data[pos];
+		par_len = ntohs(par->len);
+
+		if (pos + par_len > len || par_len < 4)
+			return -1;
+
+		rc = xua_msg_add_data(msg, ntohs(par->tag),
+				       par_len - 4, par->data);
+		if (rc != 0)
+			return -1;
+
+		pos += par_len;
+
+		/* move over the padding */
+		padding = (4 - (par_len % 4)) & 0x3;
+		pos += padding;
+	}
+
+	return 0;
+}
+
+struct xua_msg *xua_from_msg(const int version, uint16_t len, uint8_t *data)
+{
 	struct xua_common_hdr *hdr;
 	struct xua_msg *msg;
-	uint16_t pos, par_len, padding;
+	uint16_t pos;
 	int rc;
 
 	msg = xua_msg_alloc();
@@ -136,31 +163,33 @@ struct xua_msg *xua_from_msg(const int version, uint16_t len, uint8_t *data)
 	msg->hdr = *hdr;
 	pos = sizeof(*hdr);
 
-	while (pos + sizeof(*par) < len) {
-		par = (struct xua_parameter_hdr *) &data[pos];
-		par_len = ntohs(par->len);
+	rc = xua_from_msg_common(msg, data, pos, len);
+	if (rc < 0)
+		goto fail;
 
-		if (pos + par_len > len || par_len < 4) 
-			goto fail;
-
-		rc = xua_msg_add_data(msg, ntohs(par->tag),
-				       par_len - 4, par->data);
-		if (rc != 0)
-			goto fail;
-
-		pos += par_len;
-
-		/* move over the padding */
-		padding = (4 - (par_len % 4)) & 0x3;
-		pos += padding;
-	}
-
-	/* TODO: parse */
 	return msg;
 
 fail:
 	xua_msg_free(msg);
 	return NULL;
+
+}
+
+struct xua_msg *xua_from_nested(struct xua_msg_part *outer)
+{
+	struct xua_msg *msg = xua_msg_alloc();
+	int rc;
+
+	if (!msg)
+		return NULL;
+
+	rc = xua_from_msg_common(msg, outer->dat, 0, outer->len);
+	if (rc < 0) {
+		xua_msg_free(msg);
+		return NULL;
+	}
+
+	return msg;
 }
 
 struct msgb *xua_to_msg(const int version, struct xua_msg *xua)

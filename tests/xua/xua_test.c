@@ -1,4 +1,5 @@
 /* (C) 2011 by Holger Hans Peter Freyther <zecke@selfish.org>
+ * (C) 2017 by Harald Welte <laforge@gnumonks.org>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -21,6 +22,7 @@
 
 #include <osmocom/sigtran/xua_msg.h>
 #include <osmocom/sigtran/protocol/sua.h>
+#include <osmocom/sigtran/protocol/m3ua.h>
 #include <osmocom/sigtran/sccp_sap.h>
 #include <osmocom/sigtran/sccp_helpers.h>
 
@@ -355,6 +357,35 @@ static void test_sccp2sua(void)
 	}
 }
 
+/* M3UA message with RKM-REG contents */
+static const uint8_t rkm_reg[] = {
+	0x01, 0x00, 0x09, 0x01, 0x00, 0x00, 0x00, 0x2c, 0x00, 0x04, 0x00, 0x0e, 0x4d, 0x33, 0x55, 0x41,
+	0x20, 0x72, 0x6f, 0x63, 0x6b, 0x73, 0x00, 0x00, 0x02, 0x07, 0x00, 0x14, 0x02, 0x0a, 0x00, 0x08,
+	0x00, 0x00, 0x00, 0x01, 0x02, 0x0b, 0x00, 0x08, 0x00, 0x00, 0x00, 0x17,
+};
+
+static void test_rkm(void)
+{
+	struct xua_msg *xua, *nested;
+	struct xua_msg_part *rkey;
+
+	printf("Parsing M3UA Message\n");
+	xua = xua_from_msg(M3UA_VERSION, sizeof(rkm_reg), (uint8_t *)rkm_reg);
+	OSMO_ASSERT(xua);
+	OSMO_ASSERT(xua->hdr.msg_class == M3UA_MSGC_RKM);
+	OSMO_ASSERT(xua->hdr.msg_type == M3UA_RKM_REG_REQ);
+	OSMO_ASSERT(xua_msg_find_tag(xua, M3UA_IEI_INFO_STRING));
+	rkey = xua_msg_find_tag(xua, M3UA_IEI_ROUT_KEY);
+	OSMO_ASSERT(rkey);
+	OSMO_ASSERT(rkey->len == 16);
+
+	printf("Parsing Nested M3UA Routing Key IE\n");
+	nested = xua_from_nested(rkey);
+	OSMO_ASSERT(nested);
+	OSMO_ASSERT(xua_msg_get_u32(nested, M3UA_IEI_LOC_RKEY_ID) == 1);
+	OSMO_ASSERT(xua_msg_get_u32(nested, M3UA_IEI_DEST_PC) == 23);
+}
+
 
 static const struct log_info_cat default_categories[] = {
 	[0] = {
@@ -380,6 +411,7 @@ int main(int argc, char **argv)
 	test_sccp_addr_parser();
 	test_helpers();
 	test_sccp2sua();
+	test_rkm();
 
 	printf("All tests passed.\n");
 	return 0;
