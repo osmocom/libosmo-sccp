@@ -1345,15 +1345,31 @@ static int xua_accept_cb(struct osmo_stream_srv_link *link, int fd)
 	}
 
 	asp = osmo_ss7_asp_find_by_socket_addr(fd);
-	if (!asp) {
-		LOGP(DLSS7, LOGL_NOTICE, "%s: SCTP connection without matching "
-		     "ASP definition, terminating\n", sock_name);
-		osmo_stream_srv_destroy(srv);
-		talloc_free(sock_name);
-		return -1;
+	if (asp) {
+		LOGP(DLSS7, LOGL_INFO, "%s: matched connection to ASP %s\n",
+			sock_name, asp->cfg.name);
+	} else {
+		if (!oxs->cfg.accept_dyn_reg) {
+			LOGP(DLSS7, LOGL_NOTICE, "%s: SCTP connection without matching "
+			     "ASP definition and no dynamic registration enabled, terminating\n",
+			     sock_name);
+		} else {
+			char namebuf[32];
+			static uint32_t dyn_asp_num = 0;
+			snprintf(namebuf, sizeof(namebuf), "asp-dyn-%u", dyn_asp_num++);
+			asp = osmo_ss7_asp_find_or_create(oxs->inst, NULL, 0, 0,
+							  OSMO_SS7_ASP_PROT_M3UA);
+			if (asp)
+				LOGP(DLSS7, LOGL_INFO, "%s: created dynamicASP %s\n",
+					sock_name, asp->cfg.name);
+		}
+		if (!asp) {
+			osmo_stream_srv_destroy(srv);
+			talloc_free(sock_name);
+			return -1;
+		}
 	}
-	LOGP(DLSS7, LOGL_INFO, "%s: matched connection to ASP %s\n",
-		sock_name, asp->cfg.name);
+
 	/* update the ASP reference back to the server over which the
 	 * connection came in */
 	asp->server = srv;

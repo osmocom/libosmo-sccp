@@ -373,6 +373,7 @@ struct osmo_xua_server {
 	struct osmo_stream_srv_link *server;
 
 	struct {
+		bool accept_dyn_reg;
 		struct osmo_ss7_asp_peer local;
 		enum osmo_ss7_asp_protocol proto;
 	} cfg;
