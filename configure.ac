@@ -70,5 +70,6 @@ AC_OUTPUT(
     tests/xua/Makefile
     tests/ss7/Makefile
     examples/Makefile
+    stp/Makefile
     Makefile)
 

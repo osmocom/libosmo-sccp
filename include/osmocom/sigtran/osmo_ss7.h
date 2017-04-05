@@ -9,6 +9,8 @@
 #include <osmocom/core/msgb.h>
 #include <osmocom/core/prim.h>
 
+extern struct llist_head osmo_ss7_xua_servers;
+
 struct osmo_ss7_instance;
 struct osmo_ss7_user;
 struct osmo_sccp_instance;

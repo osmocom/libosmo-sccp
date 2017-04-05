@@ -62,6 +62,8 @@ tests/testsuite.log
 
 examples/m3ua_example
 
+stp/osmo-stp
+
 *.pc
 config.*
 
