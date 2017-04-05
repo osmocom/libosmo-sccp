@@ -128,7 +128,7 @@ static int send_xlm_prim_simple(struct osmo_fsm_inst *fi,
 }
 
 /* ask the xUA implementation to transmit a specific message */
-static int peer_send(struct osmo_fsm_inst *fi, int out_event)
+static int peer_send(struct osmo_fsm_inst *fi, int out_event, struct xua_msg *in)
 {
 	struct xua_asp_fsm_priv *xafp = fi->priv;
 	struct osmo_ss7_asp *asp = xafp->asp;
@@ -217,7 +217,7 @@ static void xua_t_ack_cb(void *data)
 		osmo_fsm_event_name(fi->fsm, xafp->t_ack.out_event));
 
 	/* Re-transmit message */
-	peer_send(fi, xafp->t_ack.out_event);
+	peer_send(fi, xafp->t_ack.out_event, NULL);
 
 	/* Re-start the timer */
 	osmo_timer_schedule(&xafp->t_ack.timer, XUA_T_ACK_SEC, 0);
@@ -229,7 +229,7 @@ static int peer_send_and_start_t_ack(struct osmo_fsm_inst *fi,
 	struct xua_asp_fsm_priv *xafp = fi->priv;
 	int rc;
 
-	rc = peer_send(fi, out_event);
+	rc = peer_send(fi, out_event, NULL);
 	if (rc < 0)
 		return rc;
 
@@ -328,7 +328,7 @@ static void xua_asp_fsm_down(struct osmo_fsm_inst *fi, uint32_t event, void *dat
 			asp->asp_id_present = true;
 		}
 		/* send ACK */
-		peer_send(fi, XUA_ASP_E_ASPSM_ASPUP_ACK);
+		peer_send(fi, XUA_ASP_E_ASPSM_ASPUP_ACK, NULL);
 		/* transition state and inform layer manager */
 		osmo_fsm_inst_state_chg(fi, XUA_ASP_S_INACTIVE, 0, 0);
 		send_xlm_prim_simple(fi, OSMO_XLM_PRIM_M_ASP_UP,
@@ -340,7 +340,7 @@ static void xua_asp_fsm_down(struct osmo_fsm_inst *fi, uint32_t event, void *dat
 		/* The SGP MUST send an ASP Down Ack message in response
 		 * to a received ASP Down message from the ASP even if
 		 * the ASP is already marked as ASP-DOWN at the SGP. */
-		peer_send(fi, XUA_ASP_E_ASPSM_ASPDN_ACK);
+		peer_send(fi, XUA_ASP_E_ASPSM_ASPDN_ACK, NULL);
 		break;
 	}
 }
@@ -401,7 +401,7 @@ static void xua_asp_fsm_inactive(struct osmo_fsm_inst *fi, uint32_t event, void 
 		/* only in role SG */
 		ENSURE_SG_OR_IPSP(fi, event);
 		/* send ACK */
-		peer_send(fi, XUA_ASP_E_ASPTM_ASPAC_ACK);
+		peer_send(fi, XUA_ASP_E_ASPTM_ASPAC_ACK, NULL);
 		/* transition state and inform layer manager */
 		osmo_fsm_inst_state_chg(fi, XUA_ASP_S_ACTIVE, 0, 0);
 		send_xlm_prim_simple(fi, OSMO_XLM_PRIM_M_ASP_ACTIVE,
@@ -411,7 +411,7 @@ static void xua_asp_fsm_inactive(struct osmo_fsm_inst *fi, uint32_t event, void 
 		/* only in role SG */
 		ENSURE_SG_OR_IPSP(fi, event);
 		/* send ACK */
-		peer_send(fi, XUA_ASP_E_ASPSM_ASPDN_ACK);
+		peer_send(fi, XUA_ASP_E_ASPSM_ASPDN_ACK, NULL);
 		/* transition state and inform layer manager */
 		osmo_fsm_inst_state_chg(fi, XUA_ASP_S_DOWN, 0, 0);
 		send_xlm_prim_simple(fi, OSMO_XLM_PRIM_M_ASP_DOWN,
@@ -424,7 +424,7 @@ static void xua_asp_fsm_inactive(struct osmo_fsm_inst *fi, uint32_t event, void 
 		 * remote ASP is already in the ASP-INACTIVE state, an
 		 * ASP Up Ack message is returned and no further action
 		 * is taken. */
-		peer_send(fi, XUA_ASP_E_ASPSM_ASPUP_ACK);
+		peer_send(fi, XUA_ASP_E_ASPSM_ASPUP_ACK, NULL);
 		break;
 	}
 }
@@ -470,7 +470,7 @@ static void xua_asp_fsm_active(struct osmo_fsm_inst *fi, uint32_t event, void *d
 		/* only in role SG */
 		ENSURE_SG_OR_IPSP(fi, event);
 		/* send ACK */
-		peer_send(fi, XUA_ASP_E_ASPTM_ASPIA_ACK);
+		peer_send(fi, XUA_ASP_E_ASPTM_ASPIA_ACK, NULL);
 		/* transition state and inform layer manager */
 		osmo_fsm_inst_state_chg(fi, XUA_ASP_S_INACTIVE, 0, 0);
 		send_xlm_prim_simple(fi, OSMO_XLM_PRIM_M_ASP_INACTIVE,
@@ -480,7 +480,7 @@ static void xua_asp_fsm_active(struct osmo_fsm_inst *fi, uint32_t event, void *d
 		/* only in role SG */
 		ENSURE_SG_OR_IPSP(fi, event);
 		/* send ACK */
-		peer_send(fi, XUA_ASP_E_ASPSM_ASPDN_ACK);
+		peer_send(fi, XUA_ASP_E_ASPSM_ASPDN_ACK, NULL);
 		/* transition state and inform layer manager */
 		osmo_fsm_inst_state_chg(fi, XUA_ASP_S_DOWN, 0, 0);
 		send_xlm_prim_simple(fi, OSMO_XLM_PRIM_M_ASP_DOWN,
@@ -508,12 +508,21 @@ static void xua_asp_fsm_active_onenter(struct osmo_fsm_inst *fi, uint32_t prev_s
 
 static void xua_asp_allstate(struct osmo_fsm_inst *fi, uint32_t event, void *data)
 {
+	struct xua_msg *xua;
+
 	switch (event) {
 	case XUA_ASP_E_SCTP_COMM_DOWN_IND:
 	case XUA_ASP_E_SCTP_RESTART_IND:
 		osmo_fsm_inst_state_chg(fi, XUA_ASP_S_DOWN, 0, 0);
 		send_xlm_prim_simple(fi, OSMO_XLM_PRIM_M_ASP_DOWN,
 				     PRIM_OP_INDICATION);
+		break;
+	case XUA_ASP_E_ASPSM_BEAT:
+		xua = data;
+		peer_send(fi, XUA_ASP_E_ASPSM_BEAT_ACK, xua);
+		break;
+	case XUA_ASP_E_ASPSM_BEAT_ACK:
+		/* FIXME: stop timer, if any */
 		break;
 	default:
 		break;
@@ -577,7 +586,9 @@ struct osmo_fsm xua_asp_fsm = {
 	.log_subsys = DLSS7,
 	.event_names = xua_asp_event_names,
 	.allstate_event_mask = S(XUA_ASP_E_SCTP_COMM_DOWN_IND) |
-			       S(XUA_ASP_E_SCTP_RESTART_IND),
+			       S(XUA_ASP_E_SCTP_RESTART_IND) |
+			       S(XUA_ASP_E_ASPSM_BEAT) |
+			       S(XUA_ASP_E_ASPSM_BEAT_ACK),
 	.allstate_action = xua_asp_allstate,
 };
 
