@@ -406,3 +406,6 @@ osmo_sccp_simple_server_add_clnt(struct osmo_sccp_instance *inst,
 				 const char *name, uint32_t pc,
 				 int local_port, int remote_port,
 				 const char *remote_ip);
+
+enum osmo_ss7_as_traffic_mode osmo_ss7_tmode_from_xua(uint32_t in);
+int osmo_ss7_tmode_to_xua(enum osmo_ss7_as_traffic_mode tmod);
