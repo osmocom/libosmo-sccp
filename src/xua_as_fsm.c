@@ -25,7 +25,7 @@
 #include "xua_as_fsm.h"
 #include "xua_internal.h"
 
-static struct msgb *encode_notify(const struct m3ua_notify_params *npar)
+static struct msgb *encode_notify(const struct osmo_xlm_prim_notify *npar)
 {
 	struct xua_msg *xua = m3ua_encode_notify(npar);
 	struct msgb *msg = xua_to_msg(M3UA_VERSION, xua);
@@ -33,7 +33,7 @@ static struct msgb *encode_notify(const struct m3ua_notify_params *npar)
 	return msg;
 }
 
-static int asp_notify_all_as(struct osmo_ss7_as *as, struct m3ua_notify_params *npar)
+static int asp_notify_all_as(struct osmo_ss7_as *as, struct osmo_xlm_prim_notify *npar)
 {
 	struct msgb *msg;
 	unsigned int i, sent = 0;
@@ -150,7 +150,7 @@ static void xua_as_fsm_onenter(struct osmo_fsm_inst *fi, uint32_t old_state)
 {
 	struct xua_as_fsm_priv *xafp = (struct xua_as_fsm_priv *) fi->priv;
 	struct osmo_ss7_as *as = xafp->as;
-	struct m3ua_notify_params npar = {
+	struct osmo_xlm_prim_notify npar = {
 		.status_type = M3UA_NOTIFY_T_STATCHG,
 	};
 

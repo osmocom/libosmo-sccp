@@ -350,7 +350,7 @@ static struct xua_msg *m3ua_gen_error_msg(uint32_t err_code, struct msgb *msg)
  ***********************************************************************/
 
 /* RFC4666 Ch. 3.8.2. Notify */
-struct xua_msg *m3ua_encode_notify(const struct m3ua_notify_params *npar)
+struct xua_msg *m3ua_encode_notify(const struct osmo_xlm_prim_notify *npar)
 {
 	struct xua_msg *xua = xua_msg_alloc();
 	uint32_t status;
@@ -379,7 +379,7 @@ struct xua_msg *m3ua_encode_notify(const struct m3ua_notify_params *npar)
 }
 
 /* RFC4666 Ch. 3.8.2. Notify */
-int m3ua_decode_notify(struct m3ua_notify_params *npar, void *ctx,
+int m3ua_decode_notify(struct osmo_xlm_prim_notify *npar, void *ctx,
 			const struct xua_msg *xua)
 {
 	struct xua_msg_part *info_ie, *aspid_ie, *status_ie, *rctx_ie;
@@ -538,7 +538,7 @@ static int m3ua_rx_mgmt_err(struct osmo_ss7_asp *asp, struct xua_msg *xua)
 
 static int m3ua_rx_mgmt_ntfy(struct osmo_ss7_asp *asp, struct xua_msg *xua)
 {
-	struct m3ua_notify_params ntfy;
+	struct osmo_xlm_prim_notify ntfy;
 	const char *type_name, *info_name;
 
 	m3ua_decode_notify(&ntfy, asp, xua);

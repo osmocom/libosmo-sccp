@@ -89,42 +89,42 @@ struct xua_asp_fsm_priv {
 	} t_ack;
 };
 
-static struct msgb *xlm_msgb_alloc(void)
+struct osmo_xlm_prim *xua_xlm_prim_alloc(enum osmo_xlm_prim_type prim_type,
+					 enum osmo_prim_operation op)
 {
-	return msgb_alloc_headroom(2048+128, 128, "xua_asp-xlm msgb");
+	struct osmo_xlm_prim *prim;
+	struct msgb *msg = msgb_alloc_headroom(2048+128, 128, "xua_asp-xlm msgb");
+	if (!msg)
+		return NULL;
+
+	prim = (struct osmo_xlm_prim *) msgb_put(msg, sizeof(*prim));
+	osmo_prim_init(&prim->oph, XUA_SAP_LM, prim_type, op, msg);
+
+	return prim;
 }
 
 /* Send a XUA LM Primitive to the XUA Layer Manager (LM) */
-static int send_xlm_prim(struct osmo_fsm_inst *fi,
-			 enum osmo_xlm_prim_type prim_type,
-			 enum osmo_prim_operation op,
-			 const uint8_t *data, unsigned int data_len)
+void xua_asp_send_xlm_prim(struct osmo_ss7_asp *asp, struct osmo_xlm_prim *prim)
 {
-	struct xua_asp_fsm_priv *xafp = fi->priv;
-	struct msgb *xlmsg;
-	struct osmo_xlm_prim *prim;
+	struct xua_asp_fsm_priv *xafp = asp->fi->priv;
 	struct xua_layer_manager *lm = xafp->lm;
 
-	if (!lm || !lm->prim_cb)
-		return 0;
+	if (lm && lm->prim_cb)
+		lm->prim_cb(&prim->oph, xafp->asp);
 
-	xlmsg = xlm_msgb_alloc();
-	if (!xlmsg)
-		return -ENOMEM;
-	prim = (struct osmo_xlm_prim *) msgb_put(xlmsg, sizeof(*prim));
-	osmo_prim_init(&prim->oph, XUA_SAP_LM, prim_type, op, xlmsg);
-
-	lm->prim_cb(&prim->oph, xafp->asp);
-
-	return 0;
+	msgb_free(prim->oph.msg);
 }
 
 /* wrapper around send_xlm_prim for primitives without data */
-static int send_xlm_prim_simple(struct osmo_fsm_inst *fi,
-				enum osmo_xlm_prim_type prim,
+static void send_xlm_prim_simple(struct osmo_fsm_inst *fi,
+				enum osmo_xlm_prim_type prim_type,
 				enum osmo_prim_operation op)
 {
-	return send_xlm_prim(fi, prim, op, NULL, 0);
+	struct osmo_xlm_prim *prim = xua_xlm_prim_alloc(prim_type, op);
+	struct xua_asp_fsm_priv *xafp = fi->priv;
+	if (!prim)
+		return;
+	xua_asp_send_xlm_prim(xafp->asp, prim);
 }
 
 /* ask the xUA implementation to transmit a specific message */

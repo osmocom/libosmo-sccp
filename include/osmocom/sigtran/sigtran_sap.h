@@ -1,6 +1,7 @@
 #pragma once
 #include <osmocom/core/prim.h>
 
+
 enum osmo_sigtran_sap {
 	SCCP_SAP_USER	= _SAP_SS7_BASE,
 	/* xUA Layer Manager */
@@ -29,10 +30,27 @@ enum osmo_xlm_prim_type {
 	OSMO_XLM_PRIM_M_RK_DEREG,
 };
 
+#define NOTIFY_PAR_P_ASP_ID	(1 << 0)
+#define NOTIFY_PAR_P_ROUTE_CTX	(1 << 1)
+
+struct osmo_xlm_prim_notify {
+	uint32_t presence;
+	uint16_t status_type;
+	uint16_t status_info;
+	uint32_t asp_id;
+	uint32_t route_ctx;
+	char *info_string;
+};
+
+struct osmo_xlm_prim_error {
+	uint32_t code;
+};
 
 struct osmo_xlm_prim {
 	struct osmo_prim_hdr oph;
 	union {
+		struct osmo_xlm_prim_notify notify;
+		struct osmo_xlm_prim_error error;
 	} u;
 };
 

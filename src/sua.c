@@ -507,7 +507,7 @@ static int sua_rx_mgmt_err(struct osmo_ss7_asp *asp, struct xua_msg *xua)
 
 static int sua_rx_mgmt_ntfy(struct osmo_ss7_asp *asp, struct xua_msg *xua)
 {
-	struct m3ua_notify_params ntfy;
+	struct osmo_xlm_prim_notify ntfy;
 	const char *type_name, *info_name;
 
 	m3ua_decode_notify(&ntfy, asp, xua);

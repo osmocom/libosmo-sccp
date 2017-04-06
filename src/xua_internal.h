@@ -43,19 +43,12 @@ extern const struct value_string m3ua_ntfy_type_names[];
 extern const struct value_string m3ua_ntfy_stchg_names[];
 extern const struct value_string m3ua_ntfy_other_names[];
 
-#define NOTIFY_PAR_P_ASP_ID	(1 << 0)
-#define NOTIFY_PAR_P_ROUTE_CTX	(1 << 1)
-
-struct m3ua_notify_params {
-	uint32_t presence;
-	uint16_t status_type;
-	uint16_t status_info;
-	uint32_t asp_id;
-	uint32_t route_ctx;
-	char *info_string;
-};
-
-struct xua_msg *m3ua_encode_notify(const struct m3ua_notify_params *npar);
-int m3ua_decode_notify(struct m3ua_notify_params *npar, void *ctx,
+struct xua_msg *m3ua_encode_notify(const struct osmo_xlm_prim_notify *npar);
+int m3ua_decode_notify(struct osmo_xlm_prim_notify *npar, void *ctx,
 			const struct xua_msg *xua);
 int m3ua_rx_rkm(struct osmo_ss7_asp *asp, struct xua_msg *xua);
+
+struct osmo_xlm_prim *xua_xlm_prim_alloc(enum osmo_xlm_prim_type prim_type,
+					 enum osmo_prim_operation op);
+
+void xua_asp_send_xlm_prim(struct osmo_ss7_asp *asp, struct osmo_xlm_prim *prim);
