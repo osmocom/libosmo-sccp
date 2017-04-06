@@ -526,10 +526,16 @@ out_err:
 static int m3ua_rx_mgmt_err(struct osmo_ss7_asp *asp, struct xua_msg *xua)
 {
 	uint32_t err_code = xua_msg_get_u32(xua, M3UA_IEI_ERR_CODE);
+	struct osmo_xlm_prim *prim;
 
 	LOGPASP(asp, DLM3UA, LOGL_ERROR, "Received MGMT_ERR '%s': %s\n",
 		get_value_string(m3ua_err_names, err_code),
 		xua_msg_dump(xua, &xua_dialect_m3ua));
+
+	/* report this to layer manager */
+	prim = xua_xlm_prim_alloc(OSMO_XLM_PRIM_M_ERROR, PRIM_OP_INDICATION);
+	prim->u.error.code = err_code;
+	xua_asp_send_xlm_prim(asp, prim);
 
 	/* NEVER return != 0 here, as we cannot respont to an ERR
 	 * message with another ERR! */
@@ -540,6 +546,7 @@ static int m3ua_rx_mgmt_ntfy(struct osmo_ss7_asp *asp, struct xua_msg *xua)
 {
 	struct osmo_xlm_prim_notify ntfy;
 	const char *type_name, *info_name;
+	struct osmo_xlm_prim *prim;
 
 	m3ua_decode_notify(&ntfy, asp, xua);
 
@@ -562,10 +569,14 @@ static int m3ua_rx_mgmt_ntfy(struct osmo_ss7_asp *asp, struct xua_msg *xua)
 		type_name, info_name,
 		ntfy.info_string ? ntfy.info_string : "");
 
+	/* report this to layer manager */
+	prim = xua_xlm_prim_alloc(OSMO_XLM_PRIM_M_NOTIFY, PRIM_OP_INDICATION);
+	prim->u.notify = ntfy;
+	xua_asp_send_xlm_prim(asp,prim);
+
 	if (ntfy.info_string)
 		talloc_free(ntfy.info_string);
 
-	/* TODO: should we report this soemwhere? */
 	return 0;
 }
 
