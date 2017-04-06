@@ -149,6 +149,7 @@ static void xua_as_fsm_down(struct osmo_fsm_inst *fi, uint32_t event, void *data
 static void xua_as_fsm_onenter(struct osmo_fsm_inst *fi, uint32_t old_state)
 {
 	struct xua_as_fsm_priv *xafp = (struct xua_as_fsm_priv *) fi->priv;
+	struct osmo_ss7_as *as = xafp->as;
 	struct m3ua_notify_params npar = {
 		.status_type = M3UA_NOTIFY_T_STATCHG,
 	};
@@ -166,6 +167,14 @@ static void xua_as_fsm_onenter(struct osmo_fsm_inst *fi, uint32_t old_state)
 	default:
 		return;
 	}
+
+	/* Add the routing context, if it is configured */
+	if (as->cfg.routing_key.context) {
+		npar.presence |= NOTIFY_PAR_P_ROUTE_CTX;
+		npar.route_ctx = as->cfg.routing_key.context;
+	}
+
+	/* TODO: ASP-Id of ASP triggering this state change */
 
 	asp_notify_all_as(xafp->as, &npar);
 };
