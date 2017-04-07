@@ -374,20 +374,29 @@ int sccp_scrc_rx_scoc_conn_msg(struct osmo_sccp_instance *inst,
 				struct xua_msg *xua)
 {
 	struct osmo_sccp_addr called;
+	int rc;
 
 	LOGP(DLSS7, LOGL_DEBUG, "%s: %s\n", __func__, xua_msg_dump(xua, &xua_dialect_sua));
 
 	sua_addr_parse(&called, xua, SUA_IEI_DEST_ADDR);
 
 	/* Is this a CR message ? */
-	if (xua->hdr.msg_type != SUA_CO_CORE)
-		return scrc_node_2(inst, xua, &called);
+	if (xua->hdr.msg_type != SUA_CO_CORE) {
+		rc = scrc_node_2(inst, xua, &called);
+		goto out;
+	}
 
 	/* TOOD: Coupling performed (not supported) */
-	if (0)
-		return scrc_node_2(inst, xua, &called);
+	if (0) {
+		rc = scrc_node_2(inst, xua, &called);
+		goto out;
+	}
 
-	return scrc_local_out_common(inst, xua, &called);
+	rc = scrc_local_out_common(inst, xua, &called);
+
+out:
+	xua_msg_free(xua);
+	return rc;
 }
 
 /* Connectionless Message SCLC -> SCRC */
@@ -395,6 +404,7 @@ int sccp_scrc_rx_sclc_msg(struct osmo_sccp_instance *inst,
 			  struct xua_msg *xua)
 {
 	struct osmo_sccp_addr called;
+	int rc;
 
 	LOGP(DLSS7, LOGL_DEBUG, "%s: %s\n", __func__, xua_msg_dump(xua, &xua_dialect_sua));
 
@@ -403,16 +413,23 @@ int sccp_scrc_rx_sclc_msg(struct osmo_sccp_instance *inst,
 	/* Message Type */
 	if (xua->hdr.msg_type == SUA_CL_CLDR) {
 		/* UDTS, XUDTS or LUDTS */
-		if (called.ri != OSMO_SCCP_RI_GT)
-			return scrc_node_7(inst, xua, &called);
+		if (called.ri != OSMO_SCCP_RI_GT) {
+			rc = scrc_node_7(inst, xua, &called);
+			goto out;
+		}
 		/* Fall-through */
 	} else {
 		if (0 /* TODO: translation already performed */) {
 			/* Node 12 (Sheet 5) */
-			return scrc_node_12(inst, xua, &called);
+			rc = scrc_node_12(inst, xua, &called);
+			goto out;
 		}
 	}
-	return scrc_local_out_common(inst, xua, &called);
+
+	rc =  scrc_local_out_common(inst, xua, &called);
+out:
+	xua_msg_free(xua);
+	return rc;
 }
 
 /* Figure C.1/Q.714 Sheet 1 of 12, after we converted the
@@ -423,6 +440,7 @@ int scrc_rx_mtp_xfer_ind_xua(struct osmo_sccp_instance *inst,
 	struct osmo_sccp_addr called;
 	uint32_t proto_class;
 	struct xua_msg_part *hop_ctr_part;
+	int rc;
 
 	LOGP(DLSS7, LOGL_DEBUG, "%s: %s\n", __func__, xua_msg_dump(xua, &xua_dialect_sua));
 	/* TODO: SCCP or nodal congestion? */
@@ -432,7 +450,8 @@ int scrc_rx_mtp_xfer_ind_xua(struct osmo_sccp_instance *inst,
 		/* Node 1 (Sheet 3) */
 		/* deliver to SCOC */
 		sccp_scoc_rx_from_scrc(inst, xua);
-		return 0;
+		rc = 0;
+		goto out;
 	}
 	/* We only treat connectionless and CR below */
 
@@ -441,7 +460,8 @@ int scrc_rx_mtp_xfer_ind_xua(struct osmo_sccp_instance *inst,
 	/* Route on GT? */
 	if (called.ri != OSMO_SCCP_RI_GT) {
 		/* Node 6 (Sheet 3) */
-		return scrc_node_6(inst, xua, &called);
+		rc = scrc_node_6(inst, xua, &called);
+		goto out;
 	}
 	/* Message with hop-counter? */
 	hop_ctr_part = xua_msg_find_tag(xua, SUA_IEI_S7_HOP_CTR);
@@ -450,8 +470,8 @@ int scrc_rx_mtp_xfer_ind_xua(struct osmo_sccp_instance *inst,
 		if (hop_counter <= 1) {
 			/* Error: hop-counter violation */
 			/* node 4 */
-			return scrc_node_4(inst, xua,
-					   SCCP_RETURN_CAUSE_HOP_COUNTER_VIOLATION);
+			rc = scrc_node_4(inst, xua, SCCP_RETURN_CAUSE_HOP_COUNTER_VIOLATION);
+			goto out;
 		}
 		/* Decrement hop-counter */
 		hop_counter--;
@@ -471,5 +491,8 @@ int scrc_rx_mtp_xfer_ind_xua(struct osmo_sccp_instance *inst,
 	default:
 		break;
 	}
-	return scrc_translate_node_9(inst, xua, &called);
+	rc = scrc_translate_node_9(inst, xua, &called);
+out:
+	xua_msg_free(xua);
+	return rc;
 }

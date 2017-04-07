@@ -34,6 +34,7 @@ static int refuser_prim_cb(struct osmo_prim_hdr *oph, void *_scu)
 			oph->primitive, oph->operation);
 		break;
 	}
+	msgb_free(oph->msg);
 	return 0;
 }
 
@@ -71,6 +72,7 @@ static int echo_prim_cb(struct osmo_prim_hdr *oph, void *_scu)
 			oph->primitive, oph->operation);
 		break;
 	}
+	msgb_free(oph->msg);
 	return 0;
 }
 
@@ -102,6 +104,7 @@ static int callback_prim_cb(struct osmo_prim_hdr *oph, void *_scu)
 			oph->primitive, oph->operation);
 		break;
 	}
+	msgb_free(oph->msg);
 	return 0;
 }
 

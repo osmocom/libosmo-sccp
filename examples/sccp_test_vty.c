@@ -125,6 +125,7 @@ static int testclnt_prim_cb(struct osmo_prim_hdr *oph, void *_scu)
 	default:
 		break;
 	}
+	msgb_free(oph->msg);
 	return 0;
 }
 

@@ -152,6 +152,7 @@ static int mtp_user_prim_cb(struct osmo_prim_hdr *oph, void *ctx)
 	struct osmo_sccp_instance *inst = ctx;
 	struct osmo_mtp_prim *omp = (struct osmo_mtp_prim *)oph;
 	struct xua_msg *xua;
+	int rc;
 
 	OSMO_ASSERT(oph->sap == MTP_SAP_USER);
 
@@ -161,12 +162,14 @@ static int mtp_user_prim_cb(struct osmo_prim_hdr *oph, void *ctx)
 		xua = osmo_sccp_to_xua(oph->msg);
 		xua->mtp = omp->u.transfer;
 		/* hand this primitive into SCCP via the SCRC code */
-		return scrc_rx_mtp_xfer_ind_xua(inst, xua);
+		rc = scrc_rx_mtp_xfer_ind_xua(inst, xua);
 	default:
 		LOGP(DLSCCP, LOGL_ERROR, "Unknown primitive %u:%u receivd\n",
 			oph->primitive, oph->operation);
-		return -1;
+		rc = -1;
 	}
+	msgb_free(oph->msg);
+	return rc;
 }
 
 static LLIST_HEAD(sccp_instances);
