@@ -195,6 +195,7 @@ int osmo_ss7_user_mtp_xfer_req(struct osmo_ss7_instance *inst,
 				struct osmo_mtp_prim *omp)
 {
 	struct xua_msg *xua;
+	int rc;
 
 	OSMO_ASSERT(omp->oph.sap == MTP_SAP_USER);
 
@@ -210,10 +211,15 @@ int osmo_ss7_user_mtp_xfer_req(struct osmo_ss7_instance *inst,
 		 * is a very useful feature (aka "loopback device" in
 		 * IPv4). So we call m3ua_hmdc_rx_from_l2() just like
 		 * the MTP-TRANSFER had been received from L2. */
-		return m3ua_hmdc_rx_from_l2(inst, xua);
+		rc = m3ua_hmdc_rx_from_l2(inst, xua);
+		xua_msg_free(xua);
+		break;
 	default:
 		LOGP(DLSS7, LOGL_ERROR, "Ignoring unknown primitive %u:%u\n",
 			omp->oph.primitive, omp->oph.operation);
-		return -1;
+		rc = -1;
 	}
+
+	msgb_free(omp->oph.msg);
+	return rc;
 }

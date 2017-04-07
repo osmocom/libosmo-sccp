@@ -420,13 +420,12 @@ int m3ua_decode_notify(struct m3ua_notify_params *npar, void *ctx,
  * Transmitting M3UA messsages to SCTP
  ***********************************************************************/
 
+/* transmit given xua_msg via given ASP. callee takes xua ownership */
 static int m3ua_tx_xua_asp(struct osmo_ss7_asp *asp, struct xua_msg *xua)
 {
 	struct msgb *msg = xua_to_msg(M3UA_VERSION, xua);
 
 	OSMO_ASSERT(asp->cfg.proto == OSMO_SS7_ASP_PROT_M3UA);
-
-	xua_msg_free(xua);
 
 	if (!msg) {
 		LOGP(DLM3UA, LOGL_ERROR, "Error encoding M3UA Msg\n");
@@ -461,7 +460,6 @@ int m3ua_tx_xua_as(struct osmo_ss7_as *as, struct xua_msg *xua)
 	}
 	if (!asp) {
 		LOGP(DLM3UA, LOGL_ERROR, "No ASP entroy in AS, dropping message\n");
-		xua_msg_free(xua);
 		return -ENODEV;
 	}
 

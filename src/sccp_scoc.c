@@ -459,7 +459,9 @@ static int xua_gen_relre_and_send(struct sccp_connection *conn, uint32_t cause,
 	/* amend this with point code information; The SUA RELRE
 	 * includes neither called nor calling party address! */
 	xua->mtp.dpc = conn->remote_pc;
-	return sccp_scrc_rx_scoc_conn_msg(conn->inst, xua);
+	sccp_scrc_rx_scoc_conn_msg(conn->inst, xua);
+	xua_msg_free(xua);
+	return 0;
 }
 
 /* generate a 'struct xua_msg' of requested type from connection +
@@ -593,7 +595,9 @@ static int xua_gen_encode_and_send(struct sccp_connection *conn, uint32_t event,
 	/* amend this with point code information; Many CO msgs
 	 * includes neither called nor calling party address! */
 	xua->mtp.dpc = conn->remote_pc;
-	return sccp_scrc_rx_scoc_conn_msg(conn->inst, xua);
+	sccp_scrc_rx_scoc_conn_msg(conn->inst, xua);
+	xua_msg_free(xua);
+	return 0;
 }
 
 /* allocate a SCU primitive to be sent to the user */

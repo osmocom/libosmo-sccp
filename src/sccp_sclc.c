@@ -102,12 +102,15 @@ static int xua_gen_encode_and_send(struct osmo_sccp_user *scu, uint32_t event,
 				   struct osmo_scu_prim *prim, int msg_type)
 {
 	struct xua_msg *xua;
+	int rc;
 
 	xua = xua_gen_msg_cl(event, prim, msg_type);
 	if (!xua)
 		return -1;
 
-	return sccp_scrc_rx_sclc_msg(scu->inst, xua);
+	rc = sccp_scrc_rx_sclc_msg(scu->inst, xua);
+	xua_msg_free(xua);
+	return rc;
 }
 
 /*! \brief Main entrance function for primitives from SCCP User
@@ -327,8 +330,8 @@ void sccp_sclc_rx_scrc_rout_fail(struct osmo_sccp_instance *inst,
 			/* local originator: send N-NOTICE to user */
 			/* TODO: N-NOTICE.ind SCLC -> SCU */
 			sclc_rx_cldr(inst, xua_out);
-			xua_msg_free(xua_out);
 		}
+		xua_msg_free(xua_out);
 		break;
 	case SUA_CL_CLDR:
 		/* do nothing */

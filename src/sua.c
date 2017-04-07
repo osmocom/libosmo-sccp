@@ -258,8 +258,6 @@ static int sua_tx_xua_asp(struct osmo_ss7_asp *asp, struct xua_msg *xua)
 
 	OSMO_ASSERT(asp->cfg.proto == OSMO_SS7_ASP_PROT_SUA);
 
-	xua_msg_free(xua);
-
 	if (!msg) {
 		LOGPASP(asp, DLSUA, LOGL_ERROR, "Error encoding SUA Msg\n");
 		return -1;
@@ -290,7 +288,6 @@ int sua_tx_xua_as(struct osmo_ss7_as *as, struct xua_msg *xua)
 	}
 	if (!asp) {
 		LOGP(DLSUA, LOGL_ERROR, "No ASP in AS, dropping message\n");
-		xua_msg_free(xua);
 		return -ENODEV;
 	}
 

@@ -384,8 +384,9 @@ int sccp_scrc_rx_scoc_conn_msg(struct osmo_sccp_instance *inst,
 		return scrc_node_2(inst, xua, &called);
 
 	/* TOOD: Coupling performed (not supported) */
-	if (0)
+	if (0) {
 		return scrc_node_2(inst, xua, &called);
+	}
 
 	return scrc_local_out_common(inst, xua, &called);
 }
@@ -412,6 +413,7 @@ int sccp_scrc_rx_sclc_msg(struct osmo_sccp_instance *inst,
 			return scrc_node_12(inst, xua, &called);
 		}
 	}
+
 	return scrc_local_out_common(inst, xua, &called);
 }
 
@@ -450,8 +452,7 @@ int scrc_rx_mtp_xfer_ind_xua(struct osmo_sccp_instance *inst,
 		if (hop_counter <= 1) {
 			/* Error: hop-counter violation */
 			/* node 4 */
-			return scrc_node_4(inst, xua,
-					   SCCP_RETURN_CAUSE_HOP_COUNTER_VIOLATION);
+			return scrc_node_4(inst, xua, SCCP_RETURN_CAUSE_HOP_COUNTER_VIOLATION);
 		}
 		/* Decrement hop-counter */
 		hop_counter--;
