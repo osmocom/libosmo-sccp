@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+#include <signal.h>
 
 #include <osmocom/core/select.h>
 #include <osmocom/core/utils.h>
@@ -20,6 +21,8 @@
 
 #include "internal.h"
 
+static struct osmo_sccp_instance *g_sccp;
+
 static struct osmo_sccp_instance *sua_server_helper(void)
 {
 	struct osmo_sccp_instance *sccp;
@@ -36,6 +39,20 @@ static struct osmo_sccp_instance *sua_server_helper(void)
 /***********************************************************************
  * Initialization
  ***********************************************************************/
+
+static void signal_handler(int signal)
+{
+	fprintf(stdout, "signal %d received\n", signal);
+
+	switch (signal) {
+	case SIGUSR1:
+		talloc_report_full(osmo_sccp_get_ss7(g_sccp), stderr);
+		break;
+	case SIGUSR2:
+		talloc_report_full(NULL, stderr);
+		break;
+	}
+}
 
 static const struct log_info_cat log_info_cat[] = {
 };
@@ -63,9 +80,13 @@ static struct vty_app_info vty_info = {
 
 int main(int argc, char **argv)
 {
-	struct osmo_sccp_instance *sccp;
 	bool client;
 	int rc;
+
+	talloc_enable_leak_report_full();
+
+	signal(SIGUSR1, &signal_handler);
+	signal(SIGUSR2, &signal_handler);
 
 	init_logging();
 	osmo_ss7_init();
@@ -85,11 +106,11 @@ int main(int argc, char **argv)
 
 
 	if (client) {
-		sccp = osmo_sccp_simple_client(NULL, "client", 23, OSMO_SS7_ASP_PROT_M3UA, 0, M3UA_PORT, "127.0.0.2");
-		sccp_test_user_vty_install(sccp, OSMO_SCCP_SSN_BSC_BSSAP);
+		g_sccp = osmo_sccp_simple_client(NULL, "client", 23, OSMO_SS7_ASP_PROT_M3UA, 0, M3UA_PORT, "127.0.0.2");
+		sccp_test_user_vty_install(g_sccp, OSMO_SCCP_SSN_BSC_BSSAP);
 	} else {
-		sccp = sua_server_helper();
-		sccp_test_server_init(sccp);
+		g_sccp = sua_server_helper();
+		sccp_test_server_init(g_sccp);
 	}
 
 	while (1) {
