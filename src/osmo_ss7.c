@@ -1246,7 +1246,7 @@ static int xua_cli_read_cb(struct osmo_stream_cli *conn)
 	/* read xUA message from socket and process it */
 	rc = sctp_recvmsg(ofd->fd, msgb_data(msg), msgb_tailroom(msg),
 			  NULL, NULL, &sinfo, &flags);
-	LOGPASP(asp, DLSS7, LOGL_DEBUG, "%s(): sctp_recvmsg() returned %d (flags=%d)\n",
+	LOGPASP(asp, DLSS7, LOGL_DEBUG, "%s(): sctp_recvmsg() returned %d (flags=0x%x)\n",
 		__func__, rc, flags);
 	if (rc < 0) {
 		osmo_stream_cli_reconnect(conn);
