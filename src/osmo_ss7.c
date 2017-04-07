@@ -1376,10 +1376,21 @@ int osmo_ss7_asp_send(struct osmo_ss7_asp *asp, struct msgb *msg)
 		OSMO_ASSERT(0);
 	}
 
-	if (asp->cfg.is_server)
+	if (asp->cfg.is_server) {
+		if (!asp->server) {
+			LOGPASP(asp, DLSS7, LOGL_ERROR, "Cannot transmit, no asp->server\n");
+			/* FIXME: what to do here? delete the route? send DUNA? */
+			return -EIO;
+		}
 		osmo_stream_srv_send(asp->server, msg);
-	else
+	} else {
+		if (!asp->client) {
+			LOGPASP(asp, DLSS7, LOGL_ERROR, "Cannot transmit, no asp->client\n");
+			/* FIXME: what to do here? delete the route? send DUNA? */
+			return -EIO;
+		}
 		osmo_stream_cli_send(asp->client, msg);
+	}
 
 	return 0;
 }
