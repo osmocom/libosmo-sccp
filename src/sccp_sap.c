@@ -45,11 +45,43 @@ char *osmo_scu_prim_name(struct osmo_prim_hdr *oph)
 {
 	const char *name = get_value_string(osmo_scu_prim_names, oph->primitive);
 
-	prim_name_buf[0] = '\0';
-	strncpy(prim_name_buf, name, sizeof(prim_name_buf)-1);
-	prim_name_buf[sizeof(prim_name_buf)-1] = '\0';
-	name = get_value_string(osmo_prim_op_names, oph->operation);
-	strncat(prim_name_buf, name, sizeof(prim_name_buf)-strlen(prim_name_buf)-2);
+	snprintf(prim_name_buf, sizeof(prim_name_buf), "%s.%s", name,
+		 get_value_string(osmo_prim_op_names, oph->operation));
+
+	return prim_name_buf;
+}
+
+
+#include <osmocom/sigtran/sigtran_sap.h>
+
+const struct value_string osmo_xlm_prim_names[] = {
+	{ OSMO_XLM_PRIM_M_SCTP_ESTABLISH,	"M-SCTP_ESTABLISH" },
+	{ OSMO_XLM_PRIM_M_SCTP_RELEASE,		"M-SCTP_RELEASE" },
+	{ OSMO_XLM_PRIM_M_SCTP_RESTART,		"M-SCTP_RESTART" },
+	{ OSMO_XLM_PRIM_M_SCTP_STATUS,		"M-SCTP_STATUS" },
+	{ OSMO_XLM_PRIM_M_ASP_STATUS,		"M-ASP_STATUS" },
+	{ OSMO_XLM_PRIM_M_AS_STATUS,		"M-AS_STATUS" },
+	{ OSMO_XLM_PRIM_M_NOTIFY,		"M-NOTIFY" },
+	{ OSMO_XLM_PRIM_M_ERROR,		"M-ERROR" },
+	{ OSMO_XLM_PRIM_M_ASP_UP,		"M-ASP_UP" },
+	{ OSMO_XLM_PRIM_M_ASP_DOWN,		"M-ASP_DOWN" },
+	{ OSMO_XLM_PRIM_M_ASP_ACTIVE,		"M-ASP_ACTIVE" },
+	{ OSMO_XLM_PRIM_M_ASP_INACTIVE,		"M-ASP_INACTIVE" },
+	{ OSMO_XLM_PRIM_M_AS_ACTIVE,		"M-AS_ACTIVE" },
+	{ OSMO_XLM_PRIM_M_AS_INACTIVE,		"M-AS_INACTIVE" },
+	{ OSMO_XLM_PRIM_M_AS_DOWN,		"M-AS_DOWN" },
+	/* optional as per spec, not implemented yet */
+	{ OSMO_XLM_PRIM_M_RK_REG,		"M-RK_REG" },
+	{ OSMO_XLM_PRIM_M_RK_DEREG,		"M-RK_DEREG" },
+	{ 0, NULL },
+};
+
+char *osmo_xlm_prim_name(struct osmo_prim_hdr *oph)
+{
+	const char *name = get_value_string(osmo_xlm_prim_names, oph->primitive);
+
+	snprintf(prim_name_buf, sizeof(prim_name_buf), "%s.%s", name,
+		 get_value_string(osmo_prim_op_names, oph->operation));
 
 	return prim_name_buf;
 }

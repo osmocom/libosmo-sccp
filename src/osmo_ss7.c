@@ -1635,6 +1635,7 @@ int osmo_ss7_init(void)
 	osmo_fsm_register(&sccp_scoc_fsm);
 	osmo_fsm_register(&xua_as_fsm);
 	osmo_fsm_register(&xua_asp_fsm);
+	osmo_fsm_register(&xua_default_lm_fsm);
 	ss7_initialized = true;
 	return 0;
 }

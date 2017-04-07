@@ -102,6 +102,41 @@ static int msgb_append_dereg_res(struct msgb *msg,
 	return msg->tail - old_tail;
 }
 
+static void xua_rkm_send_reg_req(struct osmo_ss7_asp *asp,
+				 const struct osmo_ss7_routing_key *rkey,
+				 enum osmo_ss7_as_traffic_mode traf_mode)
+{
+	struct msgb *msg = m3ua_msgb_alloc(__func__);
+	int tmod = osmo_ss7_tmode_to_xua(traf_mode);
+
+	/* One individual Registration Request according to Chapter 3.6.1 */
+	msgb_put_u16(msg, M3UA_IEI_ROUT_KEY); /* outer IEI */
+	msgb_put_u16(msg, 32 + 4); /* outer length */
+	/* nested IEIs */
+	msgb_t16l16vp_put_u32(msg, M3UA_IEI_LOC_RKEY_ID, rkey->l_rk_id);
+	msgb_t16l16vp_put_u32(msg, M3UA_IEI_ROUTE_CTX, rkey->context);
+	msgb_t16l16vp_put_u32(msg, M3UA_IEI_TRAF_MODE_TYP, tmod);
+	msgb_t16l16vp_put_u32(msg, M3UA_IEI_DEST_PC, rkey->pc);
+
+	msgb_push_m3ua_hdr(msg, M3UA_MSGC_RKM, M3UA_RKM_REG_REQ);
+
+	osmo_ss7_asp_send(asp, msg);
+}
+
+static void xua_rkm_send_dereg_req(struct osmo_ss7_asp *asp, uint32_t route_ctx)
+{
+	struct msgb *msg = m3ua_msgb_alloc(__func__);
+
+	/* One individual De-Registration Request according to Chapter 3.6.3 */
+	msgb_t16l16vp_put_u32(msg, M3UA_IEI_ROUTE_CTX, route_ctx);
+
+	msgb_push_m3ua_hdr(msg, M3UA_MSGC_RKM, M3UA_RKM_DEREG_REQ);
+
+	osmo_ss7_asp_send(asp, msg);
+}
+
+
+
 /* handle a single registration request IE (nested IEs in 'innner' */
 static int handle_rkey_reg(struct osmo_ss7_asp *asp, struct xua_msg *inner,
 			   struct msgb *resp)
@@ -277,16 +312,110 @@ static int m3ua_rx_rkm_dereg_req(struct osmo_ss7_asp *asp, struct xua_msg *xua)
 	return 0;
 }
 
+/* handle a single registration response IE (nested IEs in 'inner' */
+static int handle_rkey_reg_resp(struct osmo_ss7_asp *asp, struct xua_msg *inner)
+{
+	struct osmo_xlm_prim *oxp;
+
+	if (!xua_msg_find_tag(inner, M3UA_IEI_LOC_RKEY_ID) ||
+	    !xua_msg_find_tag(inner, M3UA_IEI_REG_STATUS) ||
+	    !xua_msg_find_tag(inner, M3UA_IEI_ROUTE_CTX)) {
+		LOGPASP(asp, DLSS7, LOGL_NOTICE, "Missing Inner IE in REG RESP\n");
+		/* FIXME: ERROR to peer */
+		return -1;
+	}
+
+	oxp = xua_xlm_prim_alloc(OSMO_XLM_PRIM_M_RK_REG, PRIM_OP_CONFIRM);
+	if (!oxp)
+		return -1;
+
+	oxp->u.rk_reg.key.l_rk_id = xua_msg_get_u32(inner, M3UA_IEI_LOC_RKEY_ID);
+	oxp->u.rk_reg.key.context = xua_msg_get_u32(inner, M3UA_IEI_ROUTE_CTX);
+	oxp->u.rk_reg.status = xua_msg_get_u32(inner, M3UA_IEI_REG_STATUS);
+
+	LOGPASP(asp, DLSS7, LOGL_INFO, "Received RKM REG RES rctx=%u status=%s\n",
+		oxp->u.rk_reg.key.context,
+		get_value_string(m3ua_rkm_reg_status_vals, oxp->u.rk_reg.status));
+
+	/* Send primitive to LM */
+	xua_asp_send_xlm_prim(asp, oxp);
+
+	return 0;
+}
+
 /* receive a registration response (ASP role) */
 static int m3ua_rx_rkm_reg_rsp(struct osmo_ss7_asp *asp, struct xua_msg *xua)
 {
-	/* TODO */
+	struct xua_msg_part *part;
+	struct xua_msg *inner = NULL;
+
+	llist_for_each_entry(part, &xua->headers, entry) {
+		/* skip other IEs and/or short REG_RES IEs */
+		if (part->tag != M3UA_IEI_REG_RESULT || part->len < 24)
+			continue;
+
+		/* we leave the above loop at the first valid
+		 * registration result (we only support one AS per ASP
+		 * for now) */
+		inner = xua_from_nested(part);
+		if (!inner)
+			continue;
+
+		handle_rkey_reg_resp(asp, inner);
+	}
+	return 0;
+}
+
+/* handle a single deregistration response IE (nested IEs in 'inner' */
+static int handle_rkey_dereg_resp(struct osmo_ss7_asp *asp, struct xua_msg *inner)
+{
+	struct osmo_xlm_prim *oxp;
+
+	if (!xua_msg_find_tag(inner, M3UA_IEI_DEREG_STATUS) ||
+	    !xua_msg_find_tag(inner, M3UA_IEI_ROUTE_CTX)) {
+		LOGPASP(asp, DLSS7, LOGL_NOTICE, "Missing Inner IE in DEREG RESP\n");
+		/* FIXME: ERROR to peer */
+		return -1;
+	}
+
+	oxp = xua_xlm_prim_alloc(OSMO_XLM_PRIM_M_RK_DEREG, PRIM_OP_CONFIRM);
+	if (!oxp)
+		return -1;
+
+	oxp->u.rk_dereg.route_ctx = xua_msg_get_u32(inner, M3UA_IEI_ROUTE_CTX);
+	oxp->u.rk_dereg.status = xua_msg_get_u32(inner, M3UA_IEI_DEREG_STATUS);
+
+	LOGPASP(asp, DLSS7, LOGL_INFO, "Received RKM DEREG RES rctx=%u status=%s\n",
+		oxp->u.rk_reg.key.context,
+		get_value_string(m3ua_rkm_dereg_status_vals, oxp->u.rk_dereg.status));
+
+	/* Send primitive to LM */
+	xua_asp_send_xlm_prim(asp, oxp);
+
+	return 0;
 }
 
 /* receive a deregistration response (ASP role) */
 static int m3ua_rx_rkm_dereg_rsp(struct osmo_ss7_asp *asp, struct xua_msg *xua)
 {
-	/* TODO */
+	struct xua_msg_part *part;
+	struct xua_msg *inner = NULL;
+
+	llist_for_each_entry(part, &xua->headers, entry) {
+		/* skip other IEs and/or short REG_RES IEs */
+		if (part->tag != M3UA_IEI_DEREG_RESULT || part->len < 16)
+			continue;
+
+		/* we leave the above loop at the first valid
+		 * registration result (we only support one AS per ASP
+		 * for now) */
+		inner = xua_from_nested(part);
+		if (!inner)
+			continue;
+
+		handle_rkey_dereg_resp(asp, inner);
+	}
+	return 0;
 }
 
 /* process an incoming RKM message in xua format */
@@ -320,4 +449,29 @@ int m3ua_rx_rkm(struct osmo_ss7_asp *asp, struct xua_msg *xua)
 		break;
 	}
 	return rc;
+}
+
+int osmo_xlm_sap_down(struct osmo_ss7_asp *asp, struct osmo_prim_hdr *oph)
+{
+	struct osmo_xlm_prim *prim = (struct osmo_xlm_prim *) oph;
+
+	LOGPASP(asp, DLSS7, LOGL_DEBUG, "Received XUA Layer Manager Primitive: %s)\n",
+		osmo_xlm_prim_name(&prim->oph));
+
+	switch (OSMO_PRIM_HDR(&prim->oph)) {
+	case OSMO_PRIM(OSMO_XLM_PRIM_M_RK_REG, PRIM_OP_REQUEST):
+		/* Layer Manager asks us to send a Routing Key Reg Request */
+		xua_rkm_send_reg_req(asp, &prim->u.rk_reg.key, prim->u.rk_reg.traf_mode);
+		break;
+	case OSMO_PRIM(OSMO_XLM_PRIM_M_RK_DEREG, PRIM_OP_REQUEST):
+		/* Layer Manager asks us to send a Routing Key De-Reg Request */
+		xua_rkm_send_dereg_req(asp, prim->u.rk_dereg.route_ctx);
+		break;
+	default:
+		LOGPASP(asp, DLSS7, LOGL_ERROR, "Unknown XUA Layer Manager Primitive: %s\n",
+			osmo_xlm_prim_name(&prim->oph));
+		break;
+	}
+
+	return 0;
 }

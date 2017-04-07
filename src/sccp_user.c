@@ -274,6 +274,7 @@ osmo_sccp_simple_client(void *ctx, const char *name, uint32_t pc,
 	asp->cfg.local.host = talloc_strdup(asp, local_ip);
 	asp->cfg.remote.host = talloc_strdup(asp, remote_ip);
 	osmo_ss7_as_add_asp(as, asp_name);
+	osmo_ss7_asp_use_default_lm(asp, LOGL_DEBUG);
 	talloc_free(asp_name);
 	osmo_ss7_asp_restart(asp);
 

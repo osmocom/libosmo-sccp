@@ -51,10 +51,16 @@ struct osmo_xlm_prim_rk_reg {
 	/* routing key */
 	struct osmo_ss7_routing_key key;
 	enum osmo_ss7_as_traffic_mode traf_mode;
+
+	/* Status: Confirm only */
+	uint32_t status;
 };
 
 struct osmo_xlm_prim_rk_dereg {
 	uint32_t route_ctx;
+
+	/* Status: Confirm only */
+	uint32_t status;
 };
 
 struct osmo_xlm_prim {
@@ -62,9 +68,14 @@ struct osmo_xlm_prim {
 	union {
 		struct osmo_xlm_prim_notify notify;
 		struct osmo_xlm_prim_error error;
+		struct osmo_xlm_prim_rk_reg rk_reg;
+		struct osmo_xlm_prim_rk_dereg rk_dereg;
 	} u;
 };
 
 #define msgb_xlm_prim(msg) ((struct osmo_xlm_prim *)(msg)->l1h)
 
 char *osmo_xlm_prim_name(struct osmo_prim_hdr *oph);
+
+/* XUA LM-SAP towards stack */
+int osmo_xlm_sap_down(struct osmo_ss7_asp *asp, struct osmo_prim_hdr *oph);

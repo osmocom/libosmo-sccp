@@ -100,10 +100,14 @@ struct osmo_xlm_prim *xua_xlm_prim_alloc(enum osmo_xlm_prim_type prim_type,
 /* Send a XUA LM Primitive to the XUA Layer Manager (LM) */
 void xua_asp_send_xlm_prim(struct osmo_ss7_asp *asp, struct osmo_xlm_prim *prim)
 {
-	struct osmo_xua_layer_manager *lm = asp->lm;
+	const struct osmo_xua_layer_manager *lm = asp->lm;
 
 	if (lm && lm->prim_cb)
 		lm->prim_cb(&prim->oph, asp);
+	else {
+		LOGPASP(asp, DLSS7, LOGL_DEBUG, "No Layer Manager, dropping %s\n",
+			osmo_xlm_prim_name(&prim->oph));
+	}
 
 	msgb_free(prim->oph.msg);
 }
@@ -334,10 +338,11 @@ static void xua_asp_fsm_down(struct osmo_fsm_inst *fi, uint32_t event, void *dat
 		ENSURE_ASP_OR_IPSP(fi, event);
 		osmo_fsm_inst_state_chg(fi, XUA_ASP_S_INACTIVE, 0, 0);
 		/* inform layer manager */
-		send_xlm_prim_simple(fi, OSMO_XLM_PRIM_M_ASP_UP,
-				     PRIM_OP_CONFIRM);
-		/* FIXME: This hack should be in layer manager? */
-		osmo_fsm_inst_dispatch(fi, XUA_ASP_E_M_ASP_ACTIVE_REQ, NULL);
+		send_xlm_prim_simple(fi, OSMO_XLM_PRIM_M_ASP_UP, PRIM_OP_CONFIRM);
+		/* This hack should be in layer manager, but let's try
+		 * to be smart in case there is no layer manager */
+		if (!asp->lm)
+			osmo_fsm_inst_dispatch(fi, XUA_ASP_E_M_ASP_ACTIVE_REQ, NULL);
 		break;
 	case XUA_ASP_E_ASPSM_ASPUP:
 		/* only if role SG */

@@ -345,7 +345,8 @@ struct osmo_ss7_asp {
 	bool asp_id_present;
 
 	/* Layer Manager to which we talk */
-	struct osmo_xua_layer_manager *lm;
+	const struct osmo_xua_layer_manager *lm;
+	void *lm_priv;
 
 	/*! Were we dynamically allocated */
 	bool dyn_allocated;
@@ -372,6 +373,7 @@ osmo_ss7_asp_find_or_create(struct osmo_ss7_instance *inst, const char *name,
 void osmo_ss7_asp_destroy(struct osmo_ss7_asp *asp);
 int osmo_ss7_asp_send(struct osmo_ss7_asp *asp, struct msgb *msg);
 int osmo_ss7_asp_restart(struct osmo_ss7_asp *asp);
+int osmo_ss7_asp_use_default_lm(struct osmo_ss7_asp *asp, int log_level);
 
 #define LOGPASP(asp, subsys, level, fmt, args ...)		\
 	LOGP(subsys, level, "asp-%s: " fmt, (asp)->cfg.name, ## args)
