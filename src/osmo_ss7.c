@@ -1234,9 +1234,14 @@ static int xua_cli_connect_cb(struct osmo_stream_cli *cli)
 
 	LOGPASP(asp, DLSS7, LOGL_INFO, "Client connected %s\n", asp->sock_name);
 
-	/* Notify the ASP FSM that the connection has just been
-	 * established */
-	osmo_fsm_inst_dispatch(asp->fi, XUA_ASP_E_M_ASP_UP_REQ, NULL);
+	if (asp->lm && asp->lm->prim_cb) {
+		/* Notify layer manager that a connection has been
+		 * established */
+		xua_asp_send_xlm_prim_simple(asp, OSMO_XLM_PRIM_M_SCTP_ESTABLISH, PRIM_OP_INDICATION);
+	} else {
+		/* directly as the ASP FSM to start by sending an ASP-UP ... */
+		osmo_fsm_inst_dispatch(asp->fi, XUA_ASP_E_M_ASP_UP_REQ, NULL);
+	}
 
 	return 0;
 }
@@ -1380,6 +1385,9 @@ static int xua_accept_cb(struct osmo_stream_srv_link *link, int fd)
 	/* make sure the conn_cb() is called with the asp as private
 	 * data */
 	osmo_stream_srv_set_data(srv, asp);
+
+	/* send M-SCTP_ESTABLISH.ind to Layer Manager */
+	xua_asp_send_xlm_prim_simple(asp, OSMO_XLM_PRIM_M_SCTP_ESTABLISH, PRIM_OP_INDICATION);
 
 	return 0;
 }

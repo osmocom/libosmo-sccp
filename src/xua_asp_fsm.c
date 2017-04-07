@@ -109,15 +109,23 @@ void xua_asp_send_xlm_prim(struct osmo_ss7_asp *asp, struct osmo_xlm_prim *prim)
 }
 
 /* wrapper around send_xlm_prim for primitives without data */
-static void send_xlm_prim_simple(struct osmo_fsm_inst *fi,
+void xua_asp_send_xlm_prim_simple(struct osmo_ss7_asp *asp,
 				enum osmo_xlm_prim_type prim_type,
 				enum osmo_prim_operation op)
 {
 	struct osmo_xlm_prim *prim = xua_xlm_prim_alloc(prim_type, op);
-	struct xua_asp_fsm_priv *xafp = fi->priv;
 	if (!prim)
 		return;
-	xua_asp_send_xlm_prim(xafp->asp, prim);
+	xua_asp_send_xlm_prim(asp, prim);
+}
+
+static void send_xlm_prim_simple(struct osmo_fsm_inst *fi,
+				 enum osmo_xlm_prim_type prim_type,
+				enum osmo_prim_operation op)
+{
+	struct xua_asp_fsm_priv *xafp = fi->priv;
+	struct osmo_ss7_asp *asp = xafp->asp;
+	xua_asp_send_xlm_prim_simple(asp, prim_type, op);
 }
 
 /* ask the xUA implementation to transmit a specific message */

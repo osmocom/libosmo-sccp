@@ -52,3 +52,6 @@ struct osmo_xlm_prim *xua_xlm_prim_alloc(enum osmo_xlm_prim_type prim_type,
 					 enum osmo_prim_operation op);
 
 void xua_asp_send_xlm_prim(struct osmo_ss7_asp *asp, struct osmo_xlm_prim *prim);
+void xua_asp_send_xlm_prim_simple(struct osmo_ss7_asp *asp,
+				enum osmo_xlm_prim_type prim_type,
+				enum osmo_prim_operation op);
