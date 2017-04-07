@@ -67,18 +67,12 @@ static const struct value_string xua_asp_event_names[] = {
 	{ 0, NULL }
 };
 
-struct xua_layer_manager {
-	osmo_prim_cb prim_cb;
-};
-
 /* private data structure for each FSM instance */
 struct xua_asp_fsm_priv {
 	/* pointer back to ASP to which we belong */
 	struct osmo_ss7_asp *asp;
 	/* Role (ASP/SG/IPSP) */
 	enum xua_asp_role role;
-	/* Layer Manager to which we talk */
-	struct xua_layer_manager *lm;
 
 	/* routing context[s]: list of 32bit integers */
 	/* ACTIVE: traffic mode type, tid label, drn label ? */
@@ -106,11 +100,10 @@ struct osmo_xlm_prim *xua_xlm_prim_alloc(enum osmo_xlm_prim_type prim_type,
 /* Send a XUA LM Primitive to the XUA Layer Manager (LM) */
 void xua_asp_send_xlm_prim(struct osmo_ss7_asp *asp, struct osmo_xlm_prim *prim)
 {
-	struct xua_asp_fsm_priv *xafp = asp->fi->priv;
-	struct xua_layer_manager *lm = xafp->lm;
+	struct osmo_xua_layer_manager *lm = asp->lm;
 
 	if (lm && lm->prim_cb)
-		lm->prim_cb(&prim->oph, xafp->asp);
+		lm->prim_cb(&prim->oph, asp);
 
 	msgb_free(prim->oph.msg);
 }

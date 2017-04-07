@@ -13,6 +13,7 @@ struct osmo_ss7_instance;
 struct osmo_ss7_user;
 struct osmo_sccp_instance;
 struct osmo_mtp_prim;
+struct osmo_xua_layer_manager;
 
 int osmo_ss7_init(void);
 int osmo_ss7_find_free_rctx(struct osmo_ss7_instance *inst);
@@ -336,6 +337,9 @@ struct osmo_ss7_asp {
 	uint32_t asp_id;
 	bool asp_id_present;
 
+	/* Layer Manager to which we talk */
+	struct osmo_xua_layer_manager *lm;
+
 	struct {
 		char *name;
 		char *description;
@@ -365,6 +369,10 @@ int osmo_ss7_asp_restart(struct osmo_ss7_asp *asp);
 /***********************************************************************
  * xUA Servers
  ***********************************************************************/
+
+struct osmo_xua_layer_manager {
+	osmo_prim_cb prim_cb;
+};
 
 struct osmo_xua_server {
 	struct llist_head list;
