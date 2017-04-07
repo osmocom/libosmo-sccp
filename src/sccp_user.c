@@ -388,3 +388,8 @@ out_strings:
 
 	return NULL;
 }
+
+struct osmo_ss7_instance *osmo_sccp_get_ss7(struct osmo_sccp_instance *sccp)
+{
+	return sccp->ss7;
+}
