@@ -1046,6 +1046,8 @@ int osmo_ss7_asp_restart(struct osmo_ss7_asp *asp)
 		}
 		osmo_stream_cli_set_addr(asp->client, asp->cfg.remote.host);
 		osmo_stream_cli_set_port(asp->client, asp->cfg.remote.port);
+		osmo_stream_cli_set_local_addr(asp->client, asp->cfg.local.host);
+		osmo_stream_cli_set_local_port(asp->client, asp->cfg.local.port);
 		osmo_stream_cli_set_proto(asp->client, IPPROTO_SCTP);
 		osmo_stream_cli_set_reconnect_timeout(asp->client, 5);
 		osmo_stream_cli_set_connect_cb(asp->client, xua_cli_connect_cb);

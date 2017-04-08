@@ -106,7 +106,7 @@ int main(int argc, char **argv)
 
 
 	if (client) {
-		g_sccp = osmo_sccp_simple_client(NULL, "client", 23, OSMO_SS7_ASP_PROT_M3UA, 0, M3UA_PORT, "127.0.0.2");
+		g_sccp = osmo_sccp_simple_client(NULL, "client", 23, OSMO_SS7_ASP_PROT_M3UA, 0, NULL, M3UA_PORT, "127.0.0.2");
 		sccp_test_user_vty_install(g_sccp, OSMO_SCCP_SSN_BSC_BSSAP);
 	} else {
 		g_sccp = sua_server_helper();

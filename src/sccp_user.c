@@ -230,8 +230,8 @@ void osmo_sccp_instance_destroy(struct osmo_sccp_instance *inst)
 
 struct osmo_sccp_instance *
 osmo_sccp_simple_client(void *ctx, const char *name, uint32_t pc,
-			enum osmo_ss7_asp_protocol prot,
-			int local_port, int remote_port, const char *remote_ip)
+			enum osmo_ss7_asp_protocol prot, int local_port,
+			const char *local_ip, int remote_port, const char *remote_ip)
 {
 	struct osmo_ss7_instance *ss7;
 	struct osmo_ss7_as *as;
@@ -269,6 +269,7 @@ osmo_sccp_simple_client(void *ctx, const char *name, uint32_t pc,
 					  prot);
 	if (!asp)
 		goto out_rt;
+	asp->cfg.local.host = talloc_strdup(asp, local_ip);
 	asp->cfg.remote.host = talloc_strdup(asp, remote_ip);
 	osmo_ss7_as_add_asp(as, asp_name);
 	talloc_free(asp_name);

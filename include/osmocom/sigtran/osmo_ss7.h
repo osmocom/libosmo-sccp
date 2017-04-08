@@ -402,10 +402,11 @@ osmo_ss7_xua_server_set_local_host(struct osmo_xua_server *xs, const char *local
 
 void osmo_ss7_xua_server_destroy(struct osmo_xua_server *xs);
 
+
 struct osmo_sccp_instance *
 osmo_sccp_simple_client(void *ctx, const char *name, uint32_t pc,
-			enum osmo_ss7_asp_protocol prot,
-			int local_port, int remote_port, const char *remote_ip);
+			enum osmo_ss7_asp_protocol prot, int local_port,
+			const char *local_ip, int remote_port, const char *remote_ip);
 
 struct osmo_sccp_instance *
 osmo_sccp_simple_server(void *ctx, uint32_t pc,
