@@ -69,7 +69,8 @@ struct xua_msg_event_map {
 extern const struct xua_dialect xua_dialect_sua;
 extern const struct xua_dialect xua_dialect_m3ua;
 
-struct xua_msg *xua_msg_alloc(void);
+#define xua_msg_alloc() _xua_msg_alloc(__FILE__, __LINE__)
+struct xua_msg *_xua_msg_alloc(const char *name, int line);
 void xua_msg_free(struct xua_msg *msg);
 
 int xua_msg_add_data(struct xua_msg *msg, uint16_t tag, uint16_t len, uint8_t *dat);

@@ -33,13 +33,14 @@
 
 static void *tall_xua;
 
-struct xua_msg *xua_msg_alloc(void)
+struct xua_msg *_xua_msg_alloc(const char *file_name, int line)
 {
 	struct xua_msg *msg;
 
 	msg = talloc_zero(tall_xua, struct xua_msg);
 	if (!msg)
 		return NULL;
+	talloc_set_name(msg, "%s:%u", file_name, line);
 
 	INIT_LLIST_HEAD(&msg->headers);
 	return msg;
