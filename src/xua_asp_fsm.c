@@ -527,10 +527,10 @@ static void xua_asp_fsm_active(struct osmo_fsm_inst *fi, uint32_t event, void *d
 		 * an Error message ("Unexpected Message), and the
 		 * remote ASP state is changed to ASP-INACTIVE in all
 		 * relevant Application Servers */
-		/* FIXME: Send ERROR message */
 		osmo_fsm_inst_state_chg(fi, XUA_ASP_S_INACTIVE, 0, 0);
 		send_xlm_prim_simple(fi, OSMO_XLM_PRIM_M_ASP_INACTIVE,
 				     PRIM_OP_INDICATION);
+		peer_send_error(fi, M3UA_ERR_UNEXPECTED_MSG);
 		break;
 	}
 }
