@@ -210,6 +210,25 @@ static int peer_send(struct osmo_fsm_inst *fi, int out_event, struct xua_msg *in
 	return osmo_ss7_asp_send(asp, msg);
 }
 
+static int peer_send_error(struct osmo_fsm_inst *fi, uint32_t err_code)
+{
+	struct xua_asp_fsm_priv *xafp = fi->priv;
+	struct osmo_ss7_asp *asp = xafp->asp;
+	struct xua_msg *xua = xua_msg_alloc();
+	struct msgb *msg;
+
+	xua->hdr = XUA_HDR(SUA_MSGC_MGMT, SUA_MGMT_ERR);
+	xua->hdr.version = SUA_VERSION;
+	xua_msg_add_u32(xua, SUA_IEI_ERR_CODE, err_code);
+
+	msg = xua_to_msg(SUA_VERSION, xua);
+	xua_msg_free(xua);
+	if (!msg)
+		return -1;
+
+	return osmo_ss7_asp_send(asp, msg);
+}
+
 static void xua_t_ack_cb(void *data)
 {
 	struct osmo_fsm_inst *fi = data;
@@ -373,6 +392,9 @@ static void xua_asp_fsm_down_onenter(struct osmo_fsm_inst *fi, uint32_t prev_sta
 
 static void xua_asp_fsm_inactive(struct osmo_fsm_inst *fi, uint32_t event, void *data)
 {
+	struct xua_msg *xua_in;
+	uint32_t traf_mode;
+
 	check_stop_t_ack(fi, event);
 	switch (event) {
 	case XUA_ASP_E_M_ASP_ACTIVE_REQ:
@@ -400,8 +422,18 @@ static void xua_asp_fsm_inactive(struct osmo_fsm_inst *fi, uint32_t event, void 
 				     PRIM_OP_CONFIRM);
 		break;
 	case XUA_ASP_E_ASPTM_ASPAC:
+		xua_in = data;
 		/* only in role SG */
 		ENSURE_SG_OR_IPSP(fi, event);
+		if (xua_msg_find_tag(xua_in, M3UA_IEI_TRAF_MODE_TYP)) {
+			traf_mode = xua_msg_get_u32(xua_in, M3UA_IEI_TRAF_MODE_TYP);
+			if (traf_mode != M3UA_TMOD_OVERRIDE &&
+			    traf_mode != M3UA_TMOD_LOADSHARE &&
+			    traf_mode != M3UA_TMOD_BCAST) {
+				peer_send_error(fi, M3UA_ERR_UNSUPP_TRAF_MOD_TYP);
+				break;
+			}
+		}
 		/* send ACK */
 		peer_send(fi, XUA_ASP_E_ASPTM_ASPAC_ACK, NULL);
 		/* transition state and inform layer manager */
