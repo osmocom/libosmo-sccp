@@ -623,7 +623,8 @@ static int m3ua_rx_asp(struct osmo_ss7_asp *asp, struct xua_msg *xua)
 		return M3UA_ERR_UNSUPP_MSG_TYPE;
 
 	/* deliver that event to the ASP FSM */
-	osmo_fsm_inst_dispatch(asp->fi, event, xua);
+	if (osmo_fsm_inst_dispatch(asp->fi, event, xua) < 0)
+		return M3UA_ERR_UNEXPECTED_MSG;
 
 	return 0;
 }
