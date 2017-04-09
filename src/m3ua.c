@@ -496,7 +496,6 @@ static int m3ua_rx_xfer(struct osmo_ss7_asp *asp, struct xua_msg *xua)
 {
 	uint32_t rctx = xua_msg_get_u32(xua, M3UA_IEI_ROUTE_CTX);
 	struct m3ua_data_hdr *dh;
-	struct xua_msg *err = NULL;
 	struct osmo_ss7_as *as;
 
 	if (xua->hdr.msg_type != M3UA_XFER_DATA)
@@ -505,15 +504,13 @@ static int m3ua_rx_xfer(struct osmo_ss7_asp *asp, struct xua_msg *xua)
 	/* Use routing context IE to look up the AS for which the
 	 * message was received. */
 	as = osmo_ss7_as_find_by_rctx(asp->inst, rctx);
-	if (!as) {
-		err = m3ua_gen_error(M3UA_ERR_INVAL_ROUT_CTX);
-		goto out_err;
-	}
+	if (!as)
+		return M3UA_ERR_INVAL_ROUT_CTX;
+
 	/* Verify that this ASP ix part of the AS. */
-	if (!osmo_ss7_as_has_asp(as, asp)) {
-		err = m3ua_gen_error(M3UA_ERR_NO_CONFGD_AS_FOR_ASP);
-		goto out_err;
-	}
+	if (!osmo_ss7_as_has_asp(as, asp))
+		return M3UA_ERR_NO_CONFGD_AS_FOR_ASP;
+
 	/* FIXME: check for AS state == ACTIVE */
 
 	/* store the MTP-level information in the xua_msg for use by
@@ -527,11 +524,6 @@ static int m3ua_rx_xfer(struct osmo_ss7_asp *asp, struct xua_msg *xua)
 	xua_msg_free_tag(xua, M3UA_IEI_ROUTE_CTX);
 
 	return m3ua_hmdc_rx_from_l2(asp->inst, xua);
-out_err:
-	if (err)
-		m3ua_tx_xua_asp(asp, err);
-
-	return -1;
 }
 
 static int m3ua_rx_mgmt_err(struct osmo_ss7_asp *asp, struct xua_msg *xua)
@@ -688,7 +680,6 @@ int m3ua_rx_msg(struct osmo_ss7_asp *asp, struct msgb *msg)
 	case M3UA_MSGC_ASPSM:
 	case M3UA_MSGC_ASPTM:
 		rc = m3ua_rx_asp(asp, xua);
-		break;
 		break;
 	case M3UA_MSGC_MGMT:
 		rc = m3ua_rx_mgmt(asp, xua);
