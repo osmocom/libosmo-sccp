@@ -432,6 +432,10 @@ static int m3ua_tx_xua_asp(struct osmo_ss7_asp *asp, struct xua_msg *xua)
 		return -1;
 	}
 
+	if (xua->hdr.msg_class == M3UA_MSGC_XFER)
+		msgb_sctp_stream(msg) = 1;
+	else
+		msgb_sctp_stream(msg) = 0;
 	msgb_sctp_ppid(msg) = M3UA_PPID;
 	return osmo_ss7_asp_send(asp, msg);
 }
@@ -666,12 +670,16 @@ int m3ua_rx_msg(struct osmo_ss7_asp *asp, struct msgb *msg)
 		goto out;
 	}
 
-	/* TODO: check for SCTP Strema ID */
 	/* TODO: check if any AS configured in ASP */
 	/* TODO: check for valid routing context */
 
 	switch (xua->hdr.msg_class) {
 	case M3UA_MSGC_XFER:
+		/* The DATA message MUST NOT be sent on stream 0. */
+		if (msgb_sctp_stream(msg) == 0) {
+			rc = M3UA_ERR_INVAL_STREAM_ID;
+			break;
+		}
 		rc = m3ua_rx_xfer(asp, xua);
 		break;
 	case M3UA_MSGC_ASPSM:
