@@ -460,6 +460,11 @@ static void xua_asp_fsm_inactive(struct osmo_fsm_inst *fi, uint32_t event, void 
 		 * is taken. */
 		peer_send(fi, XUA_ASP_E_ASPSM_ASPUP_ACK, NULL);
 		break;
+	case XUA_ASP_E_ASPTM_ASPIA:
+		/* only in role SG */
+		ENSURE_SG_OR_IPSP(fi, event);
+		peer_send(fi, XUA_ASP_E_ASPTM_ASPIA_ACK, NULL);
+		break;
 	}
 }
 
@@ -592,6 +597,7 @@ static const struct osmo_fsm_state xua_asp_states[] = {
 				 S(XUA_ASP_E_M_ASP_DOWN_REQ) |
 				 S(XUA_ASP_E_ASPTM_ASPAC) |
 				 S(XUA_ASP_E_ASPTM_ASPAC_ACK) |
+				 S(XUA_ASP_E_ASPTM_ASPIA) |
 				 S(XUA_ASP_E_ASPSM_ASPDN) |
 				 S(XUA_ASP_E_ASPSM_ASPDN_ACK) |
 				 S(XUA_ASP_E_ASPSM_ASPUP),
