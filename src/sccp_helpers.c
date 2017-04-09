@@ -39,6 +39,7 @@ static struct msgb *scu_msgb_alloc(const char *name)
 void osmo_sccp_make_addr_pc_ssn(struct osmo_sccp_addr *addr, uint32_t pc, uint32_t ssn)
 {
 	addr->presence = OSMO_SCCP_ADDR_T_SSN | OSMO_SCCP_ADDR_T_PC;
+	addr->ri = OSMO_SCCP_RI_SSN_PC;
 	addr->ssn = ssn;
 	addr->pc = pc;
 }
