@@ -51,6 +51,11 @@ void osmo_ss7_route_table_destroy(struct osmo_ss7_route_table *rtbl);
  * SS7 Instances
  ***********************************************************************/
 
+struct osmo_ss7_pc_fmt {
+	char delimiter;
+	uint8_t component_len[3];
+};
+
 struct osmo_ss7_instance {
 	/*! member of global list of instances */
 	struct llist_head list;
@@ -78,10 +83,7 @@ struct osmo_ss7_instance {
 		/* secondary PCs */
 		/* capability PCs */
 		uint8_t network_indicator;
-		struct {
-			char delimiter;
-			uint8_t component_len[3];
-		} pc_fmt;
+		struct osmo_ss7_pc_fmt pc_fmt;
 	} cfg;
 };
 

@@ -71,7 +71,7 @@ struct value_string osmo_ss7_asp_protocol_vals[] = {
 };
 
 #define LOGSS7(inst, level, fmt, args ...)	\
-	LOGP(DLSS7, level, "%u: " fmt, (inst)->cfg.id, ## args)
+	LOGP(DLSS7, level, "%u: " fmt, inst ? (inst)->cfg.id : 0, ## args)
 
 int osmo_ss7_find_free_rctx(struct osmo_ss7_instance *inst)
 {
@@ -87,6 +87,11 @@ int osmo_ss7_find_free_rctx(struct osmo_ss7_instance *inst)
 /***********************************************************************
  * SS7 Point Code Parsing / Printing
  ***********************************************************************/
+
+static const struct osmo_ss7_pc_fmt default_pc_fmt = {
+	.delimiter = '.',
+	.component_len = { 3, 8, 3},
+};
 
 /* like strcat() but appends a single character */
 static int strnappendchar(char *str, char c, size_t n)
@@ -104,7 +109,7 @@ static int strnappendchar(char *str, char c, size_t n)
 
 /* generate a format string for formatting a point code. The result can
  * e.g. be used with sscanf() or sprintf() */
-static const char *gen_pc_fmtstr(struct osmo_ss7_instance *inst,
+static const char *gen_pc_fmtstr(const struct osmo_ss7_pc_fmt *pc_fmt,
 				 unsigned int *num_comp_exp)
 {
 	static char buf[MAX_PC_STR_LEN];
@@ -114,15 +119,15 @@ static const char *gen_pc_fmtstr(struct osmo_ss7_instance *inst,
 	strcat(buf, "%u");
 	num_comp++;
 
-	if (inst->cfg.pc_fmt.component_len[1] == 0)
+	if (pc_fmt->component_len[1] == 0)
 		goto out;
-	strnappendchar(buf, inst->cfg.pc_fmt.delimiter, sizeof(buf));
+	strnappendchar(buf, pc_fmt->delimiter, sizeof(buf));
 	strcat(buf, "%u");
 	num_comp++;
 
-	if (inst->cfg.pc_fmt.component_len[2] == 0)
+	if (pc_fmt->component_len[2] == 0)
 		goto out;
-	strnappendchar(buf, inst->cfg.pc_fmt.delimiter, sizeof(buf));
+	strnappendchar(buf, pc_fmt->delimiter, sizeof(buf));
 	strcat(buf, "%u");
 	num_comp++;
 out:
@@ -133,38 +138,35 @@ out:
 
 /* get number of components we expect for a point code, depending on the
  * configuration of this ss7_instance */
-static unsigned int num_pc_comp_exp(struct osmo_ss7_instance *inst)
+static unsigned int num_pc_comp_exp(const struct osmo_ss7_pc_fmt *pc_fmt)
 {
 	unsigned int num_comp_exp = 1;
 
-	if (inst->cfg.pc_fmt.component_len[1])
+	if (pc_fmt->component_len[1])
 		num_comp_exp++;
-	if (inst->cfg.pc_fmt.component_len[2])
+	if (pc_fmt->component_len[2])
 		num_comp_exp++;
 
 	return num_comp_exp;
 }
 
 /* get the total width (in bits) of the point-codes in this ss7_instance */
-static unsigned int get_pc_width(struct osmo_ss7_instance *inst)
+static unsigned int get_pc_width(const struct osmo_ss7_pc_fmt *pc_fmt)
 {
-	return inst->cfg.pc_fmt.component_len[0] +
-		inst->cfg.pc_fmt.component_len[1] +
-		inst->cfg.pc_fmt.component_len[2];
+	return pc_fmt->component_len[0] + pc_fmt->component_len[1] + pc_fmt->component_len[2];
 }
 
 /* get the number of bits we must shift the given component of a point
  * code in this ss7_instance */
-static unsigned int get_pc_comp_shift(struct osmo_ss7_instance *inst,
+static unsigned int get_pc_comp_shift(const struct osmo_ss7_pc_fmt *pc_fmt,
 					unsigned int comp_num)
 {
-	uint32_t pc_width = get_pc_width(inst);
+	uint32_t pc_width = get_pc_width(pc_fmt);
 	switch (comp_num) {
 	case 0:
-		return pc_width - inst->cfg.pc_fmt.component_len[0];
+		return pc_width - pc_fmt->component_len[0];
 	case 1:
-		return pc_width - inst->cfg.pc_fmt.component_len[0] -
-			inst->cfg.pc_fmt.component_len[1];
+		return pc_width - pc_fmt->component_len[0] - pc_fmt->component_len[1];
 	case 2:
 		return 0;
 	default:
@@ -172,11 +174,11 @@ static unsigned int get_pc_comp_shift(struct osmo_ss7_instance *inst,
 	}
 }
 
-static uint32_t pc_comp_shift_and_mask(struct osmo_ss7_instance *inst,
+static uint32_t pc_comp_shift_and_mask(const struct osmo_ss7_pc_fmt *pc_fmt,
 					unsigned int comp_num, uint32_t pc)
 {
-	unsigned int shift = get_pc_comp_shift(inst, comp_num);
-	uint32_t mask = (1 << inst->cfg.pc_fmt.component_len[comp_num]) - 1;
+	unsigned int shift = get_pc_comp_shift(pc_fmt, comp_num);
+	uint32_t mask = (1 << pc_fmt->component_len[comp_num]) - 1;
 
 	return (pc >> shift) & mask;
 }
@@ -186,8 +188,9 @@ static uint32_t pc_comp_shift_and_mask(struct osmo_ss7_instance *inst,
 int osmo_ss7_pointcode_parse(struct osmo_ss7_instance *inst, const char *str)
 {
 	unsigned int component[3];
-	unsigned int num_comp_exp = num_pc_comp_exp(inst);
-	const char *fmtstr = gen_pc_fmtstr(inst, &num_comp_exp);
+	const struct osmo_ss7_pc_fmt *pc_fmt = inst ? &inst->cfg.pc_fmt : &default_pc_fmt;
+	unsigned int num_comp_exp = num_pc_comp_exp(pc_fmt);
+	const char *fmtstr = gen_pc_fmtstr(pc_fmt, &num_comp_exp);
 	int i, rc;
 
 	rc = sscanf(str, fmtstr, &component[0], &component[1], &component[2]);
@@ -198,16 +201,16 @@ int osmo_ss7_pointcode_parse(struct osmo_ss7_instance *inst, const char *str)
 	/* check none of the component values exceeds what can be
 	 * represented within its bit-width */
 	for (i = 0; i < num_comp_exp; i++) {
-		if (component[i] >= (1 << inst->cfg.pc_fmt.component_len[i]))
+		if (component[i] >= (1 << pc_fmt->component_len[i]))
 			goto err;
 	}
 
 	/* shift them all together */
-	rc = (component[0] << get_pc_comp_shift(inst, 0));
+	rc = (component[0] << get_pc_comp_shift(pc_fmt, 0));
 	if (num_comp_exp > 1)
-		rc |= (component[1] << get_pc_comp_shift(inst, 1));
+		rc |= (component[1] << get_pc_comp_shift(pc_fmt, 1));
 	if (num_comp_exp > 2)
-		rc |= (component[2] << get_pc_comp_shift(inst, 2));
+		rc |= (component[2] << get_pc_comp_shift(pc_fmt, 2));
 
 	return rc;
 
@@ -221,21 +224,22 @@ err:
 const char *osmo_ss7_pointcode_print(struct osmo_ss7_instance *inst, uint32_t pc)
 {
 	static char buf[MAX_PC_STR_LEN];
-	unsigned int num_comp_exp = num_pc_comp_exp(inst);
-	const char *fmtstr = gen_pc_fmtstr(inst, &num_comp_exp);
+	const struct osmo_ss7_pc_fmt *pc_fmt = inst ? &inst->cfg.pc_fmt : &default_pc_fmt;
+	unsigned int num_comp_exp = num_pc_comp_exp(pc_fmt);
+	const char *fmtstr = gen_pc_fmtstr(pc_fmt, &num_comp_exp);
 
 	OSMO_ASSERT(fmtstr);
 	snprintf(buf, sizeof(buf), fmtstr,
-		 pc_comp_shift_and_mask(inst, 0, pc),
-		 pc_comp_shift_and_mask(inst, 1, pc),
-		 pc_comp_shift_and_mask(inst, 2, pc));
+		 pc_comp_shift_and_mask(pc_fmt, 0, pc),
+		 pc_comp_shift_and_mask(pc_fmt, 1, pc),
+		 pc_comp_shift_and_mask(pc_fmt, 2, pc));
 
 	return buf;
 }
 
 int osmo_ss7_pointcode_parse_mask_or_len(struct osmo_ss7_instance *inst, const char *in)
 {
-	unsigned int width = get_pc_width(inst);
+	unsigned int width = get_pc_width(inst ? &inst->cfg.pc_fmt : &default_pc_fmt);
 
 	if (in[0] == '/') {
 		/* parse mask by length */
