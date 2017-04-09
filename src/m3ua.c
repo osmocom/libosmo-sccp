@@ -515,6 +515,10 @@ static int m3ua_rx_xfer(struct osmo_ss7_asp *asp, struct xua_msg *xua)
 	OSMO_ASSERT(dh);
 	m3ua_dh_to_xfer_param(&xua->mtp, dh);
 
+	/* remove ROUTE_CTX as in the routing case we want to add a new
+	 * routing context on the outbound side */
+	xua_msg_free_tag(xua, M3UA_IEI_ROUTE_CTX);
+
 	return m3ua_hmdc_rx_from_l2(asp->inst, xua);
 out_err:
 	if (err)
