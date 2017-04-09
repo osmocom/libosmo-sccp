@@ -392,6 +392,8 @@ static void xua_asp_fsm_down_onenter(struct osmo_fsm_inst *fi, uint32_t prev_sta
 
 static void xua_asp_fsm_inactive(struct osmo_fsm_inst *fi, uint32_t event, void *data)
 {
+	struct xua_asp_fsm_priv *xafp = fi->priv;
+	struct osmo_ss7_asp *asp = xafp->asp;
 	struct xua_msg *xua_in;
 	uint32_t traf_mode;
 
@@ -431,6 +433,13 @@ static void xua_asp_fsm_inactive(struct osmo_fsm_inst *fi, uint32_t event, void 
 			    traf_mode != M3UA_TMOD_LOADSHARE &&
 			    traf_mode != M3UA_TMOD_BCAST) {
 				peer_send_error(fi, M3UA_ERR_UNSUPP_TRAF_MOD_TYP);
+				break;
+			}
+		}
+		if (xua_msg_find_tag(xua_in, M3UA_IEI_ROUTE_CTX)) {
+			uint32_t rctx = xua_msg_get_u32(xua_in, M3UA_IEI_ROUTE_CTX);
+			if (!osmo_ss7_as_find_by_rctx(asp->inst, rctx)) {
+				peer_send_error(fi, M3UA_ERR_INVAL_ROUT_CTX);
 				break;
 			}
 		}
