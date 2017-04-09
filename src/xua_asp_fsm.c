@@ -532,6 +532,12 @@ static void xua_asp_fsm_active(struct osmo_fsm_inst *fi, uint32_t event, void *d
 				     PRIM_OP_INDICATION);
 		peer_send_error(fi, M3UA_ERR_UNEXPECTED_MSG);
 		break;
+	case XUA_ASP_E_ASPTM_ASPAC:
+		/* only in role SG */
+		ENSURE_SG_OR_IPSP(fi, event);
+		/* send ACK */
+		peer_send(fi, XUA_ASP_E_ASPTM_ASPAC_ACK, NULL);
+		break;
 	}
 }
 
@@ -601,6 +607,7 @@ static const struct osmo_fsm_state xua_asp_states[] = {
 				 S(XUA_ASP_E_ASPSM_ASPUP) |
 				 S(XUA_ASP_E_ASPTM_ASPIA) |
 				 S(XUA_ASP_E_ASPTM_ASPIA_ACK) |
+				 S(XUA_ASP_E_ASPTM_ASPAC) |
 				 S(XUA_ASP_E_M_ASP_DOWN_REQ) |
 				 S(XUA_ASP_E_M_ASP_INACTIVE_REQ),
 		.out_state_mask = S(XUA_ASP_S_INACTIVE) |
