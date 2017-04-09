@@ -241,7 +241,7 @@ static const uint16_t reg_rsp_ies[] = {
 	M3UA_IEI_REG_RESULT, 0
 };
 static const uint16_t dereg_req_ies[] = {
-	M3UA_IEI_ROUT_KEY, 0
+	M3UA_IEI_ROUTE_CTX, 0
 };
 static const uint16_t dereg_rsp_ies[] = {
 	M3UA_IEI_DEREG_RESULT, 0
