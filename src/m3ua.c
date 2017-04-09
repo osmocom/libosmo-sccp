@@ -499,6 +499,9 @@ static int m3ua_rx_xfer(struct osmo_ss7_asp *asp, struct xua_msg *xua)
 	struct xua_msg *err = NULL;
 	struct osmo_ss7_as *as;
 
+	if (xua->hdr.msg_type != M3UA_XFER_DATA)
+		return M3UA_ERR_UNSUPP_MSG_TYPE;
+
 	/* Use routing context IE to look up the AS for which the
 	 * message was received. */
 	as = osmo_ss7_as_find_by_rctx(asp->inst, rctx);
