@@ -486,7 +486,7 @@ static struct xua_msg *xua_gen_msg_co(struct sccp_connection *conn, uint32_t eve
 		if (conn->calling_addr.presence)
 			xua_msg_add_sccp_addr(xua, SUA_IEI_SRC_ADDR, &conn->calling_addr);
 		/* optional: hop count; importance; priority; credit */
-		if (prim && msgb_l2(prim->oph.msg))
+		if (prim && msgb_l2(prim->oph.msg) && msgb_l2len(prim->oph.msg))
 			xua_msg_add_data(xua, SUA_IEI_DATA, msgb_l2len(prim->oph.msg),
 					 msgb_l2(prim->oph.msg));
 		break;
@@ -506,7 +506,7 @@ static struct xua_msg *xua_gen_msg_co(struct sccp_connection *conn, uint32_t eve
 		 * parameter */
 		if (conn->calling_addr.presence)
 			xua_msg_add_sccp_addr(xua, SUA_IEI_DEST_ADDR, &conn->calling_addr);
-		if (prim && msgb_l2(prim->oph.msg))
+		if (prim && msgb_l2(prim->oph.msg) && msgb_l2len(prim->oph.msg))
 			xua_msg_add_data(xua, SUA_IEI_DATA, msgb_l2len(prim->oph.msg),
 					 msgb_l2(prim->oph.msg));
 		break;
@@ -519,7 +519,7 @@ static struct xua_msg *xua_gen_msg_co(struct sccp_connection *conn, uint32_t eve
 		xua_msg_add_u32(xua, SUA_IEI_SRC_REF, conn->conn_id);
 		xua_msg_add_u32(xua, SUA_IEI_CAUSE, SUA_CAUSE_T_RELEASE | prim->u.disconnect.cause);
 		/* optional: importance */
-		if (msgb_l2(prim->oph.msg))
+		if (prim && msgb_l2(prim->oph.msg) && msgb_l2len(prim->oph.msg))
 			xua_msg_add_data(xua, SUA_IEI_DATA, msgb_l2len(prim->oph.msg),
 					 msgb_l2(prim->oph.msg));
 		break;
@@ -563,7 +563,7 @@ static struct xua_msg *xua_gen_msg_co(struct sccp_connection *conn, uint32_t eve
 			xua_msg_add_sccp_addr(xua, SUA_IEI_DEST_ADDR, &conn->calling_addr);
 		/* optional: importance */
 		/* optional: data */
-		if (prim && msgb_l2(prim->oph.msg))
+		if (prim && msgb_l2(prim->oph.msg) && msgb_l2len(prim->oph.msg))
 			xua_msg_add_data(xua, SUA_IEI_DATA, msgb_l2len(prim->oph.msg),
 					 msgb_l2(prim->oph.msg));
 		break;
