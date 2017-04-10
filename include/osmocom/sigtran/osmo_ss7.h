@@ -225,6 +225,7 @@ void osmo_ss7_route_destroy(struct osmo_ss7_route *rt);
 
 struct osmo_ss7_routing_key {
 	uint32_t context;
+	uint32_t l_rk_id;
 
 	uint32_t pc;
 	uint8_t si;
@@ -290,6 +291,8 @@ struct osmo_ss7_as *
 osmo_ss7_as_find_by_name(struct osmo_ss7_instance *inst, const char *name);
 struct osmo_ss7_as *
 osmo_ss7_as_find_by_rctx(struct osmo_ss7_instance *inst, uint32_t rctx);
+struct osmo_ss7_as *
+osmo_ss7_as_find_by_l_rk_id(struct osmo_ss7_instance *inst, uint32_t l_rk_id);
 struct osmo_ss7_as *
 osmo_ss7_as_find_or_create(struct osmo_ss7_instance *inst, const char *name,
 			  enum osmo_ss7_asp_protocol proto);

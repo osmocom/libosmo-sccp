@@ -1,5 +1,6 @@
 #pragma once
 #include <osmocom/core/prim.h>
+#include <osmocom/sigtran/osmo_ss7.h>
 
 
 enum osmo_sigtran_sap {
@@ -44,6 +45,16 @@ struct osmo_xlm_prim_notify {
 
 struct osmo_xlm_prim_error {
 	uint32_t code;
+};
+
+struct osmo_xlm_prim_rk_reg {
+	/* routing key */
+	struct osmo_ss7_routing_key key;
+	enum osmo_ss7_as_traffic_mode traf_mode;
+};
+
+struct osmo_xlm_prim_rk_dereg {
+	uint32_t route_ctx;
 };
 
 struct osmo_xlm_prim {

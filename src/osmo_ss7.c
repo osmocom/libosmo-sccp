@@ -54,6 +54,7 @@ static bool ss7_initialized = false;
 static LLIST_HEAD(ss7_instances);
 static LLIST_HEAD(ss7_xua_servers);
 static int32_t next_rctx = 1;
+static int32_t next_l_rk_id = 1;
 
 struct value_string osmo_ss7_as_traffic_mode_vals[] = {
 	{ OSMO_SS7_AS_TMOD_BCAST,	"broadcast" },
@@ -83,6 +84,18 @@ int osmo_ss7_find_free_rctx(struct osmo_ss7_instance *inst)
 	}
 	return -1;
 }
+
+static uint32_t find_free_l_rk_id(struct osmo_ss7_instance *inst)
+{
+	uint32_t l_rk_id;
+
+	for (l_rk_id = next_l_rk_id; next_l_rk_id; l_rk_id = ++next_l_rk_id) {
+		if (!osmo_ss7_as_find_by_l_rk_id(inst, next_l_rk_id))
+			return l_rk_id;
+	}
+	return -1;
+}
+
 
 /***********************************************************************
  * SS7 Point Code Parsing / Printing
@@ -765,6 +778,23 @@ osmo_ss7_as_find_by_rctx(struct osmo_ss7_instance *inst, uint32_t rctx)
 	return NULL;
 }
 
+/*! \brief Find Application Server by given local routing key ID
+ *  \param[in] inst SS7 Instance on which we operate
+ *  \param[in] l_rk_id Local Routing Key ID
+ *  \returns pointer to Application Server on success; NULL otherwise */
+struct osmo_ss7_as *
+osmo_ss7_as_find_by_l_rk_id(struct osmo_ss7_instance *inst, uint32_t l_rk_id)
+{
+	struct osmo_ss7_as *as;
+
+	OSMO_ASSERT(ss7_initialized);
+	llist_for_each_entry(as, &inst->as_list, list) {
+		if (as->cfg.routing_key.l_rk_id == l_rk_id)
+			return as;
+	}
+	return NULL;
+}
+
 /*! \brief Find or Create Application Server
  *  \param[in] inst SS7 Instance on which we operate
  *  \param[in] name Name of Application Server
@@ -792,6 +822,7 @@ osmo_ss7_as_find_or_create(struct osmo_ss7_instance *inst, const char *name,
 		as->cfg.proto = proto;
 		as->cfg.mode = OSMO_SS7_AS_TMOD_LOADSHARE;
 		as->cfg.recovery_timeout_msec = 2000;
+		as->cfg.routing_key.l_rk_id = find_free_l_rk_id(inst);
 		as->fi = xua_as_fsm_start(as, LOGL_DEBUG);
 		llist_add_tail(&as->list, &inst->as_list);
 	}
