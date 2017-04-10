@@ -27,6 +27,33 @@
 
 #include "xua_internal.h"
 
+const struct value_string m3ua_rkm_reg_status_vals[] = {
+	{ M3UA_RKM_REG_SUCCESS,			"SUCCESS" },
+	{ M3UA_RKM_REG_ERR_UNKNOWN,		"Unknown Error" },
+	{ M3UA_RKM_REG_ERR_INVAL_DPC,		"Invalid Destination Pointcode" },
+	{ M3UA_RKM_REG_ERR_INVAL_NET_APPEAR,	"Invalid Network Appearance" },
+	{ M3UA_RKM_REG_ERR_INVAL_RKEY,		"Invalid Routing Key" },
+	{ M3UA_RKM_REG_ERR_PERM_DENIED,		"Permission Denied" },
+	{ M3UA_RKM_REG_ERR_CANT_SUPP_UNQ_RT,	"Cannot Support Unique Routing" },
+	{ M3UA_RKM_REG_ERR_RKEY_NOT_PROVD,	"Routing Key Not Provided" },
+	{ M3UA_RKM_REG_ERR_INSUFF_RESRC,	"Insufficient Resources" },
+	{ M3UA_RKM_REG_ERR_UNSUPP_RK_PARAM,	"Unsupported Routing Key Parameter" },
+	{ M3UA_RKM_REG_ERR_UNSUPP_TRAF_MODE,	"Unsupported Traffic Mode Type" },
+	{ M3UA_RKM_REG_ERR_RKEY_CHG_REFUSED,	"Routing Key Change Refused" },
+	{ M3UA_RKM_REG_ERR_RKEY_ALRDY_REGD,	"Routing Key Already Registered" },
+	{ 0, NULL }
+};
+
+const struct value_string m3ua_rkm_dereg_status_vals[] = {
+	{ M3UA_RKM_DEREG_SUCCESS,		"SUCCSS" },
+	{ M3UA_RKM_DEREG_ERR_UNKNOWN,		"Unknown Error" },
+	{ M3UA_RKM_DEREG_ERR_INVAL_RCTX,	"Invalid Routing Context" },
+	{ M3UA_RKM_DEREG_ERR_PERM_DENIED,	"Permission Denied" },
+	{ M3UA_RKM_DEREG_ERR_NOT_REGD,		"Error: Not Registered" },
+	{ M3UA_RKM_DEREG_ERR_ASP_ACTIVE,	"Error: ASP Active" },
+	{ 0, NULL }
+};
+
 /* push a M3UA header to the front of the given message */
 static void msgb_push_m3ua_hdr(struct msgb *msg, uint8_t msg_class, uint8_t msg_type)
 {
