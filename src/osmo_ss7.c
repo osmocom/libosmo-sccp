@@ -1209,9 +1209,9 @@ static int xua_srv_conn_cb(struct osmo_stream_srv *conn)
 		goto out;
 	}
 
-	ppid = ntohl(sinfo.sinfo_ppid);
+	ppid = ntohs(sinfo.sinfo_ppid);
 	msgb_sctp_ppid(msg) = ppid;
-	msgb_sctp_stream(msg) = ntohl(sinfo.sinfo_stream);
+	msgb_sctp_stream(msg) = sinfo.sinfo_stream;
 	msg->dst = asp;
 
 	if (ppid == SUA_PPID && asp->cfg.proto == OSMO_SS7_ASP_PROT_SUA)
@@ -1299,9 +1299,9 @@ static int xua_cli_read_cb(struct osmo_stream_cli *conn)
 	if (rc == 0)
 		goto out;
 
-	ppid = ntohl(sinfo.sinfo_ppid);
+	ppid = ntohs(sinfo.sinfo_ppid);
 	msgb_sctp_ppid(msg) = ppid;
-	msgb_sctp_stream(msg) = ntohl(sinfo.sinfo_stream);
+	msgb_sctp_stream(msg) = sinfo.sinfo_stream;
 	msg->dst = asp;
 
 	if (ppid == SUA_PPID && asp->cfg.proto == OSMO_SS7_ASP_PROT_SUA)
