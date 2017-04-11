@@ -1416,9 +1416,12 @@ static int xua_accept_cb(struct osmo_stream_srv_link *link, int fd)
 			snprintf(namebuf, sizeof(namebuf), "asp-dyn-%u", dyn_asp_num++);
 			asp = osmo_ss7_asp_find_or_create(oxs->inst, namebuf, 0, 0,
 							  OSMO_SS7_ASP_PROT_M3UA);
-			if (asp)
+			if (asp) {
 				LOGP(DLSS7, LOGL_INFO, "%s: created dynamicASP %s\n",
 					sock_name, asp->cfg.name);
+				asp->cfg.is_server = true;
+				osmo_ss7_asp_restart(asp);
+			}
 		}
 		if (!asp) {
 			osmo_stream_srv_destroy(srv);
