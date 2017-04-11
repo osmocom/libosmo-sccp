@@ -453,11 +453,18 @@ int osmo_ss7_mtp_to_user(struct osmo_ss7_instance *inst, struct osmo_mtp_prim *o
  *  \param[in] lset Linkset to be destroyed */
 void osmo_ss7_linkset_destroy(struct osmo_ss7_linkset *lset)
 {
+	struct osmo_ss7_route *rt, *rt2;
 	unsigned int i;
 
 	OSMO_ASSERT(ss7_initialized);
 	LOGSS7(lset->inst, LOGL_INFO, "Destroying Linkset %s\n",
 		lset->cfg.name);
+
+	/* find any routes pointing to this AS and remove them */
+	llist_for_each_entry_safe(rt, rt2, &lset->inst->rtable_system->routes, list) {
+		if (rt->dest.linkset == lset)
+			osmo_ss7_route_destroy(rt);
+	}
 
 	for (i = 0; i < ARRAY_SIZE(lset->links); i++) {
 		struct osmo_ss7_link *link = lset->links[i];
@@ -853,11 +860,19 @@ int osmo_ss7_as_del_asp(struct osmo_ss7_as *as, const char *asp_name)
  *  \param[in] as Application Server to destroy */
 void osmo_ss7_as_destroy(struct osmo_ss7_as *as)
 {
+	struct osmo_ss7_route *rt, *rt2;
+
 	OSMO_ASSERT(ss7_initialized);
 	LOGSS7(as->inst, LOGL_INFO, "Destroying AS %s\n", as->cfg.name);
 
 	if (as->fi)
 		osmo_fsm_inst_term(as->fi, OSMO_FSM_TERM_REQUEST, NULL);
+
+	/* find any routes pointing to this AS and remove them */
+	llist_for_each_entry_safe(rt, rt2, &as->inst->rtable_system->routes, list) {
+		if (rt->dest.as == as)
+			osmo_ss7_route_destroy(rt);
+	}
 
 	as->inst = NULL;
 	llist_del(&as->list);
