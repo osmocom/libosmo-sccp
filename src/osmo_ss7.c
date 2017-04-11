@@ -1044,6 +1044,7 @@ int osmo_ss7_asp_restart(struct osmo_ss7_asp *asp)
 				" client for ASP %s\n", asp->cfg.name);
 			return -1;
 		}
+		osmo_stream_cli_set_nodelay(asp->client, true);
 		osmo_stream_cli_set_addr(asp->client, asp->cfg.remote.host);
 		osmo_stream_cli_set_port(asp->client, asp->cfg.remote.port);
 		osmo_stream_cli_set_local_addr(asp->client, asp->cfg.local.host);
@@ -1505,6 +1506,7 @@ osmo_ss7_xua_server_create(struct osmo_ss7_instance *inst, enum osmo_ss7_asp_pro
 	osmo_stream_srv_link_set_data(oxs->server, oxs);
 	osmo_stream_srv_link_set_accept_cb(oxs->server, xua_accept_cb);
 
+	osmo_stream_srv_link_set_nodelay(oxs->server, true);
 	osmo_stream_srv_link_set_addr(oxs->server, oxs->cfg.local.host);
 	osmo_stream_srv_link_set_port(oxs->server, oxs->cfg.local.port);
 	osmo_stream_srv_link_set_proto(oxs->server, IPPROTO_SCTP);
