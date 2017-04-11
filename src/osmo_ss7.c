@@ -1203,6 +1203,11 @@ static int xua_srv_conn_cb(struct osmo_stream_srv *conn)
 			osmo_stream_srv_destroy(conn);
 			osmo_fsm_inst_dispatch(asp->fi, XUA_ASP_E_SCTP_COMM_DOWN_IND, asp);
 			break;
+		case SCTP_ASSOC_CHANGE:
+			if (notif->sn_assoc_change.sac_state == SCTP_RESTART)
+				xua_asp_send_xlm_prim_simple(asp, OSMO_XLM_PRIM_M_SCTP_RESTART,
+							     PRIM_OP_INDICATION);
+			break;
 		default:
 			break;
 		}
@@ -1306,6 +1311,10 @@ static int xua_cli_read_cb(struct osmo_stream_cli *conn)
 			osmo_fsm_inst_dispatch(asp->fi, XUA_ASP_E_SCTP_COMM_DOWN_IND, asp);
 			xua_cli_close_and_reconnect(conn);
 			break;
+		case SCTP_ASSOC_CHANGE:
+			if (notif->sn_assoc_change.sac_state == SCTP_RESTART)
+				xua_asp_send_xlm_prim_simple(asp, OSMO_XLM_PRIM_M_SCTP_RESTART,
+							     PRIM_OP_INDICATION);
 		default:
 			break;
 		}
