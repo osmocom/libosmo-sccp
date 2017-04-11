@@ -258,6 +258,8 @@ osmo_sccp_simple_client(void *ctx, const char *name, uint32_t pc,
 	if (!as)
 		goto out_strings;
 
+	as->cfg.routing_key.pc = pc;
+
 	/* install default route */
 	rt = osmo_ss7_route_create(ss7->rtable_system, 0, 0, as_name);
 	if (!rt)
