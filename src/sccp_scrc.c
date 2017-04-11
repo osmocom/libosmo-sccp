@@ -267,6 +267,7 @@ static int scrc_translate_node_9(struct osmo_sccp_instance *inst,
 	if (translated.ri != OSMO_SCCP_RI_SSN_PC &&
 	    translated.ri != OSMO_SCCP_RI_SSN_IP) {
 		/* TODO: GT Routing */
+		LOGP(DLSCCP, LOGL_NOTICE, "GT Routing not implemented yet\n");
 		/* Node 7 (Sheet 5) */
 		return scrc_node_7(inst, xua, called);
 	}
