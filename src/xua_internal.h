@@ -47,6 +47,7 @@ struct xua_msg *m3ua_encode_notify(const struct osmo_xlm_prim_notify *npar);
 int m3ua_decode_notify(struct osmo_xlm_prim_notify *npar, void *ctx,
 			const struct xua_msg *xua);
 int m3ua_rx_rkm(struct osmo_ss7_asp *asp, struct xua_msg *xua);
+void xua_rkm_cleanup_dyn_as_for_asp(struct osmo_ss7_asp *asp);
 
 struct osmo_xlm_prim *xua_xlm_prim_alloc(enum osmo_xlm_prim_type prim_type,
 					 enum osmo_prim_operation op);

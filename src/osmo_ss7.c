@@ -1401,7 +1401,11 @@ static int xua_srv_conn_closed_cb(struct osmo_stream_srv *srv)
 	LOGP(DLSS7, LOGL_INFO, "%s: SCTP connection closed\n",
 		asp ? asp->cfg.name : "?");
 
-	/* FIXME: somehow notify ASP FSM and everyone else */
+	/* notify ASP FSM and everyone else */
+	osmo_fsm_inst_dispatch(asp->fi, XUA_ASP_E_SCTP_COMM_DOWN_IND, NULL);
+
+	/* delete any RKM-dynamically allocated ASs for this ASP */
+	xua_rkm_cleanup_dyn_as_for_asp(asp);
 
 	/* send M-SCTP_RELEASE.ind to Layer Manager */
 	xua_asp_send_xlm_prim_simple(asp, OSMO_XLM_PRIM_M_SCTP_RELEASE, PRIM_OP_INDICATION);
