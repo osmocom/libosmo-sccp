@@ -1242,7 +1242,9 @@ static int xua_cli_connect_cb(struct osmo_stream_cli *cli)
 	struct osmo_ss7_asp *asp = osmo_stream_cli_get_data(cli);
 
 	/* update the socket name */
-	osmo_talloc_replace_string(asp, &asp->sock_name, osmo_sock_get_name(asp, ofd->fd));
+	if (asp->sock_name)
+		talloc_free(asp->sock_name);
+	asp->sock_name = osmo_sock_get_name(asp, ofd->fd);
 
 	LOGPASP(asp, DLSS7, LOGL_INFO, "Client connected %s\n", asp->sock_name);
 
@@ -1537,9 +1539,7 @@ int
 osmo_ss7_xua_server_set_local_host(struct osmo_xua_server *xs, const char *local_host)
 {
 	OSMO_ASSERT(ss7_initialized);
-	if (xs->cfg.local.host)
-		talloc_free(xs->cfg.local.host);
-	xs->cfg.local.host = talloc_strdup(xs, local_host);
+	osmo_talloc_replace_string(xs, &xs->cfg.local.host, local_host);
 
 	osmo_stream_srv_link_set_addr(xs->server, xs->cfg.local.host);
 
