@@ -69,7 +69,7 @@ static void msgb_push_m3ua_hdr(struct msgb *msg, uint8_t msg_class, uint8_t msg_
 	hdr->msg_length = htonl(msgb_l2len(msg));
 }
 
-/* append a single registration result to given msgb */
+/* SG: append a single registration result to given msgb */
 static int msgb_append_reg_res(struct msgb *msg, uint32_t local_rk_id,
 				uint32_t status, uint32_t rctx)
 {
@@ -86,7 +86,7 @@ static int msgb_append_reg_res(struct msgb *msg, uint32_t local_rk_id,
 	return msg->tail - old_tail;
 }
 
-/* append a single de-registration result to given msgb */
+/* SG: append a single de-registration result to given msgb */
 static int msgb_append_dereg_res(struct msgb *msg,
 				 uint32_t status, uint32_t rctx)
 {
@@ -102,6 +102,7 @@ static int msgb_append_dereg_res(struct msgb *msg,
 	return msg->tail - old_tail;
 }
 
+/* ASP: send a RKM Registration Request message for a single routing key */
 static void xua_rkm_send_reg_req(struct osmo_ss7_asp *asp,
 				 const struct osmo_ss7_routing_key *rkey,
 				 enum osmo_ss7_as_traffic_mode traf_mode)
@@ -123,6 +124,7 @@ static void xua_rkm_send_reg_req(struct osmo_ss7_asp *asp,
 	osmo_ss7_asp_send(asp, msg);
 }
 
+/* ASP: send a RKM De-Registration Request message for a single routing context */
 static void xua_rkm_send_dereg_req(struct osmo_ss7_asp *asp, uint32_t route_ctx)
 {
 	struct msgb *msg = m3ua_msgb_alloc(__func__);
@@ -136,8 +138,7 @@ static void xua_rkm_send_dereg_req(struct osmo_ss7_asp *asp, uint32_t route_ctx)
 }
 
 
-
-/* handle a single registration request IE (nested IEs in 'innner' */
+/* SG: handle a single registration request IE (nested IEs in 'innner' */
 static int handle_rkey_reg(struct osmo_ss7_asp *asp, struct xua_msg *inner,
 			   struct msgb *resp)
 {
@@ -225,7 +226,7 @@ static int handle_rkey_reg(struct osmo_ss7_asp *asp, struct xua_msg *inner,
 	return 0;
 }
 
-/* receive a registration requuest (SG role) */
+/* SG: receive a registration request from ASP */
 static int m3ua_rx_rkm_reg_req(struct osmo_ss7_asp *asp, struct xua_msg *xua)
 {
 	struct xua_msg_part *part;
@@ -254,7 +255,7 @@ static int m3ua_rx_rkm_reg_req(struct osmo_ss7_asp *asp, struct xua_msg *xua)
 	return 0;
 }
 
-/* receive a deregistration requuest (SG role) */
+/* SG: handle a single routing key de-registration IE */
 static int handle_rkey_dereg(struct osmo_ss7_asp *asp, uint32_t rctx,
 			     struct msgb *resp)
 {
@@ -294,6 +295,7 @@ static int handle_rkey_dereg(struct osmo_ss7_asp *asp, uint32_t rctx,
 	return 0;
 }
 
+/* SG: receive a De-Registration request from ASP */
 static int m3ua_rx_rkm_dereg_req(struct osmo_ss7_asp *asp, struct xua_msg *xua)
 {
 	struct xua_msg_part *part = xua_msg_find_tag(xua, M3UA_IEI_ROUTE_CTX);
@@ -312,7 +314,7 @@ static int m3ua_rx_rkm_dereg_req(struct osmo_ss7_asp *asp, struct xua_msg *xua)
 	return 0;
 }
 
-/* handle a single registration response IE (nested IEs in 'inner' */
+/* ASP: handle a single registration response IE (nested IEs in 'inner') */
 static int handle_rkey_reg_resp(struct osmo_ss7_asp *asp, struct xua_msg *inner)
 {
 	struct osmo_xlm_prim *oxp;
@@ -343,7 +345,7 @@ static int handle_rkey_reg_resp(struct osmo_ss7_asp *asp, struct xua_msg *inner)
 	return 0;
 }
 
-/* receive a registration response (ASP role) */
+/* ASP: receive a registration response (ASP role) */
 static int m3ua_rx_rkm_reg_rsp(struct osmo_ss7_asp *asp, struct xua_msg *xua)
 {
 	struct xua_msg_part *part;
@@ -366,7 +368,7 @@ static int m3ua_rx_rkm_reg_rsp(struct osmo_ss7_asp *asp, struct xua_msg *xua)
 	return 0;
 }
 
-/* handle a single deregistration response IE (nested IEs in 'inner' */
+/* ASP: handle a single De-Registration response IE (nested IEs in 'inner' */
 static int handle_rkey_dereg_resp(struct osmo_ss7_asp *asp, struct xua_msg *inner)
 {
 	struct osmo_xlm_prim *oxp;
@@ -395,7 +397,7 @@ static int handle_rkey_dereg_resp(struct osmo_ss7_asp *asp, struct xua_msg *inne
 	return 0;
 }
 
-/* receive a deregistration response (ASP role) */
+/* ASP: receive a De-Registration response */
 static int m3ua_rx_rkm_dereg_rsp(struct osmo_ss7_asp *asp, struct xua_msg *xua)
 {
 	struct xua_msg_part *part;
@@ -451,6 +453,7 @@ int m3ua_rx_rkm(struct osmo_ss7_asp *asp, struct xua_msg *xua)
 	return rc;
 }
 
+/* process a primitive from the xUA Layer Manager (LM) */
 int osmo_xlm_sap_down(struct osmo_ss7_asp *asp, struct osmo_prim_hdr *oph)
 {
 	struct osmo_xlm_prim *prim = (struct osmo_xlm_prim *) oph;
