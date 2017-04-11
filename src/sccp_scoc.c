@@ -609,6 +609,7 @@ static struct osmo_scu_prim *scu_prim_alloc(unsigned int primitive, enum osmo_pr
 	prim = (struct osmo_scu_prim *) msgb_put(upmsg, sizeof(*prim));
 	osmo_prim_init(&prim->oph, SCCP_SAP_USER,
 			primitive, operation, upmsg);
+	upmsg->l2h = upmsg->tail;
 	return prim;
 }
 
