@@ -86,6 +86,7 @@ struct osmo_ss7_instance {
 		/* capability PCs */
 		uint8_t network_indicator;
 		struct osmo_ss7_pc_fmt pc_fmt;
+		bool permit_dyn_rkm_alloc;
 	} cfg;
 };
 
@@ -275,6 +276,9 @@ struct osmo_ss7_as {
 
 	/*! AS FSM */
 	struct osmo_fsm_inst *fi;
+
+	/*! Were we dynamically allocated by RKM? */
+	bool rkm_dyn_allocated;
 
 	struct {
 		char *name;
