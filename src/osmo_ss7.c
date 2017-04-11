@@ -1252,6 +1252,22 @@ static int xua_cli_connect_cb(struct osmo_stream_cli *cli)
 	return 0;
 }
 
+static void xua_cli_close(struct osmo_stream_cli *cli)
+{
+	struct osmo_ss7_asp *asp = osmo_stream_cli_get_data(cli);
+
+	osmo_stream_cli_close(cli);
+
+	/* send M-SCTP_RELEASE.ind to XUA Layer Manager */
+	xua_asp_send_xlm_prim_simple(asp, OSMO_XLM_PRIM_M_SCTP_RELEASE, PRIM_OP_INDICATION);
+}
+
+static void xua_cli_close_and_reconnect(struct osmo_stream_cli *cli)
+{
+	xua_cli_close(cli);
+	osmo_stream_cli_reconnect(cli);
+}
+
 static int xua_cli_read_cb(struct osmo_stream_cli *conn)
 {
 	struct osmo_fd *ofd = osmo_stream_cli_get_ofd(conn);
@@ -1271,10 +1287,10 @@ static int xua_cli_read_cb(struct osmo_stream_cli *conn)
 	LOGPASP(asp, DLSS7, LOGL_DEBUG, "%s(): sctp_recvmsg() returned %d (flags=0x%x)\n",
 		__func__, rc, flags);
 	if (rc < 0) {
-		osmo_stream_cli_reconnect(conn);
+		xua_cli_close_and_reconnect(conn);
 		goto out;
 	} else if (rc == 0) {
-		osmo_stream_cli_reconnect(conn);
+		xua_cli_close_and_reconnect(conn);
 	} else {
 		msgb_put(msg, rc);
 	}
@@ -1287,7 +1303,7 @@ static int xua_cli_read_cb(struct osmo_stream_cli *conn)
 		switch (notif->sn_header.sn_type) {
 		case SCTP_SHUTDOWN_EVENT:
 			osmo_fsm_inst_dispatch(asp->fi, XUA_ASP_E_SCTP_COMM_DOWN_IND, asp);
-			osmo_stream_cli_reconnect(conn);
+			xua_cli_close_and_reconnect(conn);
 			break;
 		default:
 			break;
@@ -1327,6 +1343,9 @@ static int xua_srv_conn_closed_cb(struct osmo_stream_srv *srv)
 		asp ? asp->cfg.name : "?");
 
 	/* FIXME: somehow notify ASP FSM and everyone else */
+
+	/* send M-SCTP_RELEASE.ind to Layer Manager */
+	xua_asp_send_xlm_prim_simple(asp, OSMO_XLM_PRIM_M_SCTP_RELEASE, PRIM_OP_INDICATION);
 
 	return 0;
 }
