@@ -342,6 +342,9 @@ struct osmo_ss7_asp {
 	/* Layer Manager to which we talk */
 	struct osmo_xua_layer_manager *lm;
 
+	/*! Were we dynamically allocated */
+	bool dyn_allocated;
+
 	struct {
 		char *name;
 		char *description;

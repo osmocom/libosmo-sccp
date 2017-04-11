@@ -1374,6 +1374,15 @@ static int xua_srv_conn_closed_cb(struct osmo_stream_srv *srv)
 	/* send M-SCTP_RELEASE.ind to Layer Manager */
 	xua_asp_send_xlm_prim_simple(asp, OSMO_XLM_PRIM_M_SCTP_RELEASE, PRIM_OP_INDICATION);
 
+	/* if we were dynamically allocated at accept_cb() time, let's
+	 * self-destruct now.  A new connection will re-create the ASP. */
+	if (asp->dyn_allocated) {
+		/* avoid re-entrance via osmo_stream_srv_destroy() which
+		 * called us */
+		asp->server = NULL;
+		osmo_ss7_asp_destroy(asp);
+	}
+
 	return 0;
 }
 
@@ -1420,6 +1429,7 @@ static int xua_accept_cb(struct osmo_stream_srv_link *link, int fd)
 				LOGP(DLSS7, LOGL_INFO, "%s: created dynamicASP %s\n",
 					sock_name, asp->cfg.name);
 				asp->cfg.is_server = true;
+				asp->dyn_allocated = true;
 				osmo_ss7_asp_restart(asp);
 			}
 		}
