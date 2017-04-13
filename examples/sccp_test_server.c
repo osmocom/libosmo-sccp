@@ -12,7 +12,7 @@
 
 #include "internal.h"
 
-unsigned int conn_id;
+unsigned int conn_id =1;
 
 /* a simple SCCP User which refuses all connections and discards all
  * unitdata */
