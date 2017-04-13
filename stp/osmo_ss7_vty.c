@@ -296,6 +296,33 @@ static int config_write_rtable(struct vty *vty)
 	return 0;
 }
 
+static void vty_dump_rtable(struct vty *vty, struct osmo_ss7_route_table *rtbl)
+{
+	struct osmo_ss7_route *rt;
+
+	vty_out(vty, "Routing table = %s%s", rtbl->cfg.name, VTY_NEWLINE);
+	vty_out(vty, "C=Cong Q=QoS P=Prio%s", VTY_NEWLINE);
+	vty_out(vty, "%s", VTY_NEWLINE);
+	vty_out(vty, "Destination            C Q P Linkset Name        Linkset Non-adj Route%s", VTY_NEWLINE);
+	vty_out(vty, "---------------------- - - - ------------------- ------- ------- -------%s", VTY_NEWLINE);
+
+	llist_for_each_entry(rt, &rtbl->routes, list) {
+		vty_out(vty, "%-22s %c %c %u %-19s %-7s %-7s %-7s%s",
+			osmo_ss7_pointcode_print(rtbl->inst, rt->cfg.mask),
+			' ', ' ', rt->cfg.priority, rt->cfg.linkset_name, "?", "?", "?", VTY_NEWLINE);
+	}
+}
+
+DEFUN(show_cs7_route, show_cs7_route_cmd,
+	"show cs7 route",
+	SHOW_STR CS7_STR "Routing Table\n")
+{
+	struct osmo_ss7_instance *inst = g_s7i;
+
+	vty_dump_rtable(vty, inst->rtable_system);
+	return CMD_SUCCESS;
+}
+
 /***********************************************************************
  * SUA Configuration
  ***********************************************************************/
@@ -547,6 +574,26 @@ DEFUN(asp_shutdown, asp_shutdown_cmd,
 	/* TODO */
 	vty_out(vty, "Not supported yet%s", VTY_NEWLINE);
 	return CMD_WARNING;
+}
+
+DEFUN(show_cs7_asp, show_cs7_asp_cmd,
+	"show cs7 asp",
+	SHOW_STR CS7_STR "Application Server Process (ASP)\n")
+{
+	struct osmo_ss7_instance *inst = g_s7i;
+	struct osmo_ss7_asp *asp;
+
+	vty_out(vty, "                                                     Effect Primary%s", VTY_NEWLINE);
+	vty_out(vty, "ASP Name      AS Name       State     Type  Rmt Port Remote IP Addr  SCTP%s", VTY_NEWLINE);
+	vty_out(vty, "------------  ------------  --------  ----  -------- --------------- ----------%s", VTY_NEWLINE);
+
+	llist_for_each_entry(asp, &inst->asp_list, list) {
+		vty_out(vty, "%-12s  %-12s  %-8s  %-4s  %-8u %-15s %-10s%s",
+			asp->cfg.name, "?", "?",
+			get_value_string(osmo_ss7_asp_protocol_vals, asp->cfg.proto),
+			asp->cfg.remote.port, asp->cfg.remote.host, "", VTY_NEWLINE);
+	}
+	return CMD_SUCCESS;
 }
 
 static void write_one_asp(struct vty *vty, struct osmo_ss7_asp *asp)
@@ -809,6 +856,39 @@ static int config_write_as(struct vty *vty)
 	return 0;
 }
 
+DEFUN(show_cs7_as, show_cs7_as_cmd,
+	"show cs7 as (active|all|m3ua|sua)",
+	SHOW_STR CS7_STR "Application Server (AS)\n"
+	"Display all active ASs\n"
+	"Display all ASs (default)\n"
+	"Display all m3ua ASs\n"
+	"Display all SUA ASs\n")
+{
+	struct osmo_ss7_instance *inst = g_s7i;
+	struct osmo_ss7_as *as;
+	const char *filter = NULL;
+
+	if (argc)
+		filter = argv[0];
+
+	vty_out(vty, "                    Routing    Routing Key                          Cic   Cic%s", VTY_NEWLINE);
+	vty_out(vty, "AS Name      State  Context    Dpc           Si   Opc           Ssn Min   Max%s", VTY_NEWLINE);
+	vty_out(vty, "------------ ------ ---------- ------------- ---- ------------- --- ----- -----%s", VTY_NEWLINE);
+
+	llist_for_each_entry(as, &inst->as_list, list) {
+		if (filter && !strcmp(filter, "m3ua") && as->cfg.proto != OSMO_SS7_ASP_PROT_M3UA)
+			continue;
+		if (filter && !strcmp(filter, "sua") && as->cfg.proto != OSMO_SS7_ASP_PROT_SUA)
+			continue;
+		/* FIXME: active filter */
+		vty_out(vty, "%-12s %-6s %-10u %-13s %4s %13s %3s %5s %4s%s",
+			as->cfg.name, "fixme", as->cfg.routing_key.context,
+			osmo_ss7_pointcode_print(as->inst, as->cfg.routing_key.pc),
+			"", "", "", "", "", VTY_NEWLINE);
+	}
+	return CMD_SUCCESS;
+}
+
 int osmo_ss7_vty_go_parent(struct vty *vty)
 {
 	struct osmo_ss7_asp *asp;
@@ -854,6 +934,7 @@ int osmo_ss7_vty_init(void)
 
 	install_node(&rtable_node, config_write_rtable);
 	vty_install_default(L_CS7_RTABLE_NODE);
+	install_element_ve(&show_cs7_route_cmd);
 	install_element(CONFIG_NODE, &cs7_route_table_cmd);
 	install_element(L_CS7_RTABLE_NODE, &cfg_description_cmd);
 	install_element(L_CS7_RTABLE_NODE, &cs7_rt_upd_cmd);
@@ -873,6 +954,7 @@ int osmo_ss7_vty_init(void)
 
 	install_node(&asp_node, NULL);
 	vty_install_default(L_CS7_ASP_NODE);
+	install_element_ve(&show_cs7_asp_cmd);
 	install_element(CONFIG_NODE, &cs7_asp_cmd);
 	install_element(CONFIG_NODE, &no_cs7_asp_cmd);
 	install_element(L_CS7_ASP_NODE, &cfg_description_cmd);
@@ -883,6 +965,7 @@ int osmo_ss7_vty_init(void)
 
 	install_node(&as_node, config_write_as);
 	vty_install_default(L_CS7_AS_NODE);
+	install_element_ve(&show_cs7_as_cmd);
 	install_element(CONFIG_NODE, &cs7_as_cmd);
 	install_element(CONFIG_NODE, &no_cs7_as_cmd);
 	install_element(L_CS7_AS_NODE, &cfg_description_cmd);
