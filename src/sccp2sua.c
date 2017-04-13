@@ -789,6 +789,94 @@ static const uint16_t sccp_mandatory[NUM_SCCP_MSGT][MAX_IES] = {
 	},
 };
 
+/* This table indicates which information elements are optionally
+ * permitted in the respective SCCP message type */
+static const uint16_t sccp_optional[NUM_SCCP_MSGT][MAX_IES] = {
+	/* Table 3/Q.713 */
+	[SCCP_MSG_TYPE_CR] = {
+		SUA_IEI_CREDIT, SUA_IEI_SRC_ADDR, SUA_IEI_DATA,
+		SUA_IEI_S7_HOP_CTR, SUA_IEI_IMPORTANCE, 0
+	},
+	/* Table 4/Q.713 */
+	[SCCP_MSG_TYPE_CC] = {
+		SUA_IEI_CREDIT, SUA_IEI_SRC_ADDR, SUA_IEI_DATA,
+		SUA_IEI_IMPORTANCE, 0
+	},
+	/* Table 5/Q.713 */
+	[SCCP_MSG_TYPE_CREF] = {
+		SUA_IEI_SRC_ADDR, SUA_IEI_DATA, SUA_IEI_IMPORTANCE, 0
+	},
+	/* Table 6/Q.713 */
+	[SCCP_MSG_TYPE_RLSD] = {
+		SUA_IEI_DATA, SUA_IEI_IMPORTANCE, 0
+	},
+	/* Table 7/Q.713 */
+	[SCCP_MSG_TYPE_RLC] = {
+		0
+	},
+	/* Table 8/Q.713 */
+	[SCCP_MSG_TYPE_DT1] = {
+		0
+	},
+	/* Table 9/Q.713 */
+	[SCCP_MSG_TYPE_DT2] = {
+		0
+	},
+	/* Table 10/Q.713 */
+	[SCCP_MSG_TYPE_AK] = {
+		0
+	},
+	/* Table 11/Q.713 */
+	[SCCP_MSG_TYPE_UDT] = {
+		0
+	},
+	/* Table 12/Q.713 */
+	[SCCP_MSG_TYPE_UDTS] = {
+		0
+	},
+	/* Table 13/Q.713 */
+	[SCCP_MSG_TYPE_ED] = {
+		0
+	},
+	/* Table 14/Q.713 */
+	[SCCP_MSG_TYPE_EA] = {
+		0
+	},
+	/* Table 15/Q.713 */
+	[SCCP_MSG_TYPE_RSR] = {
+		0
+	},
+	/* Table 16/Q.713 */
+	[SCCP_MSG_TYPE_RSC] = {
+		0
+	},
+	/* Table 17/Q.713 */
+	[SCCP_MSG_TYPE_ERR] = {
+		0
+	},
+	/* Table 18/Q.713 */
+	[SCCP_MSG_TYPE_IT] = {
+		0
+	},
+	/* Table 19/Q.713 */
+	[SCCP_MSG_TYPE_XUDT] = {
+		SUA_IEI_SEGMENTATION, SUA_IEI_IMPORTANCE, 0
+	},
+	/* Table 20/Q.713 */
+	[SCCP_MSG_TYPE_XUDTS] = {
+		SUA_IEI_SEGMENTATION, SUA_IEI_IMPORTANCE, 0
+	},
+	/* Table 21/Q.713 */
+	[SCCP_MSG_TYPE_LUDT] = {
+		SUA_IEI_SEGMENTATION, SUA_IEI_IMPORTANCE, 0
+	},
+	/* Table 22/Q.713 */
+	[SCCP_MSG_TYPE_LUDTS] = {
+		SUA_IEI_SEGMENTATION, SUA_IEI_IMPORTANCE, 0
+	},
+};
+
+
 static bool sccp_is_mandatory(enum sccp_message_types type, const struct xua_msg_part *part)
 {
 	unsigned int i;
@@ -811,6 +899,28 @@ static bool sccp_is_mandatory(enum sccp_message_types type, const struct xua_msg
 	return false;
 }
 
+static bool sccp_option_permitted(enum sccp_message_types type, const struct xua_msg_part *part)
+{
+	unsigned int i;
+
+	if (type > ARRAY_SIZE(sccp_optional))
+		return false;
+
+	for (i = 0; i < MAX_IES; i++) {
+		uint16_t val = sccp_optional[type][i];
+		if (val == 0) {
+			/* end of list, don't iterate further */
+			return false;
+		}
+		if (val == part->tag) {
+			/* found in list, it's permitted */
+			return true;
+		}
+	}
+	/* not permitted */
+	return false;
+}
+
 static int xua_ies_to_sccp_opts(struct msgb *msg, uint8_t *ptr_opt,
 				enum sccp_message_types type, struct xua_msg *xua)
 {
@@ -823,7 +933,7 @@ static int xua_ies_to_sccp_opts(struct msgb *msg, uint8_t *ptr_opt,
 		/* make sure we don't add a SCCP option for information
 		 * that is already present in mandatory fixed or
 		 * mandatory variable parts of the header */
-		if (!sccp_is_mandatory(type, part))
+		if (!sccp_is_mandatory(type, part) && sccp_option_permitted(type, part))
 			sccp_msg_add_sua_opt(msg, part);
 	}
 	msgb_put_u8(msg, SCCP_PNC_END_OF_OPTIONAL);
