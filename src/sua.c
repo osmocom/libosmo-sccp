@@ -630,15 +630,22 @@ int sua_rx_msg(struct osmo_ss7_asp *asp, struct msgb *msg)
 		goto out;
 	}
 
-	/* TODO: check for SCTP Strema ID */
 	/* TODO: check if any AS configured in ASP */
 	/* TODO: check for valid routing context */
 
 	switch (xua->hdr.msg_class) {
 	case SUA_MSGC_CL:
+		if (msgb_sctp_stream(msg) == 0) {
+			rc = SUA_ERR_INVAL_STREAM_ID;
+			break;
+		}
 		rc = sua_rx_cl(asp, xua);
 		break;
 	case SUA_MSGC_CO:
+		if (msgb_sctp_stream(msg) == 0) {
+			rc = SUA_ERR_INVAL_STREAM_ID;
+			break;
+		}
 		rc = sua_rx_co(asp, xua);
 		break;
 	case SUA_MSGC_ASPSM:
