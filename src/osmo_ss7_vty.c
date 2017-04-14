@@ -579,13 +579,13 @@ DEFUN(show_cs7_asp, show_cs7_asp_cmd,
 		return CMD_WARNING;
 	}
 
-	vty_out(vty, "                                                     Effect Primary%s", VTY_NEWLINE);
-	vty_out(vty, "ASP Name      AS Name       State     Type  Rmt Port Remote IP Addr  SCTP%s", VTY_NEWLINE);
-	vty_out(vty, "------------  ------------  --------  ----  -------- --------------- ----------%s", VTY_NEWLINE);
+	vty_out(vty, "                                                          Effect Primary%s", VTY_NEWLINE);
+	vty_out(vty, "ASP Name      AS Name       State          Type  Rmt Port Remote IP Addr  SCTP%s", VTY_NEWLINE);
+	vty_out(vty, "------------  ------------  -------------  ----  -------- --------------- ----------%s", VTY_NEWLINE);
 
 	llist_for_each_entry(asp, &inst->asp_list, list) {
-		vty_out(vty, "%-12s  %-12s  %-8s  %-4s  %-8u %-15s %-10s%s",
-			asp->cfg.name, "?", "?",
+		vty_out(vty, "%-12s  %-12s  %-13s  %-4s  %-8u %-15s %-10s%s",
+			asp->cfg.name, "?", osmo_fsm_inst_state_name(asp->fi),
 			get_value_string(osmo_ss7_asp_protocol_vals, asp->cfg.proto),
 			asp->cfg.remote.port, asp->cfg.remote.host, "", VTY_NEWLINE);
 	}
@@ -846,9 +846,9 @@ DEFUN(show_cs7_as, show_cs7_as_cmd,
 		return CMD_WARNING;
 	}
 
-	vty_out(vty, "                    Routing    Routing Key                          Cic   Cic%s", VTY_NEWLINE);
-	vty_out(vty, "AS Name      State  Context    Dpc           Si   Opc           Ssn Min   Max%s", VTY_NEWLINE);
-	vty_out(vty, "------------ ------ ---------- ------------- ---- ------------- --- ----- -----%s", VTY_NEWLINE);
+	vty_out(vty, "                          Routing    Routing Key                          Cic   Cic%s", VTY_NEWLINE);
+	vty_out(vty, "AS Name      State        Context    Dpc           Si   Opc           Ssn Min   Max%s", VTY_NEWLINE);
+	vty_out(vty, "------------ ------------ ---------- ------------- ---- ------------- --- ----- -----%s", VTY_NEWLINE);
 
 	llist_for_each_entry(as, &inst->as_list, list) {
 		if (filter && !strcmp(filter, "m3ua") && as->cfg.proto != OSMO_SS7_ASP_PROT_M3UA)
@@ -856,8 +856,8 @@ DEFUN(show_cs7_as, show_cs7_as_cmd,
 		if (filter && !strcmp(filter, "sua") && as->cfg.proto != OSMO_SS7_ASP_PROT_SUA)
 			continue;
 		/* FIXME: active filter */
-		vty_out(vty, "%-12s %-6s %-10u %-13s %4s %13s %3s %5s %4s%s",
-			as->cfg.name, "fixme", as->cfg.routing_key.context,
+		vty_out(vty, "%-12s %-12s %-10u %-13s %4s %13s %3s %5s %4s%s",
+			as->cfg.name, osmo_fsm_inst_state_name(as->fi), as->cfg.routing_key.context,
 			osmo_ss7_pointcode_print(as->inst, as->cfg.routing_key.pc),
 			"", "", "", "", "", VTY_NEWLINE);
 	}
