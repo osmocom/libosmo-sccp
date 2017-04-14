@@ -58,8 +58,17 @@ static void init_logging(void)
 		log_set_category_filter(osmo_stderr_target, log_cats[i], 1, LOGL_DEBUG);
 }
 
+static const char stp_copyright[] =
+	"Copyright (C) 2015-2017 by Harald Welte <laforge@gnumonks.org>\r\n"
+	"Contributions by Holger Freyther, Neels Hofmeyr\r\n"
+	"License GPLv2+: GNU GPL Version 2 or later <http://gnu.org/licenses/gpl-2.0.html>\r\n"
+	"This is free software: you are free ot change and redistribute it.\r\n"
+	"There is NO WARRANTY, to the extent permitted by law.\r\n\r\n"
+	"Free Software lives by contribution.  If you use this, please contribute!\r\n";
+
 static struct vty_app_info vty_info = {
 	.name	= "osmo-stp",
+	.copyright = stp_copyright,
 	.version = PACKAGE_VERSION,
 	.go_parent_cb = osmo_ss7_vty_go_parent,
 	.is_config_node = osmo_ss7_is_config_node,
@@ -69,6 +78,9 @@ int main(int argc, char **argv)
 {
 	char *config_file = "osmo-stp.cfg";
 	int rc;
+
+	fputs(stp_copyright, stdout);
+	fputs("\n", stdout);
 
 	init_logging();
 	osmo_ss7_init();
