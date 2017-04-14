@@ -436,12 +436,30 @@ DEFUN(xua_local_ip, xua_local_ip_cmd,
 	return CMD_SUCCESS;
 }
 
+DEFUN(xua_accept_dyn_asp, xua_accept_dyn_asp_cmd,
+	"accept-asp-connections (pre-configured|dynamic-permitted)",
+	"Define what kind of ASP connections to accept\n"
+	"Accept only pre-confiugred ASPs (source IP/prt)\n"
+	"Accept any connection and dynamically create an ASP definition\n")
+{
+	struct osmo_xua_server *xs = vty->index;
+
+	if (!strcmp(argv[0], "dynamic-permitted"))
+		xs->cfg.accept_dyn_reg = true;
+	else
+		xs->cfg.accept_dyn_reg = false;
+
+	return CMD_SUCCESS;
+}
+
 static void write_one_xua(struct vty *vty, struct osmo_xua_server *xs)
 {
 	vty_out(vty, " %s %u%s",
 		get_value_string(osmo_ss7_asp_protocol_vals, xs->cfg.proto),
 		xs->cfg.local.port, VTY_NEWLINE);
 	vty_out(vty, "  local-ip %s%s", xs->cfg.local.host, VTY_NEWLINE);
+	if (xs->cfg.accept_dyn_reg)
+		vty_out(vty, "  accept-asp-connections dynamic-permitted%s", VTY_NEWLINE);
 }
 
 
@@ -1007,6 +1025,7 @@ void osmo_ss7_vty_init_sg(void)
 	install_element(L_CS7_NODE, &cs7_xua_cmd);
 	install_element(L_CS7_NODE, &no_cs7_xua_cmd);
 	install_element(L_CS7_XUA_NODE, &xua_local_ip_cmd);
+	install_element(L_CS7_XUA_NODE, &xua_accept_dyn_asp_cmd);
 }
 
 void osmo_ss7_set_vty_alloc_ctx(void *ctx)
