@@ -37,6 +37,13 @@
 
 #include "xua_internal.h"
 
+#define XUA_VAR_STR	"(sua|m3ua)"
+
+#define XUA_VAR_HELP_STR		\
+	"SCCP User Adaptation\n"	 \
+	"MTP3 User Adaptation\n"
+
+
 /***********************************************************************
  * Core CS7 Configuration
  ***********************************************************************/
@@ -380,12 +387,10 @@ static struct cmd_node xua_node = {
 	1,
 };
 
-#define XUA_STR	"SCCP User Adaptation\n" "MTP3 User Adaptation\n"
-
 DEFUN(cs7_xua, cs7_xua_cmd,
-	"listen (sua|m3ua) <0-65534>",
+	"listen " XUA_VAR_STR " <0-65534>",
 	"Configure/Enable xUA Listener\n"
-	XUA_STR "SCTP Port number\n")
+	XUA_VAR_HELP_STR "SCTP Port number\n")
 {
 	struct osmo_ss7_instance *inst = vty->index;
 	struct osmo_xua_server *xs;
@@ -405,9 +410,9 @@ DEFUN(cs7_xua, cs7_xua_cmd,
 }
 
 DEFUN(no_cs7_xua, no_cs7_xua_cmd,
-	"no listen (sua|m3ua) <0-65534>",
+	"no listen " XUA_VAR_STR " <0-65534>",
 	NO_STR "Disable xUA Listener on given SCTP Port\n"
-	XUA_STR "SCTP Port number\n")
+	XUA_VAR_HELP_STR "SCTP Port number\n")
 {
 	struct osmo_ss7_instance *inst = vty->index;
 	struct osmo_xua_server *xs;
@@ -472,13 +477,12 @@ static struct cmd_node asp_node = {
 };
 
 DEFUN(cs7_asp, cs7_asp_cmd,
-	"asp NAME <0-65535> <0-65535> (m3ua|sua)",
+	"asp NAME <0-65535> <0-65535> " XUA_VAR_STR,
 	"Configure Application Server Process\n"
 	"Name of ASP\n"
 	"Remote SCTP port number\n"
 	"Local SCTP port number\n"
-	"M3UA Protocol\n"
-	"SUA Protocol\n")
+	XUA_VAR_HELP_STR)
 {
 	struct osmo_ss7_instance *inst = vty->index;
 	const char *name = argv[0];
@@ -617,11 +621,10 @@ static struct cmd_node as_node = {
 };
 
 DEFUN(cs7_as, cs7_as_cmd,
-	"as NAME (m3ua|sua)",
+	"as NAME " XUA_VAR_STR,
 	"Configure an Application Server\n"
 	"Name of the Application Server\n"
-	"M3UA Application Server\n"
-	"SUA Application Server\n")
+	XUA_VAR_HELP_STR)
 {
 	struct osmo_ss7_instance *inst = vty->index;
 	struct osmo_ss7_as *as;
