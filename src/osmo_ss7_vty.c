@@ -37,6 +37,7 @@
 
 #define CS7_STR	"ITU-T Signaling System 7\n"
 #define PC_STR	"Point Code\n"
+#define INST_STR "An instance of the SS7 stack\n"
 
 /***********************************************************************
  * Core CS7 Configuration
@@ -52,7 +53,7 @@ static struct cmd_node cs7_node = {
 
 DEFUN(cs7_instance, cs7_instance_cmd,
 	"cs7 instance <0-15>",
-	CS7_STR "Configure a SS7 Instance\n"
+	CS7_STR "Configure a SS7 Instance\n" INST_STR
 	"Number of the instance\n")
 {
 	int id = atoi(argv[0]);
@@ -307,14 +308,12 @@ static void vty_dump_rtable(struct vty *vty, struct osmo_ss7_route_table *rtbl)
 }
 
 DEFUN(show_cs7_route, show_cs7_route_cmd,
-	"show cs7 route [instance <0-15>]",
-	SHOW_STR CS7_STR "Routing Table\n")
+	"show cs7 instance <0-15> route",
+	SHOW_STR CS7_STR INST_STR INST_STR "Routing Table\n")
 {
-	int id = 0;
+	int id = atoi(argv[0]);
 	struct osmo_ss7_instance *inst;
 
-	if (argc > 0)
-		id = atoi(argv[0]);
 	inst = osmo_ss7_instance_find(id);
 	if (!inst) {
 		vty_out(vty, "No SS7 instance %d found%s", id, VTY_NEWLINE);
@@ -504,15 +503,13 @@ DEFUN(asp_shutdown, asp_shutdown_cmd,
 }
 
 DEFUN(show_cs7_asp, show_cs7_asp_cmd,
-	"show cs7 asp [instance <0-15>]",
-	SHOW_STR CS7_STR "Application Server Process (ASP)\n")
+	"show cs7 instance <0-15> asp",
+	SHOW_STR CS7_STR INST_STR INST_STR "Application Server Process (ASP)\n")
 {
 	struct osmo_ss7_instance *inst;
 	struct osmo_ss7_asp *asp;
-	int id = 0;
+	int id = atoi(argv[0]);
 
-	if (argc > 0)
-		id = atoi(argv[0]);
 	inst = osmo_ss7_instance_find(id);
 	if (!inst) {
 		vty_out(vty, "No SS7 instance %d found%s", id, VTY_NEWLINE);
@@ -760,8 +757,8 @@ static void write_one_as(struct vty *vty, struct osmo_ss7_as *as)
 }
 
 DEFUN(show_cs7_as, show_cs7_as_cmd,
-	"show cs7 as (active|all|m3ua|sua) [instance <0-15>]",
-	SHOW_STR CS7_STR "Application Server (AS)\n"
+	"show cs7 instance <0-15> as (active|all|m3ua|sua)",
+	SHOW_STR CS7_STR INST_STR INST_STR "Application Server (AS)\n"
 	"Display all active ASs\n"
 	"Display all ASs (default)\n"
 	"Display all m3ua ASs\n"
@@ -769,14 +766,9 @@ DEFUN(show_cs7_as, show_cs7_as_cmd,
 {
 	struct osmo_ss7_instance *inst;
 	struct osmo_ss7_as *as;
-	const char *filter = NULL;
-	int id = 0;
+	const char *filter = argv[1];
+	int id = atoi(argv[0]);
 
-	if (argc)
-		filter = argv[0];
-
-	if (argc > 1)
-		id = atoi(argv[1]);
 	inst = osmo_ss7_instance_find(id);
 	if (!inst) {
 		vty_out(vty, "No SS7 instance %d found%s", id, VTY_NEWLINE);
