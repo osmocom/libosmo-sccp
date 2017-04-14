@@ -844,6 +844,8 @@ static void write_one_cs7(struct vty *vty, struct osmo_ss7_instance *inst)
 	struct osmo_xua_server *oxs;
 
 	vty_out(vty, "cs7 instance %u%s", inst->cfg.id, VTY_NEWLINE);
+	if (inst->cfg.description)
+		vty_out(vty, " description %s%s", inst->cfg.description, VTY_NEWLINE);
 	if (inst->cfg.network_indicator)
 		vty_out(vty, " network-indicator %s%s",
 			get_value_string(ss7_network_indicator_vals,
@@ -950,6 +952,7 @@ static void vty_init_shared(void)
 
 	install_node(&cs7_node, config_write_cs7);
 	vty_install_default(L_CS7_NODE);
+	install_element(L_CS7_NODE, &cfg_description_cmd);
 	install_element(L_CS7_NODE, &cs7_net_ind_cmd);
 	install_element(L_CS7_NODE, &cs7_point_code_cmd);
 	install_element(L_CS7_NODE, &cs7_pc_format_cmd);
