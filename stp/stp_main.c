@@ -22,6 +22,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+#include <getopt.h>
 
 #include <osmocom/core/select.h>
 #include <osmocom/core/utils.h>
@@ -29,6 +30,7 @@
 #include <osmocom/core/application.h>
 #include <osmocom/core/fsm.h>
 #include <osmocom/vty/vty.h>
+#include <osmocom/vty/command.h>
 #include <osmocom/vty/ports.h>
 #include <osmocom/vty/telnet_interface.h>
 #include <osmocom/vty/logging.h>
@@ -64,25 +66,82 @@ static struct vty_app_info vty_info = {
 	.is_config_node = osmo_ss7_is_config_node,
 };
 
+static struct {
+	bool daemonize;
+	const char *config_file;
+} cmdline_config = {
+	.daemonize = false,
+	.config_file = "osmo-stp.cfg",
+};
+
+static void print_help(void)
+{
+	printf("  -h --help			This text.\n");
+	printf("  -D --daemonize		Fork teh process into a background daemon\n");
+	printf("  -c --config-file filename	The config file to use. Default: ./osmo-stp.cfg\n");
+	printf("  -V --version			Print the version of OsmoSTP\n");
+}
+
+static void handle_options(int argc, char **argv)
+{
+	while (1) {
+		int option_index = 0, c;
+		static const struct option long_options[] = {
+			{ "help", 0, 0, 'h' },
+			{ "daemonize", 0, 0, 'D' },
+			{ "config-file", 1, 0, 'c' },
+			{ "version", 0, 0, 'V' },
+			{ NULL, 0, 0, 0 }
+		};
+
+		c = getopt_long(argc, argv, "hDc:V", long_options, &option_index);
+		if (c == -1)
+			break;
+
+		switch (c) {
+		case 'h':
+			print_help();
+			exit(0);
+			break;
+		case 'D':
+			cmdline_config.daemonize = true;
+			break;
+		case 'c':
+			cmdline_config.config_file = optarg;
+			break;
+		case 'V':
+			print_version(1);
+			exit(0);
+			break;
+		default:
+			fprintf(stderr, "Error in command line options. Exiting\n");
+			exit(1);
+			break;
+		}
+	}
+}
+
 int main(int argc, char **argv)
 {
-	char *config_file = "osmo-stp.cfg";
 	int rc;
+
+	osmo_init_logging(&log_info);
+	vty_init(&vty_info);
+
+	handle_options(argc, argv);
 
 	fputs(stp_copyright, stdout);
 	fputs("\n", stdout);
 
-	osmo_init_logging(&log_info);
 	osmo_ss7_init();
 	osmo_fsm_log_addr(false);
-	vty_init(&vty_info);
 	logging_vty_add_cmds(&log_info);
 	osmo_ss7_vty_init_sg();
 
-	rc = vty_read_config_file(config_file, NULL);
+	rc = vty_read_config_file(cmdline_config.config_file, NULL);
 	if (rc < 0) {
 		fprintf(stderr, "Failed to parse the config file '%s'\n",
-			config_file);
+			cmdline_config.config_file);
 		exit(1);
 	}
 
@@ -92,7 +151,17 @@ int main(int argc, char **argv)
 		exit(1);
 	}
 
+	if (cmdline_config.daemonize) {
+		rc = osmo_daemonize();
+		if (rc < 0) {
+			perror("Error during daemonize");
+			exit(1);
+		}
+	}
+
 	while (1) {
-		osmo_select_main(0);
+		rc = osmo_select_main(0);
+		if (rc < 0)
+			exit(3);
 	}
 }
