@@ -178,6 +178,32 @@ static int config_write_cs7(struct vty *vty)
 	return 0;
 }
 
+DEFUN(show_cs7_user, show_cs7_user_cmd,
+	"show cs7 instance <0-15> users",
+	SHOW_STR CS7_STR INST_STR INST_STR "User Table\n")
+{
+	int id = atoi(argv[0]);
+	struct osmo_ss7_instance *inst;
+	unsigned int i;
+
+	inst = osmo_ss7_instance_find(id);
+	if (!inst) {
+		vty_out(vty, "No SS7 instance %d found%s", id, VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	for (i = 0; i < ARRAY_SIZE(inst->user); i++) {
+		const struct osmo_ss7_user *user = inst->user[i];
+		if (!user)
+			continue;
+		vty_out(vty, "SI %u: %s%s", i, user->name, VTY_NEWLINE);
+	}
+
+	return CMD_SUCCESS;
+}
+
+/* TODO: Links + Linksets */
+
 /***********************************************************************
  * Routing Table Configuration
  ***********************************************************************/
@@ -897,6 +923,8 @@ int osmo_ss7_is_config_node(struct vty *vty, int node)
 
 static void vty_init_shared(void)
 {
+	install_element_ve(&show_cs7_user_cmd);
+
 	/* the mother of all VTY config nodes */
 	install_element(CONFIG_NODE, &cs7_instance_cmd);
 
