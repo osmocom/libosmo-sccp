@@ -6,7 +6,7 @@ SUBDIRS = include src tests examples stp
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = libosmo-sccp.pc libosmo-mtp.pc libosmo-sigtran.pc libosmo-xua.pc
 
-EXTRA_DIST = .version
+EXTRA_DIST = .version doc/examples/osmo-stp.cfg
 
 BUILT_SOURCES = $(top_srcdir)/.version
 $(top_srcdir)/.version:
