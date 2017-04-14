@@ -44,6 +44,35 @@
  * Core CS7 Configuration
  ***********************************************************************/
 
+static void *g_ctx;
+
+static struct cmd_node cs7_node = {
+	L_CS7_NODE,
+	"%s(config-cs7)# ",
+	1,
+};
+
+DEFUN(cs7_instance, cs7_instance_cmd,
+	"cs7 instance <0-15>",
+	CS7_STR "Configure a SS7 Instance\n"
+	"Number of the instance\n")
+{
+	int id = atoi(argv[0]);
+	struct osmo_ss7_instance *inst;
+
+	inst = osmo_ss7_instance_find_or_create(g_ctx, id);
+	if (!inst) {
+		vty_out(vty, "Unable to create SS7 Instance %d%s", id, VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	vty->node = L_CS7_NODE;
+	vty->index = inst;
+	vty->index_sub = &inst->cfg.description;
+
+	return CMD_SUCCESS;
+}
+
 static const struct value_string ss7_network_indicator_vals[] = {
 	{ 0,	"international" },
 	{ 1,	"spare" },
@@ -54,14 +83,14 @@ static const struct value_string ss7_network_indicator_vals[] = {
 
 /* cs7 network-indicator */
 DEFUN(cs7_net_ind, cs7_net_ind_cmd,
-	"cs7 network-indicator (international | national | reserved | spare)",
-	CS7_STR "Configure the Network Indicator\n"
+	"network-indicator (international | national | reserved | spare)",
+	"Configure the Network Indicator\n"
 	"International Network\n"
 	"National Network\n"
 	"Reserved Network\n"
 	"Spare Network\n")
 {
-	struct osmo_ss7_instance *inst = g_s7i;
+	struct osmo_ss7_instance *inst = vty->index;
 	int ni = get_string_value(ss7_network_indicator_vals, argv[0]);
 
 	inst->cfg.network_indicator = ni;
@@ -70,13 +99,13 @@ DEFUN(cs7_net_ind, cs7_net_ind_cmd,
 
 /* TODO: cs7 point-code format */
 DEFUN(cs7_pc_format, cs7_pc_format_cmd,
-	"cs7 point-code format <1-24> [<1-23>] [<1-22>]",
-	CS7_STR PC_STR "Configure Point Code Format\n"
+	"point-code format <1-24> [<1-23>] [<1-22>]",
+	PC_STR "Configure Point Code Format\n"
 	"Length of first PC component\n"
 	"Length of second PC component\n"
 	"Length of third PC component\n")
 {
-	struct osmo_ss7_instance *inst = g_s7i;
+	struct osmo_ss7_instance *inst = vty->index;
 	int argind = 0;
 
 	inst->cfg.pc_fmt.component_len[0] = atoi(argv[argind++]);
@@ -95,11 +124,11 @@ DEFUN(cs7_pc_format, cs7_pc_format_cmd,
 }
 
 DEFUN(cs7_pc_format_def, cs7_pc_format_def_cmd,
-	"cs7 point-code format default",
-	CS7_STR PC_STR "Configure Point Code Format\n"
+	"point-code format default",
+	PC_STR "Configure Point Code Format\n"
 	"Default Point Code Format (3.8.3)\n")
 {
-	struct osmo_ss7_instance *inst = g_s7i;
+	struct osmo_ss7_instance *inst = vty->index;
 	inst->cfg.pc_fmt.component_len[0] = 3;
 	inst->cfg.pc_fmt.component_len[1] = 8;
 	inst->cfg.pc_fmt.component_len[2] = 3;
@@ -109,12 +138,12 @@ DEFUN(cs7_pc_format_def, cs7_pc_format_def_cmd,
 
 /* cs7 point-code delimiter */
 DEFUN(cs7_pc_delimiter, cs7_pc_delimiter_cmd,
-	"cs7 point-code delimiter (default|dash)",
-	CS7_STR PC_STR "Configure Point Code Delimiter\n"
+	"point-code delimiter (default|dash)",
+	PC_STR "Configure Point Code Delimiter\n"
 	"Use dot as delimiter\n"
 	"User dash as delimiter\n")
 {
-	struct osmo_ss7_instance *inst = g_s7i;
+	struct osmo_ss7_instance *inst = vty->index;
 
 	if (!strcmp(argv[0], "dash"))
 		inst->cfg.pc_fmt.delimiter = '-';
@@ -125,11 +154,11 @@ DEFUN(cs7_pc_delimiter, cs7_pc_delimiter_cmd,
 }
 
 DEFUN(cs7_point_code, cs7_point_code_cmd,
-	"cs7 point-code POINT_CODE",
-	CS7_STR "Configure the local Point Code\n"
+	"point-code POINT_CODE",
+	"Configure the local Point Code\n"
 	"Point Code\n")
 {
-	struct osmo_ss7_instance *inst = g_s7i;
+	struct osmo_ss7_instance *inst = vty->index;
 	uint32_t pc = osmo_ss7_pointcode_parse(inst, argv[0]);
 
 	inst->cfg.primary_pc = pc;
@@ -138,39 +167,16 @@ DEFUN(cs7_point_code, cs7_point_code_cmd,
 /* TODO: cs7 secondary-pc */
 /* TODO: cs7 capability-pc */
 
+static void write_one_cs7(struct vty *vty, struct osmo_ss7_instance *inst);
 
-static void write_one_ss7_inst(struct vty *vty, struct osmo_ss7_instance *inst)
+static int config_write_cs7(struct vty *vty)
 {
-	if (inst->cfg.network_indicator)
-		vty_out(vty, "cs7 network-indicator %s%s",
-			get_value_string(ss7_network_indicator_vals,
-					 inst->cfg.network_indicator),
-			VTY_NEWLINE);
+	struct osmo_ss7_instance *inst;
 
-	if (inst->cfg.pc_fmt.component_len[0] != 3 ||
-	    inst->cfg.pc_fmt.component_len[1] != 8 ||
-	    inst->cfg.pc_fmt.component_len[2] != 3) {
-		vty_out(vty, "cs7 point-code format %u",
-			inst->cfg.pc_fmt.component_len[0]);
-		if (inst->cfg.pc_fmt.component_len[1])
-			vty_out(vty, " %u", inst->cfg.pc_fmt.component_len[1]);
-		if (inst->cfg.pc_fmt.component_len[2])
-			vty_out(vty, " %u", inst->cfg.pc_fmt.component_len[2]);
-		vty_out(vty, "%s", VTY_NEWLINE);
-	}
+	llist_for_each_entry(inst, &osmo_ss7_instances, list)
+		write_one_cs7(vty, inst);
 
-	if (inst->cfg.pc_fmt.delimiter != '.')
-		vty_out(vty, "cs7 point-code delimiter dash%s", VTY_NEWLINE);
-
-	if (inst->cfg.primary_pc)
-		vty_out(vty, "cs7 point-code %s%s",
-			osmo_ss7_pointcode_print(inst, inst->cfg.primary_pc),
-			VTY_NEWLINE);
-}
-
-static void config_write_cs7(struct vty *vty)
-{
-	write_one_ss7_inst(vty, g_s7i);
+	return 0;
 }
 
 /***********************************************************************
@@ -184,11 +190,11 @@ static struct cmd_node rtable_node = {
 };
 
 DEFUN(cs7_route_table, cs7_route_table_cmd,
-	"cs7 route-table system",
-	CS7_STR "Specify the name of the route table\n"
+	"route-table system",
+	"Specify the name of the route table\n"
 	"Name of the route table\n")
 {
-	struct osmo_ss7_instance *inst = g_s7i;
+	struct osmo_ss7_instance *inst = vty->index;
 	struct osmo_ss7_route_table *rtable;
 
 	rtable = inst->rtable_system;
@@ -269,11 +275,11 @@ static void write_one_rtable(struct vty *vty, struct osmo_ss7_route_table *rtabl
 {
 	struct osmo_ss7_route *rt;
 
-	vty_out(vty, "cs7 route-table %s%s", rtable->cfg.name, VTY_NEWLINE);
+	vty_out(vty, " route-table %s%s", rtable->cfg.name, VTY_NEWLINE);
 	if (rtable->cfg.description)
-		vty_out(vty, " description %s%s", rtable->cfg.description, VTY_NEWLINE);
+		vty_out(vty, "  description %s%s", rtable->cfg.description, VTY_NEWLINE);
 	llist_for_each_entry(rt, &rtable->routes, list) {
-		vty_out(vty, " update route %s %s linkset %s",
+		vty_out(vty, "  update route %s %s linkset %s",
 			osmo_ss7_pointcode_print(rtable->inst, rt->cfg.pc),
 			osmo_ss7_pointcode_print(rtable->inst, rt->cfg.mask),
 			rt->cfg.linkset_name);
@@ -283,17 +289,6 @@ static void write_one_rtable(struct vty *vty, struct osmo_ss7_route_table *rtabl
 			vty_out(vty, " qos-class %u", rt->cfg.qos_class);
 		vty_out(vty, "%s", VTY_NEWLINE);
 	}
-}
-
-static int config_write_rtable(struct vty *vty)
-{
-	struct osmo_ss7_instance *inst = g_s7i;
-	struct osmo_ss7_route_table *rtable;
-
-	llist_for_each_entry(rtable, &inst->rtable_list, list)
-		write_one_rtable(vty, rtable);
-
-	return 0;
 }
 
 static void vty_dump_rtable(struct vty *vty, struct osmo_ss7_route_table *rtbl)
@@ -314,17 +309,26 @@ static void vty_dump_rtable(struct vty *vty, struct osmo_ss7_route_table *rtbl)
 }
 
 DEFUN(show_cs7_route, show_cs7_route_cmd,
-	"show cs7 route",
+	"show cs7 route [instance <0-15>]",
 	SHOW_STR CS7_STR "Routing Table\n")
 {
-	struct osmo_ss7_instance *inst = g_s7i;
+	int id = 0;
+	struct osmo_ss7_instance *inst;
+
+	if (argc > 0)
+		id = atoi(argv[0]);
+	inst = osmo_ss7_instance_find(id);
+	if (!inst) {
+		vty_out(vty, "No SS7 instance %d found%s", id, VTY_NEWLINE);
+		return CMD_WARNING;
+	}
 
 	vty_dump_rtable(vty, inst->rtable_system);
 	return CMD_SUCCESS;
 }
 
 /***********************************************************************
- * SUA Configuration
+ * SUA Configuration (SG)
  ***********************************************************************/
 
 static struct cmd_node sua_node = {
@@ -334,12 +338,11 @@ static struct cmd_node sua_node = {
 };
 
 DEFUN(cs7_sua, cs7_sua_cmd,
-	"cs7 sua <0-65534>",
-	CS7_STR
+	"sua <0-65534>",
 	"Configure/Enable SUA\n"
 	"SCTP Port number for SUA\n")
 {
-	struct osmo_ss7_instance *inst = g_s7i;
+	struct osmo_ss7_instance *inst = vty->index;
 	struct osmo_xua_server *xs;
 	uint16_t port = atoi(argv[0]);
 
@@ -356,11 +359,11 @@ DEFUN(cs7_sua, cs7_sua_cmd,
 }
 
 DEFUN(no_cs7_sua, no_cs7_sua_cmd,
-	"no cs7 sua <0-65534>",
-	NO_STR CS7_STR "Disable SUA on given SCTP Port\n"
+	"no sua <0-65534>",
+	NO_STR "Disable SUA on given SCTP Port\n"
 	"SCTP Port number for SUA\n")
 {
-	struct osmo_ss7_instance *inst = g_s7i;
+	struct osmo_ss7_instance *inst = vty->index;
 	struct osmo_xua_server *xs;
 	uint16_t port = atoi(argv[0]);
 
@@ -391,25 +394,15 @@ enum osmo_ss7_asp_protocol parse_asp_proto(const char *protocol)
 
 static void write_one_sua(struct vty *vty, struct osmo_xua_server *xs)
 {
-	vty_out(vty, "cs7 %s %u%s",
+	vty_out(vty, " %s %u%s",
 		get_value_string(osmo_ss7_asp_protocol_vals, xs->cfg.proto),
 		xs->cfg.local.port, VTY_NEWLINE);
-	vty_out(vty, " local-ip %s%s", xs->cfg.local.host, VTY_NEWLINE);
+	vty_out(vty, "  local-ip %s%s", xs->cfg.local.host, VTY_NEWLINE);
 }
 
-
-static int config_write_sua(struct vty *vty)
-{
-	struct osmo_xua_server *xs;
-
-	llist_for_each_entry(xs, &osmo_ss7_xua_servers, list)
-		write_one_sua(vty, xs);
-
-	return 0;
-}
 
 /***********************************************************************
- * M3UA Configuration
+ * M3UA Configuration (SG)
  ***********************************************************************/
 
 static struct cmd_node m3ua_node = {
@@ -419,12 +412,11 @@ static struct cmd_node m3ua_node = {
 };
 
 DEFUN(cs7_m3ua, cs7_m3ua_cmd,
-	"cs7 m3ua <0-65534>",
-	CS7_STR
+	"m3ua <0-65534>",
 	"Configure/Enable M3UA\n"
 	"SCTP Port number for M3UA\n")
 {
-	struct osmo_ss7_instance *inst = g_s7i;
+	struct osmo_ss7_instance *inst = vty->index;
 	struct osmo_xua_server *xs;
 	uint16_t port = atoi(argv[0]);
 
@@ -441,11 +433,11 @@ DEFUN(cs7_m3ua, cs7_m3ua_cmd,
 }
 
 DEFUN(no_cs7_m3ua, no_cs7_m3ua_cmd,
-	"no cs7 m3ua <0-65534>",
-	NO_STR CS7_STR "Disable M3UA on given SCTP Port\n"
+	"no m3ua <0-65534>",
+	NO_STR "Disable M3UA on given SCTP Port\n"
 	"SCTP Port number for M3UA\n")
 {
-	struct osmo_ss7_instance *inst = g_s7i;
+	struct osmo_ss7_instance *inst = vty->index;
 	struct osmo_xua_server *xs;
 	uint16_t port = atoi(argv[0]);
 
@@ -469,12 +461,6 @@ DEFUN(m3ua_local_ip, m3ua_local_ip_cmd,
 	return CMD_SUCCESS;
 }
 
-static int config_write_m3ua(struct vty *vty)
-{
-	/* see config_write_sua */
-	return 0;
-}
-
 /***********************************************************************
  * Application Server Process
  ***********************************************************************/
@@ -486,8 +472,7 @@ static struct cmd_node asp_node = {
 };
 
 DEFUN(cs7_asp, cs7_asp_cmd,
-	"cs7 asp NAME <0-65535> <0-65535> (m3ua|sua)",
-	CS7_STR
+	"asp NAME <0-65535> <0-65535> (m3ua|sua)",
 	"Configure Application Server Process\n"
 	"Name of ASP\n"
 	"Remote SCTP port number\n"
@@ -495,7 +480,7 @@ DEFUN(cs7_asp, cs7_asp_cmd,
 	"M3UA Protocol\n"
 	"SUA Protocol\n")
 {
-	struct osmo_ss7_instance *inst = g_s7i;
+	struct osmo_ss7_instance *inst = vty->index;
 	const char *name = argv[0];
 	uint16_t remote_port = atoi(argv[1]);
 	uint16_t local_port = atoi(argv[2]);
@@ -521,11 +506,11 @@ DEFUN(cs7_asp, cs7_asp_cmd,
 }
 
 DEFUN(no_cs7_asp, no_cs7_asp_cmd,
-	"no cs7 asp NAME",
-	NO_STR CS7_STR "Disable Application Server Process\n"
+	"no asp NAME",
+	NO_STR "Disable Application Server Process\n"
 	"Name of ASP\n")
 {
-	struct osmo_ss7_instance *inst = g_s7i;
+	struct osmo_ss7_instance *inst = vty->index;
 	const char *name = argv[0];
 	struct osmo_ss7_asp *asp;
 
@@ -577,11 +562,20 @@ DEFUN(asp_shutdown, asp_shutdown_cmd,
 }
 
 DEFUN(show_cs7_asp, show_cs7_asp_cmd,
-	"show cs7 asp",
+	"show cs7 asp [instance <0-15>]",
 	SHOW_STR CS7_STR "Application Server Process (ASP)\n")
 {
-	struct osmo_ss7_instance *inst = g_s7i;
+	struct osmo_ss7_instance *inst;
 	struct osmo_ss7_asp *asp;
+	int id = 0;
+
+	if (argc > 0)
+		id = atoi(argv[0]);
+	inst = osmo_ss7_instance_find(id);
+	if (!inst) {
+		vty_out(vty, "No SS7 instance %d found%s", id, VTY_NEWLINE);
+		return CMD_WARNING;
+	}
 
 	vty_out(vty, "                                                     Effect Primary%s", VTY_NEWLINE);
 	vty_out(vty, "ASP Name      AS Name       State     Type  Rmt Port Remote IP Addr  SCTP%s", VTY_NEWLINE);
@@ -598,25 +592,14 @@ DEFUN(show_cs7_asp, show_cs7_asp_cmd,
 
 static void write_one_asp(struct vty *vty, struct osmo_ss7_asp *asp)
 {
-	vty_out(vty, "cs7 asp %s %u %u %s%s",
+	vty_out(vty, " asp %s %u %u %s%s",
 		asp->cfg.name, asp->cfg.remote.port, asp->cfg.local.port,
 		osmo_ss7_asp_protocol_name(asp->cfg.proto), VTY_NEWLINE);
 	if (asp->cfg.description)
-		vty_out(vty, " description %s%s", asp->cfg.description, VTY_NEWLINE);
-	vty_out(vty, " remote-ip %s%s", asp->cfg.remote.host, VTY_NEWLINE);
+		vty_out(vty, "  description %s%s", asp->cfg.description, VTY_NEWLINE);
+	vty_out(vty, "  remote-ip %s%s", asp->cfg.remote.host, VTY_NEWLINE);
 	if (asp->cfg.qos_class)
-		vty_out(vty, " qos-class %u%s", asp->cfg.qos_class, VTY_NEWLINE);
-}
-
-static int config_write_asp(struct vty *vty)
-{
-	struct osmo_ss7_instance *inst = g_s7i;
-	struct osmo_ss7_asp *asp;
-
-	llist_for_each_entry(asp, &inst->asp_list, list)
-		write_one_asp(vty, asp);
-
-	return 0;
+		vty_out(vty, "  qos-class %u%s", asp->cfg.qos_class, VTY_NEWLINE);
 }
 
 
@@ -631,14 +614,13 @@ static struct cmd_node as_node = {
 };
 
 DEFUN(cs7_as, cs7_as_cmd,
-	"cs7 as NAME (m3ua|sua)",
-	CS7_STR
+	"as NAME (m3ua|sua)",
 	"Configure an Application Server\n"
 	"Name of the Application Server\n"
 	"M3UA Application Server\n"
 	"SUA Application Server\n")
 {
-	struct osmo_ss7_instance *inst = g_s7i;
+	struct osmo_ss7_instance *inst = vty->index;
 	struct osmo_ss7_as *as;
 	const char *name = argv[0];
 	enum osmo_ss7_asp_protocol protocol = parse_asp_proto(argv[1]);
@@ -664,11 +646,11 @@ DEFUN(cs7_as, cs7_as_cmd,
 }
 
 DEFUN(no_cs7_as, no_cs7_as_cmd,
-	"no cs7 as NAME",
-	NO_STR CS7_STR "Disable Application Server\n"
+	"no as NAME",
+	NO_STR "Disable Application Server\n"
 	"Name of AS\n")
 {
-	struct osmo_ss7_instance *inst = g_s7i;
+	struct osmo_ss7_instance *inst = vty->index;
 	const char *name = argv[0];
 	struct osmo_ss7_as *as;
 
@@ -805,27 +787,27 @@ static void write_one_as(struct vty *vty, struct osmo_ss7_as *as)
 	struct osmo_ss7_routing_key *rkey;
 	unsigned int i;
 
-	vty_out(vty, "cs7 as %s %s%s", as->cfg.name,
+	vty_out(vty, " as %s %s%s", as->cfg.name,
 		osmo_ss7_asp_protocol_name(as->cfg.proto), VTY_NEWLINE);
 	if (as->cfg.description)
-		vty_out(vty, " description %s%s", as->cfg.description, VTY_NEWLINE);
+		vty_out(vty, "  description %s%s", as->cfg.description, VTY_NEWLINE);
 	for (i = 0; i < ARRAY_SIZE(as->cfg.asps); i++) {
 		struct osmo_ss7_asp *asp = as->cfg.asps[i];
 		if (!asp)
 			continue;
-		vty_out(vty, " asp %s%s", asp->cfg.name, VTY_NEWLINE);
+		vty_out(vty, "  asp %s%s", asp->cfg.name, VTY_NEWLINE);
 	}
 	if (as->cfg.mode != OSMO_SS7_AS_TMOD_LOADSHARE)
-		vty_out(vty, " traffic-mode %s%s",
+		vty_out(vty, "  traffic-mode %s%s",
 			osmo_ss7_as_traffic_mode_name(as->cfg.mode), VTY_NEWLINE);
 	if (as->cfg.recovery_timeout_msec != 2000) {
-		vty_out(vty, " recovery-timeout %u%s",
+		vty_out(vty, "  recovery-timeout %u%s",
 			as->cfg.recovery_timeout_msec, VTY_NEWLINE);
 	}
 	if (as->cfg.qos_class)
-		vty_out(vty, " qos-class %u%s", as->cfg.qos_class, VTY_NEWLINE);
+		vty_out(vty, "  qos-class %u%s", as->cfg.qos_class, VTY_NEWLINE);
 	rkey = &as->cfg.routing_key;
-	vty_out(vty, " routing-key %u %s", rkey->context,
+	vty_out(vty, "  routing-key %u %s", rkey->context,
 		osmo_ss7_pointcode_print(as->inst, rkey->pc));
 	if (rkey->si)
 		vty_out(vty, " si %s",
@@ -835,41 +817,29 @@ static void write_one_as(struct vty *vty, struct osmo_ss7_as *as)
 	vty_out(vty, "%s", VTY_NEWLINE);
 }
 
-static int config_write_as(struct vty *vty)
-{
-	struct osmo_ss7_instance *inst = g_s7i;
-	struct osmo_ss7_as *as;
-
-	/* HACK to call this here, as we cannot install additional
-	 * 'save' code into the root CONFIG_NODE ... */
-	config_write_cs7(vty);
-
-	/* HACK to call this here, but we must make sure that the ASP
-	 * are all configured before we reference them from the AS, and
-	 * VTY code always stores the nodes in alphabetical order */
-
-	config_write_asp(vty);
-
-	llist_for_each_entry(as, &inst->as_list, list)
-		write_one_as(vty, as);
-
-	return 0;
-}
-
 DEFUN(show_cs7_as, show_cs7_as_cmd,
-	"show cs7 as (active|all|m3ua|sua)",
+	"show cs7 as (active|all|m3ua|sua) [instance <0-15>]",
 	SHOW_STR CS7_STR "Application Server (AS)\n"
 	"Display all active ASs\n"
 	"Display all ASs (default)\n"
 	"Display all m3ua ASs\n"
 	"Display all SUA ASs\n")
 {
-	struct osmo_ss7_instance *inst = g_s7i;
+	struct osmo_ss7_instance *inst;
 	struct osmo_ss7_as *as;
 	const char *filter = NULL;
+	int id = 0;
 
 	if (argc)
 		filter = argv[0];
+
+	if (argc > 1)
+		id = atoi(argv[1]);
+	inst = osmo_ss7_instance_find(id);
+	if (!inst) {
+		vty_out(vty, "No SS7 instance %d found%s", id, VTY_NEWLINE);
+		return CMD_WARNING;
+	}
 
 	vty_out(vty, "                    Routing    Routing Key                          Cic   Cic%s", VTY_NEWLINE);
 	vty_out(vty, "AS Name      State  Context    Dpc           Si   Opc           Ssn Min   Max%s", VTY_NEWLINE);
@@ -889,20 +859,88 @@ DEFUN(show_cs7_as, show_cs7_as_cmd,
 	return CMD_SUCCESS;
 }
 
-int osmo_ss7_vty_go_parent(struct vty *vty)
+static void write_one_cs7(struct vty *vty, struct osmo_ss7_instance *inst)
 {
 	struct osmo_ss7_asp *asp;
+	struct osmo_ss7_as *as;
+	struct osmo_ss7_route_table *rtable;
+	struct osmo_xua_server *oxs;
+
+	vty_out(vty, "cs7 instance %u%s", inst->cfg.id, VTY_NEWLINE);
+	if (inst->cfg.network_indicator)
+		vty_out(vty, " network-indicator %s%s",
+			get_value_string(ss7_network_indicator_vals,
+					 inst->cfg.network_indicator),
+			VTY_NEWLINE);
+
+	if (inst->cfg.pc_fmt.component_len[0] != 3 ||
+	    inst->cfg.pc_fmt.component_len[1] != 8 ||
+	    inst->cfg.pc_fmt.component_len[2] != 3) {
+		vty_out(vty, " point-code format %u",
+			inst->cfg.pc_fmt.component_len[0]);
+		if (inst->cfg.pc_fmt.component_len[1])
+			vty_out(vty, " %u", inst->cfg.pc_fmt.component_len[1]);
+		if (inst->cfg.pc_fmt.component_len[2])
+			vty_out(vty, " %u", inst->cfg.pc_fmt.component_len[2]);
+		vty_out(vty, "%s", VTY_NEWLINE);
+	}
+
+	if (inst->cfg.pc_fmt.delimiter != '.')
+		vty_out(vty, " point-code delimiter dash%s", VTY_NEWLINE);
+
+	if (inst->cfg.primary_pc)
+		vty_out(vty, " point-code %s%s",
+			osmo_ss7_pointcode_print(inst, inst->cfg.primary_pc),
+			VTY_NEWLINE);
+
+	/* first dump ASPs, as ASs reference them */
+	llist_for_each_entry(asp, &inst->asp_list, list)
+		write_one_asp(vty, asp);
+
+	/* then dump ASPs, as routes reference them */
+	llist_for_each_entry(as, &inst->as_list, list)
+		write_one_as(vty, as);
+
+	/* now dump routes, as their target ASs exist */
+	llist_for_each_entry(rtable, &inst->rtable_list, list)
+		write_one_rtable(vty, rtable);
+
+	llist_for_each_entry(oxs, &osmo_ss7_xua_servers, list)
+		write_one_sua(vty, oxs);
+}
+
+
+int osmo_ss7_vty_go_parent(struct vty *vty)
+{
+	struct osmo_ss7_as *as;
+	struct osmo_ss7_asp *asp;
+	struct osmo_ss7_route_table *rtbl;
+	struct osmo_xua_server *oxs;
 
 	switch (vty->node) {
 	case L_CS7_ASP_NODE:
 		asp = vty->index;
 		osmo_ss7_asp_restart(asp);
-		vty->node = CONFIG_NODE;
+		vty->node = L_CS7_NODE;
+		vty->index = asp->inst;
 		break;
 	case L_CS7_RTABLE_NODE:
+		rtbl = vty->index;
+		vty->node = L_CS7_NODE;
+		vty->index = rtbl->inst;
+		break;
+	case L_CS7_AS_NODE:
+		as = vty->index;
+		vty->node = L_CS7_NODE;
+		vty->index = as->inst;
+		break;
 	case L_CS7_SUA_NODE:
 	case L_CS7_M3UA_NODE:
-	case L_CS7_AS_NODE:
+		oxs = vty->index;
+		vty->node = L_CS7_NODE;
+		vty->index = oxs->inst;
+		break;
+	case L_CS7_NODE:
 	default:
 		vty->node = CONFIG_NODE;
 		break;
@@ -913,6 +951,7 @@ int osmo_ss7_vty_go_parent(struct vty *vty)
 int osmo_ss7_is_config_node(struct vty *vty, int node)
 {
 	switch (node) {
+	case L_CS7_NODE:
 	case L_CS7_ASP_NODE:
 	case L_CS7_RTABLE_NODE:
 	case L_CS7_SUA_NODE:
@@ -924,50 +963,35 @@ int osmo_ss7_is_config_node(struct vty *vty, int node)
 	}
 }
 
-int osmo_ss7_vty_init(void)
+static void vty_init_shared(void)
 {
-	install_element(CONFIG_NODE, &cs7_net_ind_cmd);
-	install_element(CONFIG_NODE, &cs7_point_code_cmd);
-	install_element(CONFIG_NODE, &cs7_pc_format_cmd);
-	install_element(CONFIG_NODE, &cs7_pc_format_def_cmd);
-	install_element(CONFIG_NODE, &cs7_pc_delimiter_cmd);
+	/* the mother of all VTY config nodes */
+	install_element(CONFIG_NODE, &cs7_instance_cmd);
 
-	install_node(&rtable_node, config_write_rtable);
-	vty_install_default(L_CS7_RTABLE_NODE);
-	install_element_ve(&show_cs7_route_cmd);
-	install_element(CONFIG_NODE, &cs7_route_table_cmd);
-	install_element(L_CS7_RTABLE_NODE, &cfg_description_cmd);
-	install_element(L_CS7_RTABLE_NODE, &cs7_rt_upd_cmd);
-	install_element(L_CS7_RTABLE_NODE, &cs7_rt_rem_cmd);
-
-	install_node(&sua_node, config_write_sua);
-	vty_install_default(L_CS7_SUA_NODE);
-	install_element(CONFIG_NODE, &cs7_sua_cmd);
-	install_element(CONFIG_NODE, &no_cs7_sua_cmd);
-	install_element(L_CS7_SUA_NODE, &sua_local_ip_cmd);
-
-	install_node(&m3ua_node, config_write_m3ua);
-	vty_install_default(L_CS7_M3UA_NODE);
-	install_element(CONFIG_NODE, &cs7_m3ua_cmd);
-	install_element(CONFIG_NODE, &no_cs7_m3ua_cmd);
-	install_element(L_CS7_M3UA_NODE, &m3ua_local_ip_cmd);
+	install_node(&cs7_node, config_write_cs7);
+	vty_install_default(L_CS7_NODE);
+	install_element(L_CS7_NODE, &cs7_net_ind_cmd);
+	install_element(L_CS7_NODE, &cs7_point_code_cmd);
+	install_element(L_CS7_NODE, &cs7_pc_format_cmd);
+	install_element(L_CS7_NODE, &cs7_pc_format_def_cmd);
+	install_element(L_CS7_NODE, &cs7_pc_delimiter_cmd);
 
 	install_node(&asp_node, NULL);
 	vty_install_default(L_CS7_ASP_NODE);
 	install_element_ve(&show_cs7_asp_cmd);
-	install_element(CONFIG_NODE, &cs7_asp_cmd);
-	install_element(CONFIG_NODE, &no_cs7_asp_cmd);
+	install_element(L_CS7_NODE, &cs7_asp_cmd);
+	install_element(L_CS7_NODE, &no_cs7_asp_cmd);
 	install_element(L_CS7_ASP_NODE, &cfg_description_cmd);
 	install_element(L_CS7_ASP_NODE, &asp_remote_ip_cmd);
 	install_element(L_CS7_ASP_NODE, &asp_qos_class_cmd);
 	install_element(L_CS7_ASP_NODE, &asp_block_cmd);
 	install_element(L_CS7_ASP_NODE, &asp_shutdown_cmd);
 
-	install_node(&as_node, config_write_as);
+	install_node(&as_node, NULL);
 	vty_install_default(L_CS7_AS_NODE);
 	install_element_ve(&show_cs7_as_cmd);
-	install_element(CONFIG_NODE, &cs7_as_cmd);
-	install_element(CONFIG_NODE, &no_cs7_as_cmd);
+	install_element(L_CS7_NODE, &cs7_as_cmd);
+	install_element(L_CS7_NODE, &no_cs7_as_cmd);
 	install_element(L_CS7_AS_NODE, &cfg_description_cmd);
 	install_element(L_CS7_AS_NODE, &as_asp_cmd);
 	install_element(L_CS7_AS_NODE, &as_no_asp_cmd);
@@ -975,6 +999,39 @@ int osmo_ss7_vty_init(void)
 	install_element(L_CS7_AS_NODE, &as_recov_tout_cmd);
 	install_element(L_CS7_AS_NODE, &as_qos_class_cmd);
 	install_element(L_CS7_AS_NODE, &as_rout_key_cmd);
-
-	return 0;
 }
+
+void osmo_ss7_vty_init_asp(void)
+{
+	vty_init_shared();
+}
+
+void osmo_ss7_vty_init_sg(void)
+{
+	vty_init_shared();
+
+	install_node(&rtable_node, NULL);
+	vty_install_default(L_CS7_RTABLE_NODE);
+	install_element_ve(&show_cs7_route_cmd);
+	install_element(L_CS7_NODE, &cs7_route_table_cmd);
+	install_element(L_CS7_RTABLE_NODE, &cfg_description_cmd);
+	install_element(L_CS7_RTABLE_NODE, &cs7_rt_upd_cmd);
+	install_element(L_CS7_RTABLE_NODE, &cs7_rt_rem_cmd);
+
+	install_node(&sua_node, NULL);
+	vty_install_default(L_CS7_SUA_NODE);
+	install_element(L_CS7_NODE, &cs7_sua_cmd);
+	install_element(L_CS7_NODE, &no_cs7_sua_cmd);
+	install_element(L_CS7_SUA_NODE, &sua_local_ip_cmd);
+
+	install_node(&m3ua_node, NULL);
+	vty_install_default(L_CS7_M3UA_NODE);
+	install_element(L_CS7_NODE, &cs7_m3ua_cmd);
+	install_element(L_CS7_NODE, &no_cs7_m3ua_cmd);
+	install_element(L_CS7_M3UA_NODE, &m3ua_local_ip_cmd);
+}
+
+void osmo_ss7_set_vty_alloc_ctx(void *ctx)
+{
+	g_ctx = ctx;
+};

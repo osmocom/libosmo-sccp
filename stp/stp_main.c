@@ -40,8 +40,6 @@
 
 #include "internal.h"
 
-struct osmo_ss7_instance *g_s7i;
-
 static const struct log_info_cat log_info_cat[] = {
 };
 
@@ -78,9 +76,7 @@ int main(int argc, char **argv)
 	osmo_ss7_init();
 	osmo_fsm_log_addr(false);
 	vty_init(&vty_info);
-	osmo_ss7_vty_init();
-
-	g_s7i = osmo_ss7_instance_find_or_create(NULL, 0);
+	osmo_ss7_vty_init_sg();
 
 	rc = vty_read_config_file(config_file, NULL);
 	if (rc < 0) {

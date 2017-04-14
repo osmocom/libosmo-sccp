@@ -52,7 +52,7 @@
 
 static bool ss7_initialized = false;
 
-static LLIST_HEAD(ss7_instances);
+LLIST_HEAD(osmo_ss7_instances);
 LLIST_HEAD(osmo_ss7_xua_servers);
 static int32_t next_rctx = 1;
 static int32_t next_l_rk_id = 1;
@@ -296,7 +296,7 @@ osmo_ss7_instance_find(uint32_t id)
 	OSMO_ASSERT(ss7_initialized);
 
 	struct osmo_ss7_instance *inst;
-	llist_for_each_entry(inst, &ss7_instances, list) {
+	llist_for_each_entry(inst, &osmo_ss7_instances, list) {
 		if (inst->cfg.id == id)
 			return inst;
 	}
@@ -335,7 +335,7 @@ osmo_ss7_instance_find_or_create(void *ctx, uint32_t id)
 	inst->cfg.pc_fmt.component_len[1] = 8;
 	inst->cfg.pc_fmt.component_len[2] = 3;
 
-	llist_add(&inst->list, &ss7_instances);
+	llist_add(&inst->list, &osmo_ss7_instances);
 
 	return inst;
 }
@@ -993,7 +993,7 @@ osmo_ss7_asp_find_by_socket_addr(int fd)
 
 	/* check all instances for any ASP definition matching the
 	 * address combination of local/remote ip/port */
-	llist_for_each_entry(inst, &ss7_instances, list) {
+	llist_for_each_entry(inst, &osmo_ss7_instances, list) {
 		struct osmo_ss7_asp *asp;
 		llist_for_each_entry(asp, &inst->asp_list, list) {
 			if (asp->cfg.local.port == local_port &&
