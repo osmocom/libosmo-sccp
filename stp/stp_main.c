@@ -38,8 +38,6 @@
 #include <osmocom/sigtran/protocol/sua.h>
 #include <osmocom/sigtran/protocol/m3ua.h>
 
-#include "internal.h"
-
 static const struct log_info_cat log_info_cat[] = {
 };
 

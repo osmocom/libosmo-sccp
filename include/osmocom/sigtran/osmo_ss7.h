@@ -437,3 +437,11 @@ osmo_sccp_simple_server_add_clnt(struct osmo_sccp_instance *inst,
 
 enum osmo_ss7_as_traffic_mode osmo_ss7_tmode_from_xua(uint32_t in);
 int osmo_ss7_tmode_to_xua(enum osmo_ss7_as_traffic_mode tmod);
+
+/* VTY related */
+struct vty;
+void osmo_ss7_set_vty_alloc_ctx(void *ctx);
+void osmo_ss7_vty_init_asp(void);
+void osmo_ss7_vty_init_sg(void);
+int osmo_ss7_vty_go_parent(struct vty *vty);
+int osmo_ss7_is_config_node(struct vty *vty, int node);
