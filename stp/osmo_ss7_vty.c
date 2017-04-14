@@ -328,58 +328,67 @@ DEFUN(show_cs7_route, show_cs7_route_cmd,
 }
 
 /***********************************************************************
- * SUA Configuration (SG)
+ * xUA Listener Configuration (SG)
  ***********************************************************************/
 
-static struct cmd_node sua_node = {
-	L_CS7_SUA_NODE,
-	"%s(config-cs7-sua)# ",
+static enum osmo_ss7_asp_protocol parse_asp_proto(const char *protocol)
+{
+	return get_string_value(osmo_ss7_asp_protocol_vals, protocol);
+}
+
+static struct cmd_node xua_node = {
+	L_CS7_XUA_NODE,
+	"%s(config-cs7-listen)# ",
 	1,
 };
 
-DEFUN(cs7_sua, cs7_sua_cmd,
-	"sua <0-65534>",
-	"Configure/Enable SUA\n"
-	"SCTP Port number for SUA\n")
+#define XUA_STR	"SCCP User Adaptation\n" "MTP3 User Adaptation\n"
+
+DEFUN(cs7_xua, cs7_xua_cmd,
+	"listen (sua|m3ua) <0-65534>",
+	"Configure/Enable xUA Listener\n"
+	XUA_STR "SCTP Port number\n")
 {
 	struct osmo_ss7_instance *inst = vty->index;
 	struct osmo_xua_server *xs;
-	uint16_t port = atoi(argv[0]);
+	enum osmo_ss7_asp_protocol proto = parse_asp_proto(argv[0]);
+	uint16_t port = atoi(argv[1]);
 
-	xs = osmo_ss7_xua_server_find(inst, OSMO_SS7_ASP_PROT_SUA, port);
+	xs = osmo_ss7_xua_server_find(inst, proto, port);
 	if (!xs) {
-		xs = osmo_ss7_xua_server_create(inst, OSMO_SS7_ASP_PROT_SUA, port, NULL);
+		xs = osmo_ss7_xua_server_create(inst, proto, port, NULL);
 		if (!xs)
 			return CMD_SUCCESS;
 	}
 
-	vty->node = L_CS7_SUA_NODE;
+	vty->node = L_CS7_XUA_NODE;
 	vty->index = xs;
 	return CMD_SUCCESS;
 }
 
-DEFUN(no_cs7_sua, no_cs7_sua_cmd,
-	"no sua <0-65534>",
-	NO_STR "Disable SUA on given SCTP Port\n"
-	"SCTP Port number for SUA\n")
+DEFUN(no_cs7_xua, no_cs7_xua_cmd,
+	"no listen (sua|m3ua) <0-65534>",
+	NO_STR "Disable xUA Listener on given SCTP Port\n"
+	XUA_STR "SCTP Port number\n")
 {
 	struct osmo_ss7_instance *inst = vty->index;
 	struct osmo_xua_server *xs;
-	uint16_t port = atoi(argv[0]);
+	enum osmo_ss7_asp_protocol proto = parse_asp_proto(argv[0]);
+	uint16_t port = atoi(argv[1]);
 
-	xs = osmo_ss7_xua_server_find(inst, OSMO_SS7_ASP_PROT_SUA, port);
+	xs = osmo_ss7_xua_server_find(inst, proto, port);
 	if (!xs) {
-		vty_out(vty, "No SUA server for port %u found%s", port, VTY_NEWLINE);
+		vty_out(vty, "No xUA server for port %u found%s", port, VTY_NEWLINE);
 		return CMD_WARNING;
 	}
 	osmo_ss7_xua_server_destroy(xs);
 	return CMD_SUCCESS;
 }
 
-DEFUN(sua_local_ip, sua_local_ip_cmd,
+DEFUN(xua_local_ip, xua_local_ip_cmd,
 	"local-ip A.B.C.D",
-	"Configure the Local IP Address for SUA\n"
-	"IP Address to use for SUA\n")
+	"Configure the Local IP Address for xUA\n"
+	"IP Address to use for XUA\n")
 {
 	struct osmo_xua_server *xs = vty->index;
 
@@ -387,12 +396,7 @@ DEFUN(sua_local_ip, sua_local_ip_cmd,
 	return CMD_SUCCESS;
 }
 
-enum osmo_ss7_asp_protocol parse_asp_proto(const char *protocol)
-{
-	return get_string_value(osmo_ss7_asp_protocol_vals, protocol);
-}
-
-static void write_one_sua(struct vty *vty, struct osmo_xua_server *xs)
+static void write_one_xua(struct vty *vty, struct osmo_xua_server *xs)
 {
 	vty_out(vty, " %s %u%s",
 		get_value_string(osmo_ss7_asp_protocol_vals, xs->cfg.proto),
@@ -400,66 +404,6 @@ static void write_one_sua(struct vty *vty, struct osmo_xua_server *xs)
 	vty_out(vty, "  local-ip %s%s", xs->cfg.local.host, VTY_NEWLINE);
 }
 
-
-/***********************************************************************
- * M3UA Configuration (SG)
- ***********************************************************************/
-
-static struct cmd_node m3ua_node = {
-	L_CS7_M3UA_NODE,
-	"%s(config-cs7-m3ua)# ",
-	1,
-};
-
-DEFUN(cs7_m3ua, cs7_m3ua_cmd,
-	"m3ua <0-65534>",
-	"Configure/Enable M3UA\n"
-	"SCTP Port number for M3UA\n")
-{
-	struct osmo_ss7_instance *inst = vty->index;
-	struct osmo_xua_server *xs;
-	uint16_t port = atoi(argv[0]);
-
-	xs = osmo_ss7_xua_server_find(inst, OSMO_SS7_ASP_PROT_M3UA, port);
-	if (!xs) {
-		xs = osmo_ss7_xua_server_create(inst, OSMO_SS7_ASP_PROT_M3UA, port, NULL);
-		if (!xs)
-			return CMD_SUCCESS;
-	}
-
-	vty->node = L_CS7_M3UA_NODE;
-	vty->index = xs;
-	return CMD_SUCCESS;
-}
-
-DEFUN(no_cs7_m3ua, no_cs7_m3ua_cmd,
-	"no m3ua <0-65534>",
-	NO_STR "Disable M3UA on given SCTP Port\n"
-	"SCTP Port number for M3UA\n")
-{
-	struct osmo_ss7_instance *inst = vty->index;
-	struct osmo_xua_server *xs;
-	uint16_t port = atoi(argv[0]);
-
-	xs = osmo_ss7_xua_server_find(inst, OSMO_SS7_ASP_PROT_M3UA, port);
-	if (!xs) {
-		vty_out(vty, "No M3UA server for port %u found%s", port, VTY_NEWLINE);
-		return CMD_WARNING;
-	}
-	osmo_ss7_xua_server_destroy(xs);
-	return CMD_SUCCESS;
-}
-
-DEFUN(m3ua_local_ip, m3ua_local_ip_cmd,
-	"local-ip A.B.C.D",
-	"Configure the Local IP Address for M3UA\n"
-	"IP Address to use for M3UA\n")
-{
-	struct osmo_xua_server *xs = vty->index;
-
-	osmo_ss7_xua_server_set_local_host(xs, argv[0]);
-	return CMD_SUCCESS;
-}
 
 /***********************************************************************
  * Application Server Process
@@ -906,7 +850,7 @@ static void write_one_cs7(struct vty *vty, struct osmo_ss7_instance *inst)
 		write_one_rtable(vty, rtable);
 
 	llist_for_each_entry(oxs, &osmo_ss7_xua_servers, list)
-		write_one_sua(vty, oxs);
+		write_one_xua(vty, oxs);
 }
 
 
@@ -934,8 +878,7 @@ int osmo_ss7_vty_go_parent(struct vty *vty)
 		vty->node = L_CS7_NODE;
 		vty->index = as->inst;
 		break;
-	case L_CS7_SUA_NODE:
-	case L_CS7_M3UA_NODE:
+	case L_CS7_XUA_NODE:
 		oxs = vty->index;
 		vty->node = L_CS7_NODE;
 		vty->index = oxs->inst;
@@ -954,8 +897,7 @@ int osmo_ss7_is_config_node(struct vty *vty, int node)
 	case L_CS7_NODE:
 	case L_CS7_ASP_NODE:
 	case L_CS7_RTABLE_NODE:
-	case L_CS7_SUA_NODE:
-	case L_CS7_M3UA_NODE:
+	case L_CS7_XUA_NODE:
 	case L_CS7_AS_NODE:
 		return 1;
 	default:
@@ -1018,17 +960,11 @@ void osmo_ss7_vty_init_sg(void)
 	install_element(L_CS7_RTABLE_NODE, &cs7_rt_upd_cmd);
 	install_element(L_CS7_RTABLE_NODE, &cs7_rt_rem_cmd);
 
-	install_node(&sua_node, NULL);
-	vty_install_default(L_CS7_SUA_NODE);
-	install_element(L_CS7_NODE, &cs7_sua_cmd);
-	install_element(L_CS7_NODE, &no_cs7_sua_cmd);
-	install_element(L_CS7_SUA_NODE, &sua_local_ip_cmd);
-
-	install_node(&m3ua_node, NULL);
-	vty_install_default(L_CS7_M3UA_NODE);
-	install_element(L_CS7_NODE, &cs7_m3ua_cmd);
-	install_element(L_CS7_NODE, &no_cs7_m3ua_cmd);
-	install_element(L_CS7_M3UA_NODE, &m3ua_local_ip_cmd);
+	install_node(&xua_node, NULL);
+	vty_install_default(L_CS7_XUA_NODE);
+	install_element(L_CS7_NODE, &cs7_xua_cmd);
+	install_element(L_CS7_NODE, &no_cs7_xua_cmd);
+	install_element(L_CS7_XUA_NODE, &xua_local_ip_cmd);
 }
 
 void osmo_ss7_set_vty_alloc_ctx(void *ctx)
