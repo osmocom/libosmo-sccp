@@ -163,8 +163,25 @@ DEFUN(cs7_point_code, cs7_point_code_cmd,
 	inst->cfg.primary_pc = pc;
 	return CMD_SUCCESS;
 }
+
 /* TODO: cs7 secondary-pc */
 /* TODO: cs7 capability-pc */
+
+DEFUN(cs7_permit_dyn_rkm, cs7_permit_dyn_rkm_cmd,
+	"xua rkm routing-key-allocation (static-only|dynamic-permitted)",
+	"SIGTRAN xxxUA related\n" "Routing Key Management Allocation Policy\n"
+	"Only static (pre-confgured) Routing Keys permitted\n"
+	"Dynamically allocate Routing Keys for what ASPs request\n")
+{
+	struct osmo_ss7_instance *inst = vty->index;
+
+	if (!strcmp(argv[0], "dynamic-permitted"))
+		inst->cfg.permit_dyn_rkm_alloc = true;
+	else
+		inst->cfg.permit_dyn_rkm_alloc = false;
+
+	return CMD_SUCCESS;
+}
 
 static void write_one_cs7(struct vty *vty, struct osmo_ss7_instance *inst);
 
@@ -853,6 +870,9 @@ static void write_one_cs7(struct vty *vty, struct osmo_ss7_instance *inst)
 			osmo_ss7_pointcode_print(inst, inst->cfg.primary_pc),
 			VTY_NEWLINE);
 
+	if (inst->cfg.permit_dyn_rkm_alloc)
+		vty_out(vty, " xua rkm routing-key-allocation dynamic-permitted%s", VTY_NEWLINE);
+
 	/* first dump ASPs, as ASs reference them */
 	llist_for_each_entry(asp, &inst->asp_list, list)
 		write_one_asp(vty, asp);
@@ -935,6 +955,7 @@ static void vty_init_shared(void)
 	install_element(L_CS7_NODE, &cs7_pc_format_cmd);
 	install_element(L_CS7_NODE, &cs7_pc_format_def_cmd);
 	install_element(L_CS7_NODE, &cs7_pc_delimiter_cmd);
+	install_element(L_CS7_NODE, &cs7_permit_dyn_rkm_cmd);
 
 	install_node(&asp_node, NULL);
 	vty_install_default(L_CS7_ASP_NODE);
