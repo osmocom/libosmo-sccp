@@ -592,6 +592,11 @@ DEFUN(show_cs7_asp, show_cs7_asp_cmd,
 
 static void write_one_asp(struct vty *vty, struct osmo_ss7_asp *asp)
 {
+	/* skip any dynamically created ASPs (auto-created at connect
+	 * time) */
+	if (asp->dyn_allocated)
+		return;
+
 	vty_out(vty, " asp %s %u %u %s%s",
 		asp->cfg.name, asp->cfg.remote.port, asp->cfg.local.port,
 		osmo_ss7_asp_protocol_name(asp->cfg.proto), VTY_NEWLINE);
@@ -786,6 +791,10 @@ static void write_one_as(struct vty *vty, struct osmo_ss7_as *as)
 {
 	struct osmo_ss7_routing_key *rkey;
 	unsigned int i;
+
+	/* skip any dynamically allocated AS definitions */
+	if (as->rkm_dyn_allocated)
+		return;
 
 	vty_out(vty, " as %s %s%s", as->cfg.name,
 		osmo_ss7_asp_protocol_name(as->cfg.proto), VTY_NEWLINE);
