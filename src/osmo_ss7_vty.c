@@ -915,7 +915,7 @@ static void write_one_cs7(struct vty *vty, struct osmo_ss7_instance *inst)
 	llist_for_each_entry(rtable, &inst->rtable_list, list)
 		write_one_rtable(vty, rtable);
 
-	llist_for_each_entry(oxs, &osmo_ss7_xua_servers, list)
+	llist_for_each_entry(oxs, &inst->xua_servers, list)
 		write_one_xua(vty, oxs);
 }
 

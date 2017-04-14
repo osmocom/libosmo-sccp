@@ -10,7 +10,6 @@
 #include <osmocom/core/prim.h>
 
 extern struct llist_head osmo_ss7_instances;
-extern struct llist_head osmo_ss7_xua_servers;
 
 struct osmo_ss7_instance;
 struct osmo_ss7_user;
@@ -70,6 +69,8 @@ struct osmo_ss7_instance {
 	struct llist_head asp_list;
 	/*! list of \ref osmo_ss7_route_table */
 	struct llist_head rtable_list;
+	/*! list of \ref osmo_xua_servers */
+	struct llist_head xua_servers;
 	/* array for faster lookup of user (indexed by service
 	 * indicator) */
 	const struct osmo_ss7_user *user[16];

@@ -53,7 +53,6 @@
 static bool ss7_initialized = false;
 
 LLIST_HEAD(osmo_ss7_instances);
-LLIST_HEAD(osmo_ss7_xua_servers);
 static int32_t next_rctx = 1;
 static int32_t next_l_rk_id = 1;
 
@@ -329,6 +328,7 @@ osmo_ss7_instance_find_or_create(void *ctx, uint32_t id)
 	INIT_LLIST_HEAD(&inst->as_list);
 	INIT_LLIST_HEAD(&inst->asp_list);
 	INIT_LLIST_HEAD(&inst->rtable_list);
+	INIT_LLIST_HEAD(&inst->xua_servers);
 	inst->rtable_system = osmo_ss7_route_table_find_or_create(inst, "system");
 
 	/* default point code structure + formatting */
@@ -1546,7 +1546,7 @@ osmo_ss7_xua_server_find(struct osmo_ss7_instance *inst, enum osmo_ss7_asp_proto
 	struct osmo_xua_server *xs;
 
 	OSMO_ASSERT(ss7_initialized);
-	llist_for_each_entry(xs, &osmo_ss7_xua_servers, list) {
+	llist_for_each_entry(xs, &inst->xua_servers, list) {
 		if (proto == xs->cfg.proto &&
 		    local_port == xs->cfg.local.port)
 			return xs;
@@ -1596,7 +1596,7 @@ osmo_ss7_xua_server_create(struct osmo_ss7_instance *inst, enum osmo_ss7_asp_pro
 	}
 
 	oxs->inst = inst;
-	llist_add_tail(&oxs->list, &osmo_ss7_xua_servers);
+	llist_add_tail(&oxs->list, &inst->xua_servers);
 
 	return oxs;
 }
