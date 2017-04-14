@@ -31,6 +31,7 @@
 #include <osmocom/vty/vty.h>
 #include <osmocom/vty/ports.h>
 #include <osmocom/vty/telnet_interface.h>
+#include <osmocom/vty/logging.h>
 
 #include <osmocom/sigtran/osmo_ss7.h>
 #include <osmocom/sigtran/sccp_sap.h>
@@ -38,6 +39,7 @@
 #include <osmocom/sigtran/protocol/sua.h>
 #include <osmocom/sigtran/protocol/m3ua.h>
 
+/* we only use logging sub-systems of the various libraries so far */
 static const struct log_info_cat log_info_cat[] = {
 };
 
@@ -45,18 +47,6 @@ static const struct log_info log_info = {
 	.cat = log_info_cat,
 	.num_cat = ARRAY_SIZE(log_info_cat),
 };
-
-/* Hack to enable debug logging for all relevant (used?) subsystems */
-static void init_logging(void)
-{
-	const int log_cats[] = { DLSS7, DLSUA, DLM3UA, DLSCCP, DLINP };
-	unsigned int i;
-
-	osmo_init_logging(&log_info);
-
-	for (i = 0; i < ARRAY_SIZE(log_cats); i++)
-		log_set_category_filter(osmo_stderr_target, log_cats[i], 1, LOGL_DEBUG);
-}
 
 static const char stp_copyright[] =
 	"Copyright (C) 2015-2017 by Harald Welte <laforge@gnumonks.org>\r\n"
@@ -82,10 +72,11 @@ int main(int argc, char **argv)
 	fputs(stp_copyright, stdout);
 	fputs("\n", stdout);
 
-	init_logging();
+	osmo_init_logging(&log_info);
 	osmo_ss7_init();
 	osmo_fsm_log_addr(false);
 	vty_init(&vty_info);
+	logging_vty_add_cmds(&log_info);
 	osmo_ss7_vty_init_sg();
 
 	rc = vty_read_config_file(config_file, NULL);
