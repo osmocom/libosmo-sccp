@@ -315,8 +315,10 @@ osmo_ss7_instance_find_or_create(void *ctx, uint32_t id)
 	OSMO_ASSERT(ss7_initialized);
 
 	inst = osmo_ss7_instance_find(id);
-	if (!inst)
-		inst = talloc_zero(ctx, struct osmo_ss7_instance);
+	if (inst)
+		return inst;
+
+	inst = talloc_zero(ctx, struct osmo_ss7_instance);
 	if (!inst)
 		return NULL;
 
