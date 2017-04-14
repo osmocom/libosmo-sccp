@@ -35,9 +35,7 @@
 #include <osmocom/sigtran/osmo_ss7.h>
 #include <osmocom/sigtran/protocol/mtp.h>
 
-#define CS7_STR	"ITU-T Signaling System 7\n"
-#define PC_STR	"Point Code\n"
-#define INST_STR "An instance of the SS7 stack\n"
+#include "xua_internal.h"
 
 /***********************************************************************
  * Core CS7 Configuration

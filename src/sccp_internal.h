@@ -87,3 +87,5 @@ int sccp_sclc_user_sap_down(struct osmo_sccp_user *scu, struct osmo_prim_hdr *op
 struct msgb *sccp_msgb_alloc(const char *name);
 
 struct osmo_fsm sccp_scoc_fsm;
+
+void sccp_scoc_show_connections(struct vty *vty, struct osmo_sccp_instance *inst);
