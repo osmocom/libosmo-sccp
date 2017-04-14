@@ -454,7 +454,7 @@ DEFUN(xua_accept_dyn_asp, xua_accept_dyn_asp_cmd,
 
 static void write_one_xua(struct vty *vty, struct osmo_xua_server *xs)
 {
-	vty_out(vty, " %s %u%s",
+	vty_out(vty, " listen %s %u%s",
 		get_value_string(osmo_ss7_asp_protocol_vals, xs->cfg.proto),
 		xs->cfg.local.port, VTY_NEWLINE);
 	vty_out(vty, "  local-ip %s%s", xs->cfg.local.host, VTY_NEWLINE);
