@@ -1050,6 +1050,8 @@ void osmo_ss7_asp_destroy(struct osmo_ss7_asp *asp)
 		osmo_stream_cli_destroy(asp->client);
 	if (asp->fi)
 		osmo_fsm_inst_term(asp->fi, OSMO_FSM_TERM_REQUEST, NULL);
+	if (asp->xua_server)
+		llist_del(&asp->siblings);
 
 	/* unlink from all ASs we are part of */
 	llist_for_each_entry(as, &asp->inst->as_list, list) {
@@ -1481,6 +1483,8 @@ static int xua_accept_cb(struct osmo_stream_srv_link *link, int fd)
 	/* update the ASP reference back to the server over which the
 	 * connection came in */
 	asp->server = srv;
+	asp->xua_server = oxs;
+	llist_add_tail(&asp->siblings, &oxs->asp_list);
 	/* update the ASP socket name */
 	if (asp->sock_name)
 		talloc_free(asp->sock_name);
@@ -1575,6 +1579,8 @@ osmo_ss7_xua_server_create(struct osmo_ss7_instance *inst, enum osmo_ss7_asp_pro
 	LOGP(DLSS7, LOGL_INFO, "Creating XUA Server %s:%u\n",
 		local_host, local_port);
 
+	INIT_LLIST_HEAD(&oxs->asp_list);
+
 	oxs->cfg.proto = proto;
 	oxs->cfg.local.port = local_port;
 	oxs->cfg.local.host = talloc_strdup(oxs, local_host);
@@ -1614,13 +1620,17 @@ osmo_ss7_xua_server_set_local_host(struct osmo_xua_server *xs, const char *local
 
 void osmo_ss7_xua_server_destroy(struct osmo_xua_server *xs)
 {
+	struct osmo_ss7_asp *asp, *asp2;
+
 	if (xs->server) {
 		osmo_stream_srv_link_close(xs->server);
 		osmo_stream_srv_link_destroy(xs->server);
 	}
-	/* FIXME: add asp_list to xua_server so we can iterate it here
-	 * and close all connections established in relation with this
-	 * server */
+	/* iterate and close all connections established in relation
+	 * with this server */
+	llist_for_each_entry_safe(asp, asp2, &xs->asp_list, siblings)
+		osmo_ss7_asp_destroy(asp);
+
 	llist_del(&xs->list);
 	talloc_free(xs);
 }

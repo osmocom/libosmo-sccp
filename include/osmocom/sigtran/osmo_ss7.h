@@ -339,6 +339,7 @@ struct osmo_ss7_asp {
 
 	/*! \ref osmo_xua_server over which we were established */
 	struct osmo_xua_server *xua_server;
+	struct llist_head siblings;
 
 	/*! osmo_stream / libosmo-netif handles */
 	struct osmo_stream_cli *client;
@@ -395,6 +396,9 @@ struct osmo_xua_layer_manager {
 struct osmo_xua_server {
 	struct llist_head list;
 	struct osmo_ss7_instance *inst;
+
+	/* list of ASPs established via this server */
+	struct llist_head asp_list;
 
 	struct osmo_stream_srv_link *server;
 
