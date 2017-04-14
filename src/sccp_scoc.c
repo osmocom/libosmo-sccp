@@ -102,6 +102,9 @@ struct sccp_connection {
 	uint32_t sccp_class;
 	uint32_t release_cause; /* WAIT_CONN_CONF */
 
+	/* incoming (true) or outgoing (false) */
+	bool incoming;
+
 	/* Osmo FSM Instance of sccp_scoc_fsm */
 	struct osmo_fsm_inst *fi;
 
@@ -1514,6 +1517,7 @@ void sccp_scoc_rx_from_scrc(struct osmo_sccp_instance *inst,
 		/* Allocate new connection */
 		conn = conn_create(inst);
 		conn->user = scu;
+		conn->incoming = true;
 	} else {
 		uint32_t conn_id;
 		/* Resolve existing connection */
