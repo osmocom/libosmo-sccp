@@ -380,9 +380,6 @@ static void dispatch_to_all_as(struct osmo_fsm_inst *fi, uint32_t event)
 	struct osmo_ss7_instance *inst = asp->inst;
 	struct osmo_ss7_as *as;
 
-	if (xafp->role != XUA_ASPFSM_ROLE_SG)
-		return;
-
 	llist_for_each_entry(as, &inst->as_list, list) {
 		if (!osmo_ss7_as_has_asp(as, asp))
 			continue;

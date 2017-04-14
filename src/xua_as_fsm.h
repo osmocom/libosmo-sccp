@@ -6,6 +6,8 @@ enum xua_as_event {
 	XUA_ASPAS_ASP_INACTIVE_IND,
 	XUA_ASPAS_ASP_DOWN_IND,
 	XUA_ASPAS_ASP_ACTIVE_IND,
+	XUA_AS_E_RECOVERY_EXPD,
+	XUA_AS_E_TRANSFER_REQ,
 };
 
 extern struct osmo_fsm xua_as_fsm;

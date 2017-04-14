@@ -65,12 +65,39 @@ static int asp_notify_all_as(struct osmo_ss7_as *as, struct osmo_xlm_prim_notify
 	return sent;
 }
 
+/* actually transmit a message through this AS */
+static int xua_as_transmit_msg(struct osmo_ss7_as *as, struct msgb *msg)
+{
+	struct osmo_ss7_asp *asp;
+	unsigned int i;
+
+	/* FIXME: proper selection of the ASP based on the SLS and the
+	 * traffic mode type! */
+	for (i = 0; i < ARRAY_SIZE(as->cfg.asps); i++) {
+		asp = as->cfg.asps[i];
+		if (!asp)
+			continue;
+		if (asp)
+			break;
+	}
+
+	if (!asp) {
+		LOGPFSM(as->fi, "No ASP in AS, dropping message\n");
+		msgb_free(msg);
+		return -1;
+	}
+
+	return osmo_ss7_asp_send(asp, msg);
+}
+
 
 /***********************************************************************
  * Actual FSM
  ***********************************************************************/
 
 #define S(x)	(1 << (x))
+
+#define MSEC_TO_S_US(x)		(x/1000), ((x%1000)*10)
 
 enum xua_as_state {
 	XUA_AS_S_DOWN,
@@ -83,11 +110,17 @@ static const struct value_string xua_as_event_names[] = {
 	{ XUA_ASPAS_ASP_INACTIVE_IND, 	"ASPAS-ASP_INACTIVE.ind" },
 	{ XUA_ASPAS_ASP_DOWN_IND,	"ASPAS-ASP_DOWN.ind" },
 	{ XUA_ASPAS_ASP_ACTIVE_IND,	"ASPAS-ASP_ACTIVE.ind" },
+	{ XUA_AS_E_RECOVERY_EXPD,	"AS-T_REC_EXPD.ind" },
+	{ XUA_AS_E_TRANSFER_REQ,	"AS-TRANSFER.req" },
 	{ 0, NULL }
 };
 
 struct xua_as_fsm_priv {
 	struct osmo_ss7_as *as;
+	struct {
+		struct osmo_timer_list t_r;
+		struct llist_head queued_msgs;
+	} recovery;
 };
 
 /* is any other ASP in this AS in state != DOWN? */
@@ -130,6 +163,11 @@ static bool check_any_other_asp_in_active(struct osmo_ss7_as *as, struct osmo_ss
 	return false;
 }
 
+static void t_r_callback(void *_fi)
+{
+	struct osmo_fsm_inst *fi = _fi;
+	osmo_fsm_inst_dispatch(fi, XUA_AS_E_RECOVERY_EXPD, NULL);
+}
 
 static void xua_as_fsm_down(struct osmo_fsm_inst *fi, uint32_t event, void *data)
 {
@@ -205,16 +243,20 @@ static void xua_as_fsm_inactive(struct osmo_fsm_inst *fi, uint32_t event, void *
 static void xua_as_fsm_active(struct osmo_fsm_inst *fi, uint32_t event, void *data)
 {
 	struct xua_as_fsm_priv *xafp = (struct xua_as_fsm_priv *) fi->priv;
-	struct osmo_ss7_asp *asp = data;
+	struct osmo_ss7_asp *asp;
+	struct msgb *msg;
 
 	switch (event) {
 	case XUA_ASPAS_ASP_DOWN_IND:
 	case XUA_ASPAS_ASP_INACTIVE_IND:
+		asp = data;
 		if (check_any_other_asp_in_active(xafp->as, asp)) {
 			/* ignore, we stay AS_ACTIVE */
 		} else {
+			uint32_t recovery_msec = xafp->as->cfg.recovery_timeout_msec;
 			osmo_fsm_inst_state_chg(fi, XUA_AS_S_PENDING, 0, 0);
-			/* FIXME: Start T(r) */
+			/* Start T(r) */
+			osmo_timer_schedule(&xafp->recovery.t_r, MSEC_TO_S_US(recovery_msec));
 			/* FIXME: Queue all signalling messages until
 			 * recovery or T(r) expiry */
 		}
@@ -222,21 +264,44 @@ static void xua_as_fsm_active(struct osmo_fsm_inst *fi, uint32_t event, void *da
 	case XUA_ASPAS_ASP_ACTIVE_IND:
 		/* ignore */
 		break;
+	case XUA_AS_E_TRANSFER_REQ:
+		/* message for transmission */
+		msg = data;
+		xua_as_transmit_msg(xafp->as, msg);
+		break;
 	}
 }
 
 static void xua_as_fsm_pending(struct osmo_fsm_inst *fi, uint32_t event, void *data)
 {
+	struct xua_as_fsm_priv *xafp = (struct xua_as_fsm_priv *) fi->priv;
+	struct msgb *msg;
+
 	switch (event) {
 	case XUA_ASPAS_ASP_ACTIVE_IND:
 		/* one ASP transitions into ASP-ACTIVE */
+		osmo_timer_del(&xafp->recovery.t_r);
 		osmo_fsm_inst_state_chg(fi, XUA_AS_S_ACTIVE, 0, 0);
+		/* push out any pending queued messages */
+		while ((msg = msgb_dequeue(&xafp->recovery.queued_msgs)))
+			xua_as_transmit_msg(xafp->as, msg);
 		break;
 	case XUA_ASPAS_ASP_INACTIVE_IND:
 		/* ignore */
 		break;
 	case XUA_ASPAS_ASP_DOWN_IND:
 		/* ignore */
+		break;
+	case XUA_AS_E_RECOVERY_EXPD:
+		LOGPFSM(fi, "T(r) expired; dropping queued messages\n");
+		while ((msg = msgb_dequeue(&xafp->recovery.queued_msgs)))
+			talloc_free(msg);
+		osmo_fsm_inst_state_chg(fi, XUA_AS_S_DOWN, 0, 0);
+		break;
+	case XUA_AS_E_TRANSFER_REQ:
+		/* enqueue the to-be-transferred message */
+		msg = data;
+		msgb_enqueue(&xafp->recovery.queued_msgs, msg);
 		break;
 	}
 }
@@ -264,7 +329,8 @@ static const struct osmo_fsm_state xua_as_fsm_states[] = {
 	[XUA_AS_S_ACTIVE] = {
 		.in_event_mask = S(XUA_ASPAS_ASP_DOWN_IND) |
 				 S(XUA_ASPAS_ASP_INACTIVE_IND) |
-				 S(XUA_ASPAS_ASP_ACTIVE_IND),
+				 S(XUA_ASPAS_ASP_ACTIVE_IND) |
+				 S(XUA_AS_E_TRANSFER_REQ),
 		.out_state_mask = S(XUA_AS_S_ACTIVE) |
 				  S(XUA_AS_S_PENDING),
 		.name = "AS_ACTIVE",
@@ -274,7 +340,9 @@ static const struct osmo_fsm_state xua_as_fsm_states[] = {
 	[XUA_AS_S_PENDING] = {
 		.in_event_mask = S(XUA_ASPAS_ASP_INACTIVE_IND) |
 				 S(XUA_ASPAS_ASP_DOWN_IND) |
-				 S(XUA_ASPAS_ASP_ACTIVE_IND),
+				 S(XUA_ASPAS_ASP_ACTIVE_IND) |
+				 S(XUA_AS_E_TRANSFER_REQ) |
+				 S(XUA_AS_E_RECOVERY_EXPD),
 		.out_state_mask = S(XUA_AS_S_DOWN) |
 				  S(XUA_AS_S_INACTIVE) |
 				  S(XUA_AS_S_ACTIVE) |
@@ -310,6 +378,9 @@ struct osmo_fsm_inst *xua_as_fsm_start(struct osmo_ss7_as *as, int log_level)
 		return NULL;
 	}
 	xafp->as = as;
+	xafp->recovery.t_r.cb = t_r_callback;
+	xafp->recovery.t_r.data = fi;
+	INIT_LLIST_HEAD(&xafp->recovery.queued_msgs);
 
 	fi->priv = xafp;
 

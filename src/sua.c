@@ -40,6 +40,7 @@
 #include <osmocom/sigtran/protocol/m3ua.h>
 #include <osmocom/sigtran/osmo_ss7.h>
 
+#include "xua_as_fsm.h"
 #include "xua_asp_fsm.h"
 #include "xua_internal.h"
 #include "sccp_internal.h"
@@ -252,18 +253,38 @@ static struct xua_msg *sua_gen_error_msg(uint32_t err_code, struct msgb *msg)
  * Transmitting SUA messsages to SCTP
  ***********************************************************************/
 
-static int sua_tx_xua_asp(struct osmo_ss7_asp *asp, struct xua_msg *xua)
+static struct msgb *sua_to_msg(struct xua_msg *xua)
 {
 	struct msgb *msg = xua_to_msg(SUA_VERSION, xua);
 
-	OSMO_ASSERT(asp->cfg.proto == OSMO_SS7_ASP_PROT_SUA);
-
 	if (!msg) {
-		LOGPASP(asp, DLSUA, LOGL_ERROR, "Error encoding SUA Msg\n");
-		return -1;
+		LOGP(DLSUA, LOGL_ERROR, "Error encoding SUA Msg\n");
+		return NULL;
 	}
 
+	switch (xua->hdr.msg_class) {
+	case SUA_MSGC_CL:
+	case SUA_MSGC_CO:
+		msgb_sctp_stream(msg) = 1;
+		break;
+	default:
+		msgb_sctp_stream(msg) = 0;
+		break;
+	}
 	msgb_sctp_ppid(msg) = SUA_PPID;
+
+	return msg;
+}
+
+static int sua_tx_xua_asp(struct osmo_ss7_asp *asp, struct xua_msg *xua)
+{
+	struct msgb *msg = sua_to_msg(xua);
+
+	OSMO_ASSERT(asp->cfg.proto == OSMO_SS7_ASP_PROT_SUA);
+
+	if (!msg)
+		return -1;
+
 	return osmo_ss7_asp_send(asp, msg);
 }
 
@@ -273,25 +294,25 @@ static int sua_tx_xua_asp(struct osmo_ss7_asp *asp, struct xua_msg *xua)
  *  \return 0 on success; negative on error */
 int sua_tx_xua_as(struct osmo_ss7_as *as, struct xua_msg *xua)
 {
-	struct osmo_ss7_asp *asp;
-	unsigned int i;
+	struct msgb *msg;
+	int rc;
 
 	OSMO_ASSERT(as->cfg.proto == OSMO_SS7_ASP_PROT_SUA);
 
-	/* FIXME: Select ASP within AS depending on traffic mode */
-	for (i = 0; i < ARRAY_SIZE(as->cfg.asps); i++) {
-		asp = as->cfg.asps[i];
-		if (!asp)
-			continue;
-		if (asp)
-			break;
-	}
-	if (!asp) {
-		LOGP(DLSUA, LOGL_ERROR, "No ASP in AS, dropping message\n");
-		return -ENODEV;
-	}
+	/* Add RC for this AS */
+	if (as->cfg.routing_key.context)
+		xua_msg_add_u32(xua, SUA_IEI_ROUTE_CTX, as->cfg.routing_key.context);
 
-	return sua_tx_xua_asp(asp, xua);
+	msg = sua_to_msg(xua);
+	if (!msg)
+		return -1;
+
+	/* send the msg to the AS for transmission.  The AS FSM might
+	 * (depending on its state) enqueue it before trnsmission */
+	rc = osmo_fsm_inst_dispatch(as->fi, XUA_AS_E_TRANSFER_REQ, msg);
+	if (rc < 0)
+		msgb_free(msg);
+	return rc;
 }
 
 /***********************************************************************

@@ -39,6 +39,7 @@
 #include <osmocom/sigtran/protocol/m3ua.h>
 #include <osmocom/sigtran/protocol/sua.h>
 
+#include "xua_as_fsm.h"
 #include "xua_asp_fsm.h"
 #include "xua_internal.h"
 
@@ -420,16 +421,14 @@ int m3ua_decode_notify(struct osmo_xlm_prim_notify *npar, void *ctx,
  * Transmitting M3UA messsages to SCTP
  ***********************************************************************/
 
-/* transmit given xua_msg via given ASP. callee takes xua ownership */
-static int m3ua_tx_xua_asp(struct osmo_ss7_asp *asp, struct xua_msg *xua)
+/* Convert M3UA from xua_msg to msgb and set PPID/stream */
+static struct msgb *m3ua_to_msg(struct xua_msg *xua)
 {
 	struct msgb *msg = xua_to_msg(M3UA_VERSION, xua);
 
-	OSMO_ASSERT(asp->cfg.proto == OSMO_SS7_ASP_PROT_M3UA);
-
 	if (!msg) {
 		LOGP(DLM3UA, LOGL_ERROR, "Error encoding M3UA Msg\n");
-		return -1;
+		return NULL;
 	}
 
 	if (xua->hdr.msg_class == M3UA_MSGC_XFER)
@@ -437,6 +436,20 @@ static int m3ua_tx_xua_asp(struct osmo_ss7_asp *asp, struct xua_msg *xua)
 	else
 		msgb_sctp_stream(msg) = 0;
 	msgb_sctp_ppid(msg) = M3UA_PPID;
+
+	return msg;
+}
+
+/* transmit given xua_msg via given ASP */
+static int m3ua_tx_xua_asp(struct osmo_ss7_asp *asp, struct xua_msg *xua)
+{
+	struct msgb *msg = m3ua_to_msg(xua);
+
+	OSMO_ASSERT(asp->cfg.proto == OSMO_SS7_ASP_PROT_M3UA);
+
+	if (!msg)
+		return -1;
+
 	return osmo_ss7_asp_send(asp, msg);
 }
 
@@ -446,8 +459,8 @@ static int m3ua_tx_xua_asp(struct osmo_ss7_asp *asp, struct xua_msg *xua)
  *  \return 0 on success; negative on error */
 int m3ua_tx_xua_as(struct osmo_ss7_as *as, struct xua_msg *xua)
 {
-	struct osmo_ss7_asp *asp;
-	unsigned int i;
+	struct msgb *msg;
+	int rc;
 
 	OSMO_ASSERT(as->cfg.proto == OSMO_SS7_ASP_PROT_M3UA);
 
@@ -455,19 +468,16 @@ int m3ua_tx_xua_as(struct osmo_ss7_as *as, struct xua_msg *xua)
 	if (as->cfg.routing_key.context)
 		xua_msg_add_u32(xua, M3UA_IEI_ROUTE_CTX, as->cfg.routing_key.context);
 
-	for (i = 0; i < ARRAY_SIZE(as->cfg.asps); i++) {
-		asp = as->cfg.asps[i];
-		if (!asp)
-			continue;
-		if (asp)
-			break;
-	}
-	if (!asp) {
-		LOGP(DLM3UA, LOGL_ERROR, "No ASP entroy in AS, dropping message\n");
-		return -ENODEV;
-	}
+	msg = m3ua_to_msg(xua);
+	if (!msg)
+		return -1;
 
-	return m3ua_tx_xua_asp(asp, xua);
+	/* send the msg to the AS for transmission.  The AS FSM might
+	 * (depending on its state) enqueue it before trnsmission */
+	rc = osmo_fsm_inst_dispatch(as->fi, XUA_AS_E_TRANSFER_REQ, msg);
+	if (rc < 0)
+		msgb_free(msg);
+	return rc;
 }
 
 /***********************************************************************
