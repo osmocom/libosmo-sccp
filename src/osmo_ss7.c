@@ -1405,6 +1405,9 @@ static int xua_srv_conn_closed_cb(struct osmo_stream_srv *srv)
 	LOGP(DLSS7, LOGL_INFO, "%s: SCTP connection closed\n",
 		asp ? asp->cfg.name : "?");
 
+	if (!asp)
+		return 0;
+
 	/* notify ASP FSM and everyone else */
 	osmo_fsm_inst_dispatch(asp->fi, XUA_ASP_E_SCTP_COMM_DOWN_IND, NULL);
 
