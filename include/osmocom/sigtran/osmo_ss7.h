@@ -291,6 +291,9 @@ struct osmo_ss7_as {
 		enum osmo_ss7_as_traffic_mode mode;
 		uint32_t recovery_timeout_msec;
 		uint8_t qos_class;
+		struct {
+			uint32_t dpc;
+		} pc_override;;
 
 		struct osmo_ss7_asp *asps[16];
 	} cfg;

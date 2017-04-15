@@ -116,10 +116,33 @@ static int ipa_rx_msg_ccm(struct osmo_ss7_asp *asp, struct msgb *msg)
 	return 0;
 }
 
+static struct osmo_ss7_as *find_as_for_asp(struct osmo_ss7_asp *asp)
+{
+	struct osmo_ss7_as *as;
+
+	/* in the IPA case, weassume there is a 1:1 mapping between the
+	 * ASP and the AS.  An AS without ASP means there is no
+	 * connection, and an ASP without AS means that we don't (yet?)
+	 * know the identity of the peer */
+
+	llist_for_each_entry(as, &asp->inst->as_list, list) {
+		if (osmo_ss7_as_has_asp(as, asp))
+			return as;
+	}
+	return NULL;
+}
+
 static int ipa_rx_msg_sccp(struct osmo_ss7_asp *asp, struct msgb *msg)
 {
 	struct m3ua_data_hdr data_hdr;
 	struct xua_msg *xua = xua_msg_alloc();
+	struct osmo_ss7_as *as = find_as_for_asp(asp);
+
+	if (!as) {
+		LOGPASP(asp, DLSS7, LOGL_ERROR, "Rx message for IPA ASP without AS?!\n");
+		msgb_free(msg);
+		return -1;
+	}
 
 	/* pull the IPA header */
 	msgb_pull_to_l2(msg);
@@ -142,9 +165,18 @@ static int ipa_rx_msg_sccp(struct osmo_ss7_asp *asp, struct msgb *msg)
 	 */
 
 	memset(&data_hdr, 0, sizeof(data_hdr));
-	data_hdr.opc = 0;//FIXME;
-	data_hdr.dpc = 0;//FIXME;
 	data_hdr.si = MTP_SI_SCCP;
+	if (asp->cfg.is_server) {
+		/* Source: the PC of the routing key */
+		data_hdr.opc = as->cfg.routing_key.pc;
+		/* Destination: Based on VTY config */
+		data_hdr.dpc = as->cfg.pc_override.dpc;
+	} else {
+		/* Source: Based on VTY config */
+		data_hdr.opc = as->cfg.pc_override.dpc;
+		/* Destination: PC of the routing key */
+		data_hdr.dpc = as->cfg.routing_key.pc;
+	}
 	xua = m3ua_xfer_from_data(&data_hdr, msgb_l2(msg), msgb_l2len(msg));
 
 	return m3ua_hmdc_rx_from_l2(asp->inst, xua);

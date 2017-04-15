@@ -789,6 +789,28 @@ DEFUN(as_rout_key, as_rout_key_cmd,
 	return CMD_SUCCESS;
 }
 
+DEFUN(as_pc_override, as_pc_override_cmd,
+	"point-code override dpc PC",
+	"Point Code Specific Features\n"
+	"Override (force) a point-code to hard-coded value\n"
+	"Override Source Point Code\n"
+	"Override Destination Point Code\n"
+	"New Point Code\n")
+{
+	struct osmo_ss7_as *as = vty->index;
+	uint32_t pc = osmo_ss7_pointcode_parse(as->inst, argv[0]);
+
+	if (as->cfg.proto != OSMO_SS7_ASP_PROT_IPA) {
+		vty_out(vty, "Only IPA type AS support point-code override. "
+			"Be happy that you don't need it!%s", VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	as->cfg.pc_override.dpc = pc;
+
+	return CMD_SUCCESS;
+}
+
 static void write_one_as(struct vty *vty, struct osmo_ss7_as *as)
 {
 	struct osmo_ss7_routing_key *rkey;
@@ -826,6 +848,10 @@ static void write_one_as(struct vty *vty, struct osmo_ss7_as *as)
 	if (rkey->ssn)
 		vty_out(vty, " ssn %u", rkey->ssn);
 	vty_out(vty, "%s", VTY_NEWLINE);
+
+	if (as->cfg.pc_override.dpc)
+		vty_out(vty, " point-code override dpc %s%s",
+			osmo_ss7_pointcode_print(as->inst, as->cfg.pc_override.dpc), VTY_NEWLINE);
 }
 
 DEFUN(show_cs7_as, show_cs7_as_cmd,
@@ -1012,6 +1038,7 @@ static void vty_init_shared(void)
 	install_element(L_CS7_AS_NODE, &as_recov_tout_cmd);
 	install_element(L_CS7_AS_NODE, &as_qos_class_cmd);
 	install_element(L_CS7_AS_NODE, &as_rout_key_cmd);
+	install_element(L_CS7_AS_NODE, &as_pc_override_cmd);
 }
 
 void osmo_ss7_vty_init_asp(void)
