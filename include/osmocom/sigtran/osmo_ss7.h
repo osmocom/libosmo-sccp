@@ -309,6 +309,7 @@ int osmo_ss7_as_del_asp(struct osmo_ss7_as *as, const char *asp_name);
 void osmo_ss7_as_destroy(struct osmo_ss7_as *as);
 bool osmo_ss7_as_has_asp(struct osmo_ss7_as *as,
 			 struct osmo_ss7_asp *asp);
+void osmo_ss7_asp_disconnect(struct osmo_ss7_asp *asp);
 
 
 /***********************************************************************

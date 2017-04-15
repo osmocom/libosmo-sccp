@@ -1543,6 +1543,15 @@ int osmo_ss7_asp_send(struct osmo_ss7_asp *asp, struct msgb *msg)
 	return 0;
 }
 
+void osmo_ss7_asp_disconnect(struct osmo_ss7_asp *asp)
+{
+	if (asp->server)
+		osmo_stream_srv_destroy(asp->server);
+		/* the close_cb() will handle the remaining cleanup here */
+	else if (asp->client)
+		xua_cli_close_and_reconnect(asp->client);
+}
+
 /***********************************************************************
  * SS7 xUA Server
  ***********************************************************************/
