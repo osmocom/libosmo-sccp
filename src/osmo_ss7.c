@@ -1497,6 +1497,7 @@ static int xua_accept_cb(struct osmo_stream_srv_link *link, int fd)
 	osmo_stream_srv_set_data(srv, asp);
 
 	/* send M-SCTP_ESTABLISH.ind to Layer Manager */
+	osmo_fsm_inst_dispatch(asp->fi, XUA_ASP_E_SCTP_EST_IND, 0);
 	xua_asp_send_xlm_prim_simple(asp, OSMO_XLM_PRIM_M_SCTP_ESTABLISH, PRIM_OP_INDICATION);
 
 	return 0;

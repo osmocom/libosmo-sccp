@@ -55,6 +55,7 @@ static const struct value_string xua_asp_event_names[] = {
 
 	{ XUA_ASP_E_SCTP_COMM_DOWN_IND,	"SCTP-COMM_DOWN.ind" },
 	{ XUA_ASP_E_SCTP_RESTART_IND,	"SCTP-RESTART.ind" },
+	{ XUA_ASP_E_SCTP_EST_IND,	"SCTP-EST.ind" },
 
 	{ XUA_ASP_E_ASPSM_ASPUP,	"ASPSM-ASP_UP" },
 	{ XUA_ASP_E_ASPSM_ASPUP_ACK,	"ASPSM-ASP_UP_ACK" },
@@ -368,6 +369,8 @@ static void xua_asp_fsm_down(struct osmo_fsm_inst *fi, uint32_t event, void *dat
 		 * the ASP is already marked as ASP-DOWN at the SGP. */
 		peer_send(fi, XUA_ASP_E_ASPSM_ASPDN_ACK, NULL);
 		break;
+	case XUA_ASP_E_SCTP_EST_IND:
+		break;
 	}
 }
 
@@ -597,7 +600,8 @@ static const struct osmo_fsm_state xua_asp_states[] = {
 		.in_event_mask = S(XUA_ASP_E_M_ASP_UP_REQ) |
 				 S(XUA_ASP_E_ASPSM_ASPUP) |
 				 S(XUA_ASP_E_ASPSM_ASPUP_ACK) |
-				 S(XUA_ASP_E_ASPSM_ASPDN),
+				 S(XUA_ASP_E_ASPSM_ASPDN) |
+				 S(XUA_ASP_E_SCTP_EST_IND),
 		.out_state_mask = S(XUA_ASP_S_INACTIVE),
 		.name = "ASP_DOWN",
 		.action = xua_asp_fsm_down,
