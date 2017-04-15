@@ -48,7 +48,6 @@
 #include "xua_asp_fsm.h"
 #include "xua_as_fsm.h"
 
-#define ASP_MSGB_SIZE	1500
 #define MAX_PC_STR_LEN 32
 
 static bool ss7_initialized = false;
@@ -1274,7 +1273,7 @@ static int xua_srv_conn_cb(struct osmo_stream_srv *conn)
 {
 	struct osmo_fd *ofd = osmo_stream_srv_get_ofd(conn);
 	struct osmo_ss7_asp *asp = osmo_stream_srv_get_data(conn);
-	struct msgb *msg = msgb_alloc(ASP_MSGB_SIZE, "xUA Server Rx");
+	struct msgb *msg = m3ua_msgb_alloc("xUA Server Rx");
 	struct sctp_sndrcvinfo sinfo;
 	unsigned int ppid;
 	int flags = 0;
@@ -1414,7 +1413,7 @@ static int xua_cli_read_cb(struct osmo_stream_cli *conn)
 {
 	struct osmo_fd *ofd = osmo_stream_cli_get_ofd(conn);
 	struct osmo_ss7_asp *asp = osmo_stream_cli_get_data(conn);
-	struct msgb *msg = msgb_alloc(ASP_MSGB_SIZE, "xUA Client Rx");
+	struct msgb *msg = m3ua_msgb_alloc("xUA Client Rx");
 	struct sctp_sndrcvinfo sinfo;
 	unsigned int ppid;
 	int flags = 0;
