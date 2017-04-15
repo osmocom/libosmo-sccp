@@ -1306,7 +1306,6 @@ static int xua_srv_conn_cb(struct osmo_stream_srv *conn)
 		switch (notif->sn_header.sn_type) {
 		case SCTP_SHUTDOWN_EVENT:
 			osmo_stream_srv_destroy(conn);
-			osmo_fsm_inst_dispatch(asp->fi, XUA_ASP_E_SCTP_COMM_DOWN_IND, asp);
 			break;
 		case SCTP_ASSOC_CHANGE:
 			if (notif->sn_assoc_change.sac_state == SCTP_RESTART)
@@ -1370,7 +1369,7 @@ static void xua_cli_close(struct osmo_stream_cli *cli)
 	struct osmo_ss7_asp *asp = osmo_stream_cli_get_data(cli);
 
 	osmo_stream_cli_close(cli);
-
+	osmo_fsm_inst_dispatch(asp->fi, XUA_ASP_E_SCTP_COMM_DOWN_IND, asp);
 	/* send M-SCTP_RELEASE.ind to XUA Layer Manager */
 	xua_asp_send_xlm_prim_simple(asp, OSMO_XLM_PRIM_M_SCTP_RELEASE, PRIM_OP_INDICATION);
 }
@@ -1398,12 +1397,12 @@ static int ipa_cli_read_cb(struct osmo_stream_cli *conn)
 			/* more data needed */
 			return 0;
 		}
-		osmo_stream_cli_reconnect(conn);
+		xua_cli_close_and_reconnect(conn);
 		return rc;
 	}
 	if (osmo_ipa_process_msg(msg) < 0) {
 		LOGPASP(asp, DLSS7, LOGL_ERROR, "Bad IPA message\n");
-		osmo_stream_cli_reconnect(conn);
+		xua_cli_close_and_reconnect(conn);
 		msgb_free(msg);
 		return -1;
 	}
@@ -1445,7 +1444,6 @@ static int xua_cli_read_cb(struct osmo_stream_cli *conn)
 
 		switch (notif->sn_header.sn_type) {
 		case SCTP_SHUTDOWN_EVENT:
-			osmo_fsm_inst_dispatch(asp->fi, XUA_ASP_E_SCTP_COMM_DOWN_IND, asp);
 			xua_cli_close_and_reconnect(conn);
 			break;
 		case SCTP_ASSOC_CHANGE:
