@@ -51,27 +51,12 @@ struct osmo_mtp_prim *m3ua_to_xfer_ind(struct xua_msg *xua)
 static struct xua_msg *mtp_prim_to_m3ua(struct osmo_mtp_prim *prim)
 {
 	struct msgb *msg = prim->oph.msg;
-	struct xua_msg *xua = xua_msg_alloc();
 	struct osmo_mtp_transfer_param *param = &prim->u.transfer;
-	struct xua_msg_part *data_part;
 	struct m3ua_data_hdr data_hdr;
 
 	mtp_xfer_param_to_m3ua_dh(&data_hdr, param);
 
-	xua->hdr = XUA_HDR(M3UA_MSGC_XFER, M3UA_XFER_DATA);
-	/* Network Appearance: Optional */
-	/* Routing Context: Conditional */
-	/* Protocol Data: Mandatory */
-	data_part = talloc_zero(xua, struct xua_msg_part);
-	data_part->tag = M3UA_IEI_PROT_DATA;
-	data_part->len = sizeof(data_hdr) + msgb_l2len(msg);
-	data_part->dat = talloc_size(data_part, data_part->len);
-	memcpy(data_part->dat, &data_hdr, sizeof(data_hdr));
-	memcpy(data_part->dat+sizeof(data_hdr), msgb_l2(msg), msgb_l2len(msg));
-	llist_add_tail(&data_part->entry, &xua->headers);
-	/* Correlation Id: Optional */
-
-	return xua;
+	return m3ua_xfer_from_data(&data_hdr, msgb_l2(msg), msgb_l2len(msg));
 }
 
 /* delivery given XUA message to given SS7 user */

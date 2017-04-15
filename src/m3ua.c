@@ -318,6 +318,30 @@ struct msgb *m3ua_msgb_alloc(const char *name)
 				   M3UA_MSG_HEADROOM, name);
 }
 
+struct xua_msg *m3ua_xfer_from_data(const struct m3ua_data_hdr *data_hdr,
+				    const uint8_t *data, unsigned int data_len)
+{
+	struct xua_msg *xua = xua_msg_alloc();
+	struct xua_msg_part *data_part;
+
+	xua->hdr = XUA_HDR(M3UA_MSGC_XFER, M3UA_XFER_DATA);
+	/* Network Appearance: Optional */
+	/* Routing Context: Conditional */
+	/* Protocol Data: Mandatory */
+	data_part = talloc_zero(xua, struct xua_msg_part);
+	OSMO_ASSERT(data_part);
+	data_part->tag = M3UA_IEI_PROT_DATA;
+	data_part->len = sizeof(*data_hdr) + data_len;
+	data_part->dat = talloc_size(data_part, data_part->len);
+	OSMO_ASSERT(data_part->dat);
+	memcpy(data_part->dat, data_hdr, sizeof(*data_hdr));
+	memcpy(data_part->dat+sizeof(*data_hdr), data, data_len);
+	llist_add_tail(&data_part->entry, &xua->headers);
+	/* Correlation Id: Optional */
+
+	return xua;
+}
+
 /***********************************************************************
  * ERROR generation
  ***********************************************************************/
