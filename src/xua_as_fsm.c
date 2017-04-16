@@ -296,7 +296,10 @@ static void xua_as_fsm_pending(struct osmo_fsm_inst *fi, uint32_t event, void *d
 		LOGPFSM(fi, "T(r) expired; dropping queued messages\n");
 		while ((msg = msgb_dequeue(&xafp->recovery.queued_msgs)))
 			talloc_free(msg);
-		osmo_fsm_inst_state_chg(fi, XUA_AS_S_DOWN, 0, 0);
+		if (check_any_other_asp_not_down(xafp->as, NULL))
+			osmo_fsm_inst_state_chg(fi, XUA_AS_S_INACTIVE, 0, 0);
+		else
+			osmo_fsm_inst_state_chg(fi, XUA_AS_S_DOWN, 0, 0);
 		break;
 	case XUA_AS_E_TRANSFER_REQ:
 		/* enqueue the to-be-transferred message */
