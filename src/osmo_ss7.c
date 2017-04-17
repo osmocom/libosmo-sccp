@@ -1033,6 +1033,11 @@ osmo_ss7_asp_find_or_create(struct osmo_ss7_instance *inst, const char *name,
 		asp->cfg.proto = proto;
 		asp->cfg.name = talloc_strdup(asp, name);
 		llist_add_tail(&asp->list, &inst->asp_list);
+
+		/* The SUA code internally needs SCCP to work */
+		if (proto == OSMO_SS7_ASP_PROT_SUA && !inst->sccp)
+			inst->sccp = osmo_sccp_instance_create(inst, NULL);
+
 	}
 	return asp;
 }
@@ -1616,6 +1621,10 @@ osmo_ss7_xua_server_create(struct osmo_ss7_instance *inst, enum osmo_ss7_asp_pro
 
 	oxs->inst = inst;
 	llist_add_tail(&oxs->list, &inst->xua_servers);
+
+	/* The SUA code internally needs SCCP to work */
+	if (proto == OSMO_SS7_ASP_PROT_SUA && !inst->sccp)
+		inst->sccp = osmo_sccp_instance_create(inst, NULL);
 
 	return oxs;
 }
