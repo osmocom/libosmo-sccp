@@ -519,6 +519,26 @@ static int sua_rx_co(struct osmo_ss7_asp *asp, struct xua_msg *xua)
 {
 	struct osmo_sccp_instance *inst = asp->inst->sccp;
 
+	OSMO_ASSERT(xua->hdr.msg_class == SUA_MSGC_CO);
+
+	switch (xua->hdr.msg_type) {
+	case 0: /* Reserved, permitted by ETSI TS 101 592 5.2.3.2 */
+	case SUA_CO_CORE:
+	case SUA_CO_COAK:
+	case SUA_CO_COREF:
+	case SUA_CO_RELRE:
+	case SUA_CO_RELCO:
+	case SUA_CO_RESCO:
+	case SUA_CO_RESRE:
+	case SUA_CO_CODT:
+	case SUA_CO_CODA:
+	case SUA_CO_COERR:
+	case SUA_CO_COIT:
+		break;
+	default:
+		return SUA_ERR_UNSUPP_MSG_TYPE;
+	}
+
 	/* We feed into SCRC, which then hands the message into
 	 * either SCLC or SCOC, or forwards it to MTP */
 	return scrc_rx_mtp_xfer_ind_xua(inst, xua);
