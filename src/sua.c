@@ -498,6 +498,17 @@ static int sua_rx_cl(struct osmo_ss7_asp *asp, struct xua_msg *xua)
 {
 	struct osmo_sccp_instance *inst = asp->inst->sccp;
 
+	OSMO_ASSERT(xua->hdr.msg_class == SUA_MSGC_CL);
+
+	switch (xua->hdr.msg_type) {
+	case 0: /* Reserved, permitted by ETSI TS 101 592 5.2.3.2 */
+	case SUA_CL_CLDT:
+	case SUA_CL_CLDR:
+		break;
+	default:
+		return SUA_ERR_UNSUPP_MSG_TYPE;
+	}
+
 	/* We feed into SCRC, which then hands the message into
 	 * either SCLC or SCOC, or forwards it to MTP */
 	return scrc_rx_mtp_xfer_ind_xua(inst, xua);
