@@ -29,6 +29,7 @@
 #include <osmocom/core/logging.h>
 #include <osmocom/core/timer.h>
 #include <osmocom/core/socket.h>
+#include <osmocom/gsm/ipa.h>
 #include <osmocom/gsm/protocol/ipaccess.h>
 
 //#include <osmocom/netif/stream.h>
