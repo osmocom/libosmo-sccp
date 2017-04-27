@@ -145,9 +145,9 @@ static void xua_rkm_send_dereg_req(struct osmo_ss7_asp *asp, uint32_t route_ctx)
 
 /* SG: handle a single registration request IE (nested IEs in 'innner' */
 static int handle_rkey_reg(struct osmo_ss7_asp *asp, struct xua_msg *inner,
-			   struct msgb *resp, struct osmo_ss7_as **newly_assigned_as)
+			   struct msgb *resp, struct osmo_ss7_as **newly_assigned_as,
+			   unsigned int max_nas_idx, unsigned int *nas_idx)
 {
-	unsigned int nas_idx = 0;
 	uint32_t rk_id, rctx, _tmode, dpc;
 	enum osmo_ss7_as_traffic_mode tmode;
 	struct osmo_ss7_as *as;
@@ -245,13 +245,13 @@ static int handle_rkey_reg(struct osmo_ss7_asp *asp, struct xua_msg *inner,
 		}
 
 		/* append to list of newly assigned as */
-		if (nas_idx >= MAX_NEW_AS) {
+		if (*nas_idx >= max_nas_idx) {
 			osmo_ss7_route_destroy(rt);
 			osmo_ss7_as_destroy(as);
 			msgb_append_reg_res(resp, rk_id, M3UA_RKM_REG_ERR_INSUFF_RESRC, 0);
 			return -1;
 		}
-		newly_assigned_as[nas_idx++] = as;
+		newly_assigned_as[(*nas_idx)++] = as;
 	} else {
 		/* not permitted to create dynamic RKM entries */
 		msgb_append_reg_res(resp, rk_id, M3UA_RKM_REG_ERR_PERM_DENIED, 0);
@@ -270,7 +270,7 @@ static int m3ua_rx_rkm_reg_req(struct osmo_ss7_asp *asp, struct xua_msg *xua)
 	struct xua_msg_part *part;
 	struct msgb *resp = m3ua_msgb_alloc(__func__);
 	struct osmo_ss7_as *newly_assigned_as[MAX_NEW_AS];
-	unsigned int i;
+	unsigned int i, nas_idx = 0;
 
 	memset(newly_assigned_as, 0, sizeof(newly_assigned_as));
 
@@ -289,7 +289,8 @@ static int m3ua_rx_rkm_reg_req(struct osmo_ss7_asp *asp, struct xua_msg *xua)
 		}
 		/* handle single registration and append result to
 		 * 'resp' */
-		handle_rkey_reg(asp, inner, resp, newly_assigned_as);
+		handle_rkey_reg(asp, inner, resp, newly_assigned_as,
+				ARRAY_SIZE(newly_assigned_as), &nas_idx);
 
 		xua_msg_free(inner);
 	}
