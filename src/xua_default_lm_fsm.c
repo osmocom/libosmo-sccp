@@ -111,7 +111,7 @@ static int handle_reg_conf(struct osmo_fsm_inst *fi, uint32_t l_rk_id, uint32_t 
 	 * allocated/registered by the SG */
 	as = osmo_ss7_as_find_by_l_rk_id(asp->inst, l_rk_id);
 	if (!as) {
-		LOGPFSM(fi, "RKM Result for unknown l_rk_id %u\n");
+		LOGPFSM(fi, "RKM Result for unknown l_rk_id %u\n", l_rk_id);
 		return -EINVAL;
 	}
 	as->cfg.routing_key.context = rctx;
