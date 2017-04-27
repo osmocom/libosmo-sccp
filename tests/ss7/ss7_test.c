@@ -235,6 +235,7 @@ static void test_as(void)
 
 	OSMO_ASSERT(osmo_ss7_as_find_by_name(s7i, "as1") == NULL);
 	as = osmo_ss7_as_find_or_create(s7i, "as1", OSMO_SS7_ASP_PROT_M3UA);
+	OSMO_ASSERT(as);
 	OSMO_ASSERT(osmo_ss7_as_find_by_name(s7i, "as1") == as);
 	OSMO_ASSERT(osmo_ss7_as_find_by_rctx(s7i, 2342) == NULL);
 	as->cfg.routing_key.context = 2342;
