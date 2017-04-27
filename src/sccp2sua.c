@@ -134,7 +134,8 @@ int osmo_sccp_addr_parse(struct osmo_sccp_addr *out,
 
 	if (sca->point_code_indicator) {
 		out->presence |= OSMO_SCCP_ADDR_T_PC;
-		out->pc = ((cur[1] << 8) & 0x3f) | cur[0];
+		out->pc = (uint16_t) (cur[1] & 0x3f) << 8;
+		out->pc |= cur[0];
 		cur += 2;
 	}
 
