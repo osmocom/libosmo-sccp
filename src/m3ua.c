@@ -412,6 +412,10 @@ int m3ua_decode_notify(struct osmo_xlm_prim_notify *npar, void *ctx,
 
 	/* cannot use xua_msg_get_u32() as it does endian conversion */
 	status_ie = xua_msg_find_tag(xua, M3UA_IEI_STATUS);
+	if (!status_ie) {
+		LOGP(DLM3UA, LOGL_ERROR, "M3UA NOTIFY without Status IE\n");
+		return -1;
+	}
 	status = *(uint32_t *) status_ie->dat;
 
 	aspid_ie = xua_msg_find_tag(xua, M3UA_IEI_ASP_ID);
