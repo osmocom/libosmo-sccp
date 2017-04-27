@@ -156,6 +156,11 @@ static int sclc_rx_cldt(struct osmo_sccp_instance *inst, struct xua_msg *xua)
 	struct osmo_sccp_user *scu;
 	uint32_t protocol_class;
 
+	if (!data_ie) {
+		LOGP(DLSCCP, LOGL_ERROR, "SCCP/SUA CLDT without user data?!?\n");
+		return -1;
+	}
+
 	/* fill primitive */
 	prim = (struct osmo_scu_prim *) msgb_put(upmsg, sizeof(*prim));
 	param = &prim->u.unitdata;
