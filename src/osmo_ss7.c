@@ -442,7 +442,8 @@ int osmo_ss7_user_unregister(struct osmo_ss7_instance *inst, uint8_t service_ind
 	if (user && (inst->user[service_ind] != user))
 		return -EINVAL;
 
-	user->inst = NULL;
+	if (user)
+		user->inst = NULL;
 	inst->user[service_ind] = NULL;
 
 	return 0;
