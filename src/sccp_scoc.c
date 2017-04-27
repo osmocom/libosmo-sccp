@@ -1628,6 +1628,11 @@ int osmo_sccp_user_sap_down(struct osmo_sccp_user *scu, struct osmo_prim_hdr *op
 			goto out;
 		}
 		break;
+	default:
+		LOGP(DLSCCP, LOGL_ERROR, "Received unknown primitive %s\n",
+			osmo_scu_prim_name(&prim->oph));
+		rc = -1;
+		goto out;
 	}
 
 	/* Map from primitive to event */
