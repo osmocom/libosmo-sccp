@@ -881,7 +881,7 @@ static bool sccp_is_mandatory(enum sccp_message_types type, const struct xua_msg
 {
 	unsigned int i;
 
-	if (type > ARRAY_SIZE(sccp_mandatory))
+	if (type >= ARRAY_SIZE(sccp_mandatory))
 		return false;
 
 	for (i = 0; i < MAX_IES; i++) {
@@ -903,7 +903,7 @@ static bool sccp_option_permitted(enum sccp_message_types type, const struct xua
 {
 	unsigned int i;
 
-	if (type > ARRAY_SIZE(sccp_optional))
+	if (type >= ARRAY_SIZE(sccp_optional))
 		return false;
 
 	for (i = 0; i < MAX_IES; i++) {
