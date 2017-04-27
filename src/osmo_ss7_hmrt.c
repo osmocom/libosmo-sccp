@@ -25,7 +25,7 @@ struct osmo_mtp_prim *m3ua_to_xfer_ind(struct xua_msg *xua)
 	struct m3ua_data_hdr *data_hdr;
 	struct msgb *upmsg = m3ua_msgb_alloc("M3UA MTP-TRANSFER.ind");
 
-	if (data_ie->len < sizeof(*data_hdr)) {
+	if (!data_ie || data_ie->len < sizeof(*data_hdr)) {
 		/* FIXME: ERROR message */
 		msgb_free(upmsg);
 		return NULL;
