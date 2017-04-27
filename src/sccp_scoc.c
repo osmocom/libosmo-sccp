@@ -824,7 +824,7 @@ static void scoc_fsm_conn_pend_out(struct osmo_fsm_inst *fi, uint32_t event, voi
 		break;
 	case SCOC_E_CONN_TMR_EXP:
 		/* N-DISCONNECT.ind to user */
-		scu_gen_encode_and_send(conn, event, xua, OSMO_SCU_PRIM_N_DISCONNECT,
+		scu_gen_encode_and_send(conn, event, NULL, OSMO_SCU_PRIM_N_DISCONNECT,
 					PRIM_OP_INDICATION);
 		/* below implicitly releases resources + local ref */
 		osmo_fsm_inst_state_chg(fi, S_IDLE, 0, 0);
