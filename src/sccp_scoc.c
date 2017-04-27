@@ -657,8 +657,8 @@ static void scu_gen_encode_and_send(struct sccp_connection *conn, uint32_t event
 		uconp->calling_addr = conn->calling_addr;
 		uconp->sccp_class = conn->sccp_class;
 		uconp->importance = conn->importance;
-		data_ie = xua_msg_find_tag(xua, SUA_IEI_DATA);
 		if (xua) {
+			data_ie = xua_msg_find_tag(xua, SUA_IEI_DATA);
 			if (data_ie) {
 				struct msgb *upmsg = scu_prim->oph.msg;
 				upmsg->l2h = msgb_put(upmsg, data_ie->len);
