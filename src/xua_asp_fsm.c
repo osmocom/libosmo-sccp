@@ -769,8 +769,10 @@ static void ipa_asp_fsm_down(struct osmo_fsm_inst *fi, uint32_t event, void *dat
 	case XUA_ASP_E_SCTP_EST_IND:
 		if (iafp->role == XUA_ASPFSM_ROLE_SG) {
 			/* Server: Transmit IPA ID GET + Wait for Response */
-			ipa_ccm_send_id_req(fd);
-			osmo_fsm_inst_state_chg(fi, IPA_ASP_S_WAIT_ID_RESP, 10, T_WAIT_ID_RESP);
+			if (fd >= 0) {
+				ipa_ccm_send_id_req(fd);
+				osmo_fsm_inst_state_chg(fi, IPA_ASP_S_WAIT_ID_RESP, 10, T_WAIT_ID_RESP);
+			}
 		} else {
 			/* Client: We simply wait for an ID GET */
 			osmo_fsm_inst_state_chg(fi, IPA_ASP_S_WAIT_ID_GET, 10, T_WAIT_ID_GET);
@@ -818,8 +820,10 @@ static void ipa_asp_fsm_wait_id_resp(struct osmo_fsm_inst *fi, uint32_t event, v
 		osmo_ss7_as_add_asp(as, asp->cfg.name);
 		/* TODO: OAP Authentication? */
 		/* Send ID_ACK */
-		ipaccess_send_id_ack(fd);
-		osmo_fsm_inst_state_chg(fi, IPA_ASP_S_WAIT_ID_ACK2, 10, T_WAIT_ID_ACK);
+		if (fd >= 0) {
+			ipaccess_send_id_ack(fd);
+			osmo_fsm_inst_state_chg(fi, IPA_ASP_S_WAIT_ID_ACK2, 10, T_WAIT_ID_ACK);
+		}
 		break;
 	}
 	return;
@@ -878,8 +882,10 @@ static void ipa_asp_fsm_wait_id_ack(struct osmo_fsm_inst *fi, uint32_t event, vo
 	case IPA_ASP_E_ID_ACK:
 		/* Send ACK2 to server */
 		fd = get_fd_from_iafp(iafp);
-		ipaccess_send_id_ack(fd);
-		osmo_fsm_inst_state_chg(fi, IPA_ASP_S_ACTIVE, 0, 0);
+		if (fd >= 0) {
+			ipaccess_send_id_ack(fd);
+			osmo_fsm_inst_state_chg(fi, IPA_ASP_S_ACTIVE, 0, 0);
+		}
 		break;
 	}
 }
@@ -911,7 +917,8 @@ static void ipa_asp_allstate(struct osmo_fsm_inst *fi, uint32_t event, void *dat
 	case XUA_ASP_E_ASPSM_BEAT:
 		/* PING -> PONG */
 		fd = get_fd_from_iafp(iafp);
-		ipaccess_send_pong(fd);
+		if (fd >= 0)
+			ipaccess_send_pong(fd);
 		break;
 	case XUA_ASP_E_ASPSM_BEAT_ACK:
 		/* stop timer, if any */
