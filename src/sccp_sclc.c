@@ -204,6 +204,11 @@ static int sclc_rx_cldr(struct osmo_sccp_instance *inst, struct xua_msg *xua)
 	struct msgb *upmsg = sccp_msgb_alloc(__func__);
 	struct osmo_sccp_user *scu;
 
+	if (!data_ie) {
+		LOGP(DLSCCP, LOGL_ERROR, "SCCP/SUA CLDR without user data?!?\n");
+		return -1;
+	}
+
 	/* fill primitive */
 	prim = (struct osmo_scu_prim *) msgb_put(upmsg, sizeof(*prim));
 	param = &prim->u.notice;
