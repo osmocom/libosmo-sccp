@@ -32,7 +32,7 @@ static void test_pc_defaults(void)
 	OSMO_ASSERT(s7i->cfg.pc_fmt.component_len[0] == 3);
 	OSMO_ASSERT(s7i->cfg.pc_fmt.component_len[1] == 8);
 	OSMO_ASSERT(s7i->cfg.pc_fmt.component_len[2] == 3);
-	OSMO_ASSERT(s7i->cfg.pc_fmt.delimiter = '.');
+	OSMO_ASSERT(s7i->cfg.pc_fmt.delimiter == '.');
 }
 
 static void parse_print_mask(const char *in)
