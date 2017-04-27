@@ -67,9 +67,9 @@ static int deliver_to_mtp_user(const struct osmo_ss7_user *osu,
 
 	/* Create MTP-TRANSFER.ind and feed to user */
 	prim = m3ua_to_xfer_ind(xua);
-	prim->u.transfer = xua->mtp;
 	if (!prim)
 		return -1;
+	prim->u.transfer = xua->mtp;
 
 	return osu->prim_cb(&prim->oph, (void *) osu->priv);
 }
