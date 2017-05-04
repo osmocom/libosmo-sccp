@@ -483,7 +483,7 @@ static struct xua_msg *xua_gen_msg_co(struct sccp_connection *conn, uint32_t eve
 		xua_msg_add_u32(xua, SUA_IEI_ROUTE_CTX, conn->inst->route_ctx);
 		xua_msg_add_u32(xua, SUA_IEI_PROTO_CLASS, conn->sccp_class);
 		xua_msg_add_u32(xua, SUA_IEI_SRC_REF, conn->conn_id);
-		xua_msg_add_sccp_addr(xua, SUA_IEI_DEST_ADDR, &conn->called_addr);
+		xua_msg_add_sccp_addr(xua, SUA_IEI_SRC_ADDR, &conn->called_addr);
 		xua_msg_add_u32(xua, SUA_IEI_SEQ_CTRL, 0); /* TODO */
 		/* optional: sequence number (class 3 only) */
 		if (conn->calling_addr.presence)
