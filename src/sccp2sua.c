@@ -559,7 +559,7 @@ static void msgb_put_sccp_opt(struct msgb *msg, uint8_t pnc, uint8_t len, const 
  *  \param msg caller-provided message buffer to which option is to be appended
  *  \param[in] opt xUA option/IE (messge part) to be converted+added
  *  \returns 0 in case of success; negative on error */
-static int sccp_msg_add_sua_opt(struct msgb *msg, struct xua_msg_part *opt)
+static int sccp_msg_add_sua_opt(enum sccp_message_types type, struct msgb *msg, struct xua_msg_part *opt)
 {
 	uint32_t tmp32;
 	uint8_t pnc, *lenptr;
@@ -575,7 +575,17 @@ static int sccp_msg_add_sua_opt(struct msgb *msg, struct xua_msg_part *opt)
 		msgb_put_u24be(msg, xua_msg_part_get_u32(opt));
 		break;
 	case SUA_IEI_DEST_ADDR:
-		msgb_put_u8(msg, SCCP_PNC_CALLED_PARTY_ADDRESS);
+		switch (type) {
+		case SCCP_MSG_TYPE_CC:
+		case SCCP_MSG_TYPE_CREF:
+			/* The Destination of a CC message is the
+			 * originator of the connection: Calling Party */
+			msgb_put_u8(msg, SCCP_PNC_CALLING_PARTY_ADDRESS);
+			break;
+		default:
+			msgb_put_u8(msg, SCCP_PNC_CALLED_PARTY_ADDRESS);
+			break;
+		}
 		lenptr = msgb_put(msg, 1);
 		rc = sua_addr_to_sccp(msg, opt);
 		if (rc < 0)
@@ -583,7 +593,17 @@ static int sccp_msg_add_sua_opt(struct msgb *msg, struct xua_msg_part *opt)
 		*lenptr = rc;
 		break;
 	case SUA_IEI_SRC_ADDR:
-		msgb_put_u8(msg, SCCP_PNC_CALLING_PARTY_ADDRESS);
+		switch (type) {
+		case SCCP_MSG_TYPE_CC:
+		case SCCP_MSG_TYPE_CREF:
+			/* The Source of a CC message is the
+			 * responder of the connection: Called Party */
+			msgb_put_u8(msg, SCCP_PNC_CALLED_PARTY_ADDRESS);
+			break;
+		default:
+			msgb_put_u8(msg, SCCP_PNC_CALLING_PARTY_ADDRESS);
+			break;
+		}
 		lenptr = msgb_put(msg, 1);
 		rc = sua_addr_to_sccp(msg, opt);
 		if (rc < 0)
@@ -935,7 +955,7 @@ static int xua_ies_to_sccp_opts(struct msgb *msg, uint8_t *ptr_opt,
 		 * that is already present in mandatory fixed or
 		 * mandatory variable parts of the header */
 		if (!sccp_is_mandatory(type, part) && sccp_option_permitted(type, part))
-			sccp_msg_add_sua_opt(msg, part);
+			sccp_msg_add_sua_opt(type, msg, part);
 	}
 	msgb_put_u8(msg, SCCP_PNC_END_OF_OPTIONAL);
 
