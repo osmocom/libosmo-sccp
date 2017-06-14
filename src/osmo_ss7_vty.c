@@ -262,7 +262,7 @@ DEFUN(cs7_rt_upd, cs7_rt_upd_cmd,
 	"Point Code Length\n"
 	"Specify Destination Linkset\n"
 	"Linkset Name\n"
-	"Specity Priority\n"
+	"Specify Priority\n"
 	"Priority\n"
 	"Specify QoS Class\n"
 	"QoS Class\n"
