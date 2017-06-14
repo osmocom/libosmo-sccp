@@ -89,6 +89,7 @@ struct osmo_ss7_instance {
 		uint8_t network_indicator;
 		struct osmo_ss7_pc_fmt pc_fmt;
 		bool permit_dyn_rkm_alloc;
+		struct llist_head sccp_address_book;
 	} cfg;
 };
 

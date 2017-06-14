@@ -36,6 +36,7 @@
 #include <osmocom/sigtran/protocol/mtp.h>
 
 #include "xua_internal.h"
+#include <osmocom/sigtran/sccp_sap.h>
 
 #define XUA_VAR_STR	"(sua|m3ua|ipa)"
 
@@ -891,6 +892,537 @@ DEFUN(show_cs7_as, show_cs7_as_cmd,
 	return CMD_SUCCESS;
 }
 
+/***********************************************************************
+ * SCCP addressbook handling
+ ***********************************************************************/
+
+/* SCCP addressbook */
+struct osmo_sccp_addr_entry {
+	struct llist_head list;
+	struct osmo_ss7_instance *inst;
+	char name[512];
+	struct osmo_sccp_addr addr;
+};
+
+static struct cmd_node sccpaddr_node = {
+	L_CS7_SCCPADDR_NODE,
+	"%s(config-cs7-sccpaddr)# ",
+	1,
+};
+
+static struct cmd_node sccpaddr_gt_node = {
+	L_CS7_SCCPADDR_GT_NODE,
+	"%s(config-cs7-sccpaddr-gt)# ",
+	1,
+};
+
+/* Pick an SCCP address entry from the addressbook by its name */
+struct osmo_sccp_addr_entry *addr_entry_by_name(const char *name,
+						const struct osmo_ss7_instance
+						*inst)
+{
+	struct osmo_sccp_addr_entry *entry;
+	llist_for_each_entry(entry, &inst->cfg.sccp_address_book, list) {
+		if (strcmp(entry->name, name) == 0)
+			return entry;
+	}
+	return NULL;
+}
+
+/*! \brief Lookup an SCCP address from the addressbook by its name.
+ *  \param[in] lookup-name of the address to lookup
+ *  \param[in] ss7 instance
+ *  \returns SCCP address; NULL on error */
+struct osmo_sccp_addr *osmo_sccp_addr_by_name(const char *name,
+					      const struct osmo_ss7_instance
+					      *ss7)
+{
+	struct osmo_sccp_addr_entry *entry;
+
+	entry = addr_entry_by_name(name, ss7);
+	if (entry)
+		return &entry->addr;
+
+	return NULL;
+}
+
+/*! \brief Reverse lookup the lookup-name of a specified SCCP address.
+ *  \param[in] name of the address to lookup
+ *  \param[in] ss7 instance
+ *  \returns char pointer to the lookup-name; NULL on error */
+char *osmo_sccp_name_by_addr(const struct osmo_sccp_addr *addr,
+			     const struct osmo_ss7_instance *ss7)
+{
+	struct osmo_sccp_addr_entry *entry;
+	llist_for_each_entry(entry, &ss7->cfg.sccp_address_book, list) {
+		if (memcmp(&entry->addr, addr, sizeof(*addr)) == 0)
+			return entry->name;
+	}
+
+	return NULL;
+}
+
+/* Generate VTY configuration file snippet */
+static void write_sccp_addressbook(struct vty *vty,
+				   const struct osmo_ss7_instance *inst)
+{
+	struct osmo_sccp_addr_entry *entry;
+
+	if (llist_empty(&inst->cfg.sccp_address_book))
+		return;
+
+	/* FIXME: Add code to write IP-Addresses */
+
+	llist_for_each_entry(entry, &inst->cfg.sccp_address_book, list) {
+		vty_out(vty, " sccp-address %s%s", entry->name, VTY_NEWLINE);
+		switch (entry->addr.ri) {
+		case OSMO_SCCP_RI_GT:
+			vty_out(vty, "  routing-indicator GT%s", VTY_NEWLINE);
+			break;
+		case OSMO_SCCP_RI_SSN_PC:
+			vty_out(vty, "  routing-indicator PC%s", VTY_NEWLINE);
+			break;
+		case OSMO_SCCP_RI_SSN_IP:
+			vty_out(vty, "  routing-indicator IP%s", VTY_NEWLINE);
+			break;
+		}
+		if (entry->addr.presence & OSMO_SCCP_ADDR_T_PC)
+			vty_out(vty, "  point-code %s%s",
+				osmo_ss7_pointcode_print(entry->inst,
+							 entry->addr.pc),
+				VTY_NEWLINE);
+		if (entry->addr.presence & OSMO_SCCP_ADDR_T_SSN)
+			vty_out(vty, "  subsystem-number %u%s", entry->addr.ssn,
+				VTY_NEWLINE);
+		if (entry->addr.presence & OSMO_SCCP_ADDR_T_GT) {
+			vty_out(vty, "  global-title%s", VTY_NEWLINE);
+			vty_out(vty, "   global-title-indicator %u%s",
+				entry->addr.gt.gti, VTY_NEWLINE);
+			vty_out(vty, "   translation-type %u%s",
+				entry->addr.gt.tt, VTY_NEWLINE);
+			vty_out(vty, "   numbering-plan-indicator %u%s",
+				entry->addr.gt.npi, VTY_NEWLINE);
+			vty_out(vty, "   nature-of-address-indicator %u%s",
+				entry->addr.gt.nai, VTY_NEWLINE);
+			if (strlen(entry->addr.gt.digits))
+				vty_out(vty, "   digits %s%s",
+					entry->addr.gt.digits, VTY_NEWLINE);
+		}
+	}
+}
+
+/* List all addressbook entries */
+DEFUN(cs7_show_sccpaddr, cs7_show_sccpaddr_cmd,
+      "show cs7 instance <0-15> sccp-addressbook",
+      SHOW_STR CS7_STR INST_STR INST_STR "List all SCCP addressbook entries\n")
+{
+	struct osmo_ss7_instance *inst;
+	struct osmo_sccp_addr_entry *entry;
+	int id = atoi(argv[0]);
+#if 0
+	/* FIXME: IP-Address based SCCP-Routing is currently not supported,
+	 * so we leave the related VTY options out for now */
+	char ip_addr_str[INET6_ADDRSTRLEN];
+#endif
+
+	inst = osmo_ss7_instance_find(id);
+	if (!inst) {
+		vty_out(vty, "No SS7 instance %d found%s", id, VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	if (inst->cfg.description)
+		vty_out(vty, "  description %s%s", inst->cfg.description,
+			VTY_NEWLINE);
+
+	if (llist_empty(&inst->cfg.sccp_address_book)) {
+		vty_out(vty, "SCCP addressbook empty!%s", VTY_NEWLINE);
+		return CMD_SUCCESS;
+	}
+
+	vty_out(vty, "%s", VTY_NEWLINE);
+
+	vty_out(vty, "Name         ");
+	vty_out(vty, "RI: ");
+	vty_out(vty, "PC:       ");
+	vty_out(vty, "SSN:       ");
+#if 0
+	/* FIXME: IP-Address based SCCP-Routing is currently not supported,
+	 * so we leave the related VTY options out for now */
+	vty_out(vty, "IP-Address:                            ");
+#endif
+	vty_out(vty, "GT:");
+	vty_out(vty, "%s", VTY_NEWLINE);
+
+	vty_out(vty, "------------ ");
+	vty_out(vty, "--- ");
+	vty_out(vty, "--------- ");
+	vty_out(vty, "---------- ");
+#if 0
+	/* FIXME: IP-Address based SCCP-Routing is currently not supported,
+	 * so we leave the related VTY options out for now */
+	vty_out(vty, "--------------------------------------- ");
+#endif
+	vty_out(vty, "--------------------------------------- ");
+	vty_out(vty, "%s", VTY_NEWLINE);
+
+	llist_for_each_entry(entry, &inst->cfg.sccp_address_book, list) {
+		vty_out(vty, "%-12s ", entry->name);
+
+		/* RI */
+		switch (entry->addr.ri) {
+		case OSMO_SCCP_RI_GT:
+			vty_out(vty, "GT  ");
+			break;
+		case OSMO_SCCP_RI_SSN_PC:
+			vty_out(vty, "PC  ");
+			break;
+		case OSMO_SCCP_RI_SSN_IP:
+			vty_out(vty, "IP  ");
+			break;
+		default:
+			vty_out(vty, "ERR ");
+			break;
+		}
+
+		/* PC */
+		if (entry->addr.presence & OSMO_SCCP_ADDR_T_PC)
+			vty_out(vty, "%-9s ",
+				osmo_ss7_pointcode_print(entry->inst,
+							 entry->addr.pc));
+		else
+			vty_out(vty, "(none)    ");
+
+		/* SSN */
+		if (entry->addr.presence & OSMO_SCCP_ADDR_T_SSN)
+			vty_out(vty, "%-10u ", entry->addr.ssn);
+		else
+			vty_out(vty, "(none)     ");
+#if 0
+		/* FIXME: IP-Address based SCCP-Routing is currently not
+		 * supported, so we leave the related VTY options out for now */
+		/* IP-Address */
+		if (entry->addr.presence & OSMO_SCCP_ADDR_T_IPv4) {
+			inet_ntop(AF_INET, &entry->addr.ip.v4, ip_addr_str,
+				  INET6_ADDRSTRLEN);
+			vty_out(vty, "%-39s ", ip_addr_str);
+		} else if (entry->addr.presence & OSMO_SCCP_ADDR_T_IPv6) {
+			inet_ntop(AF_INET6, &entry->addr.ip.v6, ip_addr_str,
+				  INET6_ADDRSTRLEN);
+			vty_out(vty, "%-39s ", ip_addr_str);
+		} else
+			vty_out(vty, "(none)              ");
+#endif
+		/* GT */
+		if (entry->addr.presence & OSMO_SCCP_ADDR_T_GT) {
+			vty_out(vty, "GTI:%u ", entry->addr.gt.gti);
+			vty_out(vty, "TT:%u ", entry->addr.gt.tt);
+			vty_out(vty, "NPI:%u ", entry->addr.gt.npi);
+			vty_out(vty, "NAI:%u ", entry->addr.gt.nai);
+			if (strlen(entry->addr.gt.digits))
+				vty_out(vty, "%s ", entry->addr.gt.digits);
+		} else
+			vty_out(vty, "(none)");
+		vty_out(vty, "%s", VTY_NEWLINE);
+	}
+	return CMD_SUCCESS;
+}
+
+/* Create a new addressbook entry and switch nodes */
+DEFUN(cs7_sccpaddr, cs7_sccpaddr_cmd,
+      "sccp-address NAME",
+      "Create/Modify an SCCP addressbook entry\n" "Name of the SCCP Address\n")
+{
+	struct osmo_ss7_instance *inst = (struct osmo_ss7_instance *)vty->index;
+	struct osmo_sccp_addr_entry *entry;
+	const char *name = argv[0];
+
+	if (strlen(name) >= sizeof(entry->name)) {
+		vty_out(vty, "sccp address name to long!%s", VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	entry = addr_entry_by_name(name, inst);
+
+	/* Create a new addressbook entry if we can not find an
+	 * already existing entry */
+	if (!entry) {
+		entry = talloc_zero(inst, struct osmo_sccp_addr_entry);
+		osmo_strlcpy(entry->name, name, sizeof(entry->name));
+		llist_add_tail(&entry->list, &inst->cfg.sccp_address_book);
+		entry->addr.ri = OSMO_SCCP_RI_SSN_PC;
+	}
+
+	entry->inst = (struct osmo_ss7_instance *)vty->index;
+	vty->node = L_CS7_SCCPADDR_NODE;
+	vty->index = entry;
+
+	return CMD_SUCCESS;
+}
+
+/* Create a new addressbook entry and switch nodes */
+DEFUN(cs7_sccpaddr_del, cs7_sccpaddr_del_cmd,
+      "no sccp-address NAME",
+      NO_STR "Delete an SCCP addressbook entry\n" "Name of the SCCP Address\n")
+{
+	struct osmo_ss7_instance *inst = (struct osmo_ss7_instance *)vty->index;
+	struct osmo_sccp_addr_entry *entry;
+	const char *name = argv[0];
+
+	entry = addr_entry_by_name(name, inst);
+	if (entry) {
+		llist_del(&entry->list);
+		talloc_free(entry);
+	} else {
+		vty_out(vty, "Addressbook entry not found!%s", VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	return CMD_SUCCESS;
+}
+
+/* Set routing indicator of sccp address */
+DEFUN(cs7_sccpaddr_ri, cs7_sccpaddr_ri_cmd,
+      "routing-indicator (GT|PC|IP)",
+      "Add Routing Indicator\n"
+      "by global-title\n" "by point-code\n" "by ip-address\n")
+{
+	struct osmo_sccp_addr_entry *entry =
+	    (struct osmo_sccp_addr_entry *)vty->index;
+	OSMO_ASSERT(entry);
+	switch (argv[0][0]) {
+	case 'G':
+		entry->addr.ri = OSMO_SCCP_RI_GT;
+		break;
+	case 'P':
+		entry->addr.ri = OSMO_SCCP_RI_SSN_PC;
+		break;
+	case 'I':
+		entry->addr.ri = OSMO_SCCP_RI_SSN_IP;
+		break;
+	}
+	return CMD_SUCCESS;
+}
+
+/* Set point-code number of sccp address */
+DEFUN(cs7_sccpaddr_pc, cs7_sccpaddr_pc_cmd,
+      "point-code POINT_CODE", "Add point-code Number\n" "PC\n")
+{
+	struct osmo_sccp_addr_entry *entry =
+	    (struct osmo_sccp_addr_entry *)vty->index;
+	OSMO_ASSERT(entry);
+	entry->addr.presence |= OSMO_SCCP_ADDR_T_PC;
+	entry->addr.pc = osmo_ss7_pointcode_parse(entry->inst, argv[0]);
+	return CMD_SUCCESS;
+}
+
+/* Remove point-code number from sccp address */
+DEFUN(cs7_sccpaddr_pc_del, cs7_sccpaddr_pc_del_cmd,
+      "no point-code", NO_STR "Remove point-code Number\n")
+{
+	struct osmo_sccp_addr_entry *entry =
+	    (struct osmo_sccp_addr_entry *)vty->index;
+	OSMO_ASSERT(entry);
+	entry->addr.presence &= ~OSMO_SCCP_ADDR_T_PC;
+	entry->addr.pc = 0;
+	return CMD_SUCCESS;
+}
+
+/* Set subsystem number of sccp address */
+DEFUN(cs7_sccpaddr_ssn, cs7_sccpaddr_ssn_cmd,
+      "subsystem-number <0-4294967295>", "Add Subsystem Number\n" "SSN\n")
+{
+	struct osmo_sccp_addr_entry *entry =
+	    (struct osmo_sccp_addr_entry *)vty->index;
+	OSMO_ASSERT(entry);
+	entry->addr.presence |= OSMO_SCCP_ADDR_T_SSN;
+	entry->addr.ssn = atoi(argv[0]);
+	return CMD_SUCCESS;
+}
+
+/* Remove subsystem number from sccp address */
+DEFUN(cs7_sccpaddr_ssn_del, cs7_sccpaddr_ssn_del_cmd,
+      "no subsystem-number", NO_STR "Remove Subsystem Number\n")
+{
+	struct osmo_sccp_addr_entry *entry =
+	    (struct osmo_sccp_addr_entry *)vty->index;
+	OSMO_ASSERT(entry);
+	entry->addr.presence &= ~OSMO_SCCP_ADDR_T_SSN;
+	entry->addr.ssn = 0;
+	return CMD_SUCCESS;
+}
+
+#if 0
+/* FIXME: IP-Address based SCCP-Routing is currently not supported,
+ * so we leave the related VTY options out for now */
+
+/* Set IP Address (V4) of sccp address */
+DEFUN(cs7_sccpaddr_ipv4, cs7_sccpaddr_ipv4_cmd,
+      "ip-address V4 A.B.C.D",
+      "Add IP-Address\n" "Protocol version 4\n" "IP-Address digits\n")
+{
+	struct osmo_sccp_addr_entry *entry =
+	    (struct osmo_sccp_addr_entry *)vty->index;
+	unsigned int rc;
+	uint8_t ip_addr_backup[sizeof(entry->addr.ip)];
+	OSMO_ASSERT(entry);
+
+	/* Create a backup of the existing IP-Address setting */
+	memcpy(ip_addr_backup, &entry->addr.ip, sizeof(entry->addr.ip));
+
+	entry->addr.presence |= OSMO_SCCP_ADDR_T_IPv4;
+	entry->addr.presence &= ~OSMO_SCCP_ADDR_T_IPv6;
+	rc = inet_pton(AF_INET, argv[1], &entry->addr.ip.v4);
+	if (rc <= 0) {
+		vty_out(vty, "Invalid IP-Address format!%s", VTY_NEWLINE);
+		entry->addr.presence &= ~OSMO_SCCP_ADDR_T_IPv4;
+		entry->addr.presence &= ~OSMO_SCCP_ADDR_T_IPv6;
+
+		/* In case of failure, make sure the previous IP-Address
+		 * configuration is restored */
+		memcpy(&entry->addr.ip, ip_addr_backup, sizeof(entry->addr.ip));
+		return CMD_WARNING;
+	}
+	return CMD_SUCCESS;
+}
+
+/* Set IP Address (V6) of sccp address */
+DEFUN(cs7_sccpaddr_ipv6, cs7_sccpaddr_ipv6_cmd,
+      "ip-address V6 A:B:C:D:E:F:G:H",
+      "Add IP-Address\n" "Protocol version 6\n" "IP-Address digits\n")
+{
+	struct osmo_sccp_addr_entry *entry =
+	    (struct osmo_sccp_addr_entry *)vty->index;
+	unsigned int rc;
+	uint8_t ip_addr_backup[sizeof(entry->addr.ip)];
+	OSMO_ASSERT(entry);
+
+	/* Create a backup of the existing IP-Address setting */
+	memcpy(ip_addr_backup, &entry->addr.ip, sizeof(entry->addr.ip));
+
+	entry->addr.presence |= OSMO_SCCP_ADDR_T_IPv6;
+	entry->addr.presence &= ~OSMO_SCCP_ADDR_T_IPv4;
+	rc = inet_pton(AF_INET6, argv[1], &entry->addr.ip.v4);
+	if (rc <= 0) {
+		vty_out(vty, "Invalid IP-Address format!%s", VTY_NEWLINE);
+		entry->addr.presence &= ~OSMO_SCCP_ADDR_T_IPv4;
+		entry->addr.presence &= ~OSMO_SCCP_ADDR_T_IPv6;
+
+		/* In case of failure, make sure the previous IP-Address
+		 * configuration is restored */
+		memcpy(&entry->addr.ip, ip_addr_backup, sizeof(entry->addr.ip));
+		return CMD_WARNING;
+	}
+	return CMD_SUCCESS;
+}
+
+/* Remove IP Address from sccp address */
+DEFUN(cs7_sccpaddr_ip_del, cs7_sccpaddr_ip_del_cmd,
+      "no ip-address", NO_STR "Remove IP-Address\n")
+{
+	struct osmo_sccp_addr_entry *entry =
+	    (struct osmo_sccp_addr_entry *)vty->index;
+	OSMO_ASSERT(entry);
+	entry->addr.presence &= ~OSMO_SCCP_ADDR_T_IPv4;
+	entry->addr.presence &= ~OSMO_SCCP_ADDR_T_IPv6;
+	memset(&entry->addr.ip, 0, sizeof(entry->addr.ip));
+	return CMD_SUCCESS;
+}
+#endif
+
+/* Configure global title and switch nodes */
+DEFUN(cs7_sccpaddr_gt, cs7_sccpaddr_gt_cmd,
+      "global-title", "Add/Modify Global Title\n")
+{
+	struct osmo_sccp_addr_entry *entry =
+	    (struct osmo_sccp_addr_entry *)vty->index;
+	entry->addr.presence |= OSMO_SCCP_ADDR_T_GT;
+	vty->node = L_CS7_SCCPADDR_GT_NODE;
+	return CMD_SUCCESS;
+}
+
+/* Remove global title from sccp address */
+DEFUN(cs7_sccpaddr_gt_del, cs7_sccpaddr_gt_del_cmd,
+      "no global-title", NO_STR "Remove Global Title\n")
+{
+	struct osmo_sccp_addr_entry *entry =
+	    (struct osmo_sccp_addr_entry *)vty->index;
+	OSMO_ASSERT(entry);
+	entry->addr.presence &= ~OSMO_SCCP_ADDR_T_GT;
+	entry->addr.gt = (struct osmo_sccp_gt) {};
+	return CMD_SUCCESS;
+}
+
+/* Set global title inicator of the sccp address gt */
+DEFUN(cs7_sccpaddr_gt_gti, cs7_sccpaddr_gt_gti_cmd,
+      "global-title-indicator <0-15>", "Set Global Title Indicator\n" "GTI\n")
+{
+	struct osmo_sccp_addr_entry *entry =
+	    (struct osmo_sccp_addr_entry *)vty->index;
+	OSMO_ASSERT(entry);
+	entry->addr.gt.gti = atoi(argv[0]);
+	return CMD_SUCCESS;
+}
+
+/* Set global title translation type of the sccp address gt */
+DEFUN(cs7_sccpaddr_gt_tt, cs7_sccpaddr_gt_tt_cmd,
+      "translation-type <0-255>", "Set Global Title Translation Type\n" "TT\n")
+{
+	struct osmo_sccp_addr_entry *entry =
+	    (struct osmo_sccp_addr_entry *)vty->index;
+	OSMO_ASSERT(entry);
+	entry->addr.gt.tt = atoi(argv[0]);
+	return CMD_SUCCESS;
+}
+
+/* Set global title numbering plan indicator of the sccp address gt */
+DEFUN(cs7_sccpaddr_gt_npi, cs7_sccpaddr_gt_npi_cmd,
+      "numbering-plan-indicator <0-15>",
+      "Set Global Title Numbering Plan Indicator\n" "NPI\n")
+{
+	struct osmo_sccp_addr_entry *entry =
+	    (struct osmo_sccp_addr_entry *)vty->index;
+	OSMO_ASSERT(entry);
+	entry->addr.gt.npi = atoi(argv[0]);
+	return CMD_SUCCESS;
+}
+
+/* Set global title nature of address indicator of the sccp address gt */
+DEFUN(cs7_sccpaddr_gt_nai, cs7_sccpaddr_gt_nai_cmd,
+      "nature-of-address-indicator <0-127>",
+      "Set Global Title Nature of Address Indicator\n" "NAI\n")
+{
+	struct osmo_sccp_addr_entry *entry =
+	    (struct osmo_sccp_addr_entry *)vty->index;
+	OSMO_ASSERT(entry);
+	entry->addr.gt.nai = atoi(argv[0]);
+	return CMD_SUCCESS;
+}
+
+/* Set global title digits of the sccp address gt */
+DEFUN(cs7_sccpaddr_gt_digits, cs7_sccpaddr_gt_digits_cmd,
+      "digits DIGITS", "Set Global Title Digits\n" "Number digits\n")
+{
+	struct osmo_sccp_addr_entry *entry =
+	    (struct osmo_sccp_addr_entry *)vty->index;
+	OSMO_ASSERT(entry);
+
+	if (strlen(argv[0]) > sizeof(entry->addr.gt.digits)) {
+		vty_out(vty, "Number too long!%s", VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	memset(entry->addr.gt.digits, 0, sizeof(entry->addr.gt.digits));
+
+	osmo_strlcpy(entry->addr.gt.digits, argv[0],
+		     sizeof(entry->addr.gt.digits));
+	return CMD_SUCCESS;
+}
+
+/***********************************************************************
+ * Common
+ ***********************************************************************/
+
 static void write_one_cs7(struct vty *vty, struct osmo_ss7_instance *inst)
 {
 	struct osmo_ss7_asp *asp;
@@ -944,6 +1476,9 @@ static void write_one_cs7(struct vty *vty, struct osmo_ss7_instance *inst)
 
 	llist_for_each_entry(oxs, &inst->xua_servers, list)
 		write_one_xua(vty, oxs);
+
+	/* Append SCCP Addressbook */
+	write_sccp_addressbook(vty, inst);
 }
 
 
@@ -953,6 +1488,7 @@ int osmo_ss7_vty_go_parent(struct vty *vty)
 	struct osmo_ss7_asp *asp;
 	struct osmo_ss7_route_table *rtbl;
 	struct osmo_xua_server *oxs;
+	struct osmo_sccp_addr_entry *entry;
 
 	switch (vty->node) {
 	case L_CS7_ASP_NODE:
@@ -976,6 +1512,14 @@ int osmo_ss7_vty_go_parent(struct vty *vty)
 		vty->node = L_CS7_NODE;
 		vty->index = oxs->inst;
 		break;
+	case L_CS7_SCCPADDR_NODE:
+		entry = vty->index;
+		vty->node = L_CS7_NODE;
+		vty->index = entry->inst;
+		break;
+	case L_CS7_SCCPADDR_GT_NODE:
+		vty->node = L_CS7_SCCPADDR_NODE;
+		break;
 	case L_CS7_NODE:
 	default:
 		vty->node = CONFIG_NODE;
@@ -992,6 +1536,8 @@ int osmo_ss7_is_config_node(struct vty *vty, int node)
 	case L_CS7_RTABLE_NODE:
 	case L_CS7_XUA_NODE:
 	case L_CS7_AS_NODE:
+	case L_CS7_SCCPADDR_NODE:
+	case L_CS7_SCCPADDR_GT_NODE:
 		return 1;
 	default:
 		return 0;
@@ -1064,6 +1610,38 @@ void osmo_ss7_vty_init_sg(void)
 	install_element(L_CS7_NODE, &no_cs7_xua_cmd);
 	install_element(L_CS7_XUA_NODE, &xua_local_ip_cmd);
 	install_element(L_CS7_XUA_NODE, &xua_accept_dyn_asp_cmd);
+
+	/* Commands for SCCP-Addressbook */
+	install_node(&sccpaddr_node, NULL);
+	vty_install_default(L_CS7_SCCPADDR_NODE);
+	install_element(L_CS7_NODE, &cs7_show_sccpaddr_cmd);
+	install_element(L_CS7_NODE, &cs7_sccpaddr_cmd);
+	install_element(L_CS7_NODE, &cs7_sccpaddr_del_cmd);
+	install_element(L_CS7_SCCPADDR_NODE, &cs7_sccpaddr_pc_del_cmd);
+	install_element(L_CS7_SCCPADDR_NODE, &cs7_sccpaddr_ssn_del_cmd);
+#if 0
+	/* FIXME: IP-Address based SCCP-Routing is currently not supported,
+	 * so we leave the related VTY options out for now */
+	install_element(L_CS7_SCCPADDR_NODE, &cs7_sccpaddr_ip_del_cmd);
+#endif
+	install_element(L_CS7_SCCPADDR_NODE, &cs7_sccpaddr_gt_del_cmd);
+	install_element(L_CS7_SCCPADDR_NODE, &cs7_sccpaddr_ri_cmd);
+	install_element(L_CS7_SCCPADDR_NODE, &cs7_sccpaddr_pc_cmd);
+	install_element(L_CS7_SCCPADDR_NODE, &cs7_sccpaddr_ssn_cmd);
+#if 0
+	/* FIXME: IP-Address based SCCP-Routing is currently not supported,
+	 * so we leave the related VTY options out for now */
+	install_element(L_CS7_SCCPADDR_NODE, &cs7_sccpaddr_ipv4_cmd);
+	install_element(L_CS7_SCCPADDR_NODE, &cs7_sccpaddr_ipv6_cmd);
+#endif
+	install_element(L_CS7_SCCPADDR_NODE, &cs7_sccpaddr_gt_cmd);
+	install_node(&sccpaddr_gt_node, NULL);
+	vty_install_default(L_CS7_SCCPADDR_GT_NODE);
+	install_element(L_CS7_SCCPADDR_GT_NODE, &cs7_sccpaddr_gt_gti_cmd);
+	install_element(L_CS7_SCCPADDR_GT_NODE, &cs7_sccpaddr_gt_tt_cmd);
+	install_element(L_CS7_SCCPADDR_GT_NODE, &cs7_sccpaddr_gt_npi_cmd);
+	install_element(L_CS7_SCCPADDR_GT_NODE, &cs7_sccpaddr_gt_nai_cmd);
+	install_element(L_CS7_SCCPADDR_GT_NODE, &cs7_sccpaddr_gt_digits_cmd);
 }
 
 void osmo_ss7_set_vty_alloc_ctx(void *ctx)
