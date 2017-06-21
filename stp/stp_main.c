@@ -34,6 +34,7 @@
 #include <osmocom/vty/ports.h>
 #include <osmocom/vty/telnet_interface.h>
 #include <osmocom/vty/logging.h>
+#include <osmocom/vty/misc.h>
 
 #include <osmocom/sigtran/osmo_ss7.h>
 #include <osmocom/sigtran/sccp_sap.h>
