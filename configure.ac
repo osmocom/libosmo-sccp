@@ -53,6 +53,9 @@ AC_COMPILE_IFELSE([AC_LANG_SOURCE([char foo;])],
 CFLAGS="$saved_CFLAGS"
 AC_SUBST(SYMBOL_VISIBILITY)
 
+CFLAGS+=" -Wall"
+CPPFLAGS+=" -Wall"
+
 AC_OUTPUT(
     libosmo-sigtran.pc
     libosmo-sccp.pc
@@ -73,4 +76,3 @@ AC_OUTPUT(
     examples/Makefile
     stp/Makefile
     Makefile)
-
