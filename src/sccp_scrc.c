@@ -348,7 +348,7 @@ static int scrc_local_out_common(struct osmo_sccp_instance *inst,
 		}
 		/* Called address includes SSN? */
 		if (called->presence & OSMO_SCCP_ADDR_T_SSN) {
-			if (translate &&
+			if (/* TODO: check if we are doing global translation && */
 			    (called->presence & OSMO_SCCP_ADDR_T_GT))
 				return scrc_translate_node_9(inst, xua, called);
 			else
