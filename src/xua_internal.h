@@ -72,3 +72,8 @@ int xua_as_transmit_msg(struct osmo_ss7_as *as, struct msgb *msg);
 
 int ipa_tx_xua_as(struct osmo_ss7_as *as, struct xua_msg *xua);
 int ipa_rx_msg(struct osmo_ss7_asp *asp, struct msgb *msg);
+
+int osmo_isup_party_parse(char *out_digits, const uint8_t *in,
+			unsigned int in_num_bytes, bool odd);
+int osmo_sccp_addr_parse(struct osmo_sccp_addr *out,
+			const uint8_t *addr, unsigned int addrlen);
