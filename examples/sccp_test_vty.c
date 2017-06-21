@@ -117,7 +117,7 @@ DEFUN(scu, scu_cmd,
 
 static int testclnt_prim_cb(struct osmo_prim_hdr *oph, void *_scu)
 {
-	struct osmo_sccp_user *scu = _scu;
+	struct osmo_sccp_user *scu __attribute__((unused)) = _scu;
 	struct osmo_scu_prim *scu_prim = (struct osmo_scu_prim *) oph;
 
 	switch (OSMO_PRIM_HDR(&scu_prim->oph)) {
