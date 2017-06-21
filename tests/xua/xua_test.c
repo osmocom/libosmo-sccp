@@ -54,7 +54,7 @@ static void test_isup_parse(void)
 
 /* SCCP Address Parsing */
 
-static struct sccp_addr_testcase {
+struct sccp_addr_testcase {
 	struct osmo_sccp_addr expected;
 	uint8_t *bin;
 	unsigned int bin_len;
