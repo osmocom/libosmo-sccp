@@ -723,7 +723,7 @@ osmo_ss7_route_create(struct osmo_ss7_route_table *rtbl, uint32_t pc,
 {
 	struct osmo_ss7_route *rt;
 	struct osmo_ss7_linkset *lset;
-	struct osmo_ss7_as *as;
+	struct osmo_ss7_as *as = NULL;
 
 	OSMO_ASSERT(ss7_initialized);
 	lset = osmo_ss7_linkset_find_by_name(rtbl->inst, linkset_name);
