@@ -536,18 +536,34 @@ static int m3ua_rx_xfer(struct osmo_ss7_asp *asp, struct xua_msg *xua)
 	struct m3ua_data_hdr *dh;
 	struct osmo_ss7_as *as;
 
-	if (xua->hdr.msg_type != M3UA_XFER_DATA)
+	LOGPASP(asp, DLM3UA, LOGL_DEBUG, "m3ua_rx_xfer\n");
+
+	if (xua->hdr.msg_type != M3UA_XFER_DATA) {
+		LOGPASP(asp, DLM3UA, LOGL_ERROR,
+			"%s(): unsupported message type: %s\n",
+			__func__,
+			get_value_string(m3ua_xfer_msgt_names, xua->hdr.msg_type));
 		return M3UA_ERR_UNSUPP_MSG_TYPE;
+	}
 
 	/* Use routing context IE to look up the AS for which the
 	 * message was received. */
 	as = osmo_ss7_as_find_by_rctx(asp->inst, rctx);
-	if (!as)
+	if (!as) {
+		LOGPASP(asp, DLM3UA, LOGL_ERROR,
+			"%s(): invalid routing context: %u\n",
+			__func__, rctx);
 		return M3UA_ERR_INVAL_ROUT_CTX;
+	}
 
-	/* Verify that this ASP ix part of the AS. */
-	if (!osmo_ss7_as_has_asp(as, asp))
+	/* Verify that this ASP is part of the AS. */
+	if (!osmo_ss7_as_has_asp(as, asp)) {
+		LOGPASP(asp, DLM3UA, LOGL_ERROR,
+			"%s(): This Application Server Process is not part of the AS resolved by"
+			" routing context %u\n",
+			__func__, rctx);
 		return M3UA_ERR_NO_CONFGD_AS_FOR_ASP;
+	}
 
 	/* FIXME: check for AS state == ACTIVE */
 
@@ -556,6 +572,10 @@ static int m3ua_rx_xfer(struct osmo_ss7_asp *asp, struct xua_msg *xua)
 	dh = data_hdr_from_m3ua(xua);
 	OSMO_ASSERT(dh);
 	m3ua_dh_to_xfer_param(&xua->mtp, dh);
+	LOGPASP(asp, DLM3UA, LOGL_DEBUG,
+		"%s(): M3UA data header: opc=%u=%s dpc=%u=%s\n",
+		__func__, xua->mtp.opc, osmo_ss7_pointcode_print(asp->inst, xua->mtp.opc),
+		xua->mtp.dpc, osmo_ss7_pointcode_print2(asp->inst, xua->mtp.dpc));
 
 	/* remove ROUTE_CTX as in the routing case we want to add a new
 	 * routing context on the outbound side */

@@ -1436,8 +1436,13 @@ static void sccp_scoc_rx_unass_local_ref(struct osmo_sccp_instance *inst,
 
 /* process received message for invalid source local reference */
 static void sccp_scoc_rx_inval_src_ref(struct sccp_connection *conn,
-					struct xua_msg *xua)
+				       struct xua_msg *xua,
+				       uint32_t inval_src_ref)
 {
+	LOGP(DLSCCP, LOGL_NOTICE,
+	     "Received message for source ref %u on conn with mismatching remote ref %u\n",
+	     inval_src_ref, conn->remote_ref);
+
 	/* we have received a message with invalid source local
 	 * reference and thus apply the action indicated in Table
 	 * B.2/Q.714 */
@@ -1463,9 +1468,13 @@ static void sccp_scoc_rx_inval_src_ref(struct sccp_connection *conn,
 }
 
 /* process received message for invalid origin point code */
-static void sccp_scoc_rx_inval_opc(struct osmo_sccp_instance *inst,
+static void sccp_scoc_rx_inval_opc(struct sccp_connection *conn,
 				   struct xua_msg *xua)
 {
+	LOGP(DLSCCP, LOGL_NOTICE,
+	     "Received message for opc=%u=%s on conn with mismatching remote pc=%u=%s\n",
+	     xua->mtp.opc, osmo_ss7_pointcode_print(conn->inst->ss7, xua->mtp.opc),
+	     conn->remote_pc, osmo_ss7_pointcode_print2(conn->inst->ss7, conn->remote_pc));
 	/* we have received a message with invalid origin PC and thus
 	 * apply the action indiacted in Table B.2/Q.714 */
 	switch (xua->hdr.msg_type) {
@@ -1473,7 +1482,7 @@ static void sccp_scoc_rx_inval_opc(struct osmo_sccp_instance *inst,
 	case SUA_CO_RESRE: /* RSR */
 	case SUA_CO_RESCO: /* RSC */
 		/* Send ERR */
-		tx_coerr_from_xua(inst, xua, SCCP_ERROR_POINT_CODE_MISMATCH);
+		tx_coerr_from_xua(conn->inst, xua, SCCP_ERROR_POINT_CODE_MISMATCH);
 		break;
 	case SUA_CO_RELCO: /* RLC */
 	case SUA_CO_CODT: /* DT1 */
@@ -1544,14 +1553,14 @@ void sccp_scoc_rx_from_scrc(struct osmo_sccp_instance *inst,
 			 * the one we saved in local state */
 			src_loc_ref = xua_msg_get_u32(xua, SUA_IEI_SRC_REF);
 			if (src_loc_ref != conn->remote_ref) {
-				sccp_scoc_rx_inval_src_ref(conn, xua);
+				sccp_scoc_rx_inval_src_ref(conn, xua, src_loc_ref);
 				return;
 			}
 		}
 
 		/* Check if received OPC != the remote_pc we stored locally */
 		if (xua->mtp.opc != conn->remote_pc) {
-			sccp_scoc_rx_inval_opc(inst, xua);
+			sccp_scoc_rx_inval_opc(conn, xua);
 			return;
 		}
 	}

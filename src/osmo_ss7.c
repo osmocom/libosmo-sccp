@@ -245,22 +245,36 @@ err:
 	return -EINVAL;
 }
 
-/* print a pointcode according to the structure configured for this
- * ss7_instance */
-const char *osmo_ss7_pointcode_print(struct osmo_ss7_instance *inst, uint32_t pc)
+const char *_osmo_ss7_pointcode_print(char *buf, size_t len, struct osmo_ss7_instance *inst, uint32_t pc)
 {
-	static char buf[MAX_PC_STR_LEN];
 	const struct osmo_ss7_pc_fmt *pc_fmt = inst ? &inst->cfg.pc_fmt : &default_pc_fmt;
 	unsigned int num_comp_exp = num_pc_comp_exp(pc_fmt);
 	const char *fmtstr = gen_pc_fmtstr(pc_fmt, &num_comp_exp);
 
 	OSMO_ASSERT(fmtstr);
-	snprintf(buf, sizeof(buf), fmtstr,
+	snprintf(buf, len, fmtstr,
 		 pc_comp_shift_and_mask(pc_fmt, 0, pc),
 		 pc_comp_shift_and_mask(pc_fmt, 1, pc),
 		 pc_comp_shift_and_mask(pc_fmt, 2, pc));
 
 	return buf;
+}
+
+
+/* print a pointcode according to the structure configured for this
+ * ss7_instance */
+const char *osmo_ss7_pointcode_print(struct osmo_ss7_instance *inst, uint32_t pc)
+{
+	static char buf[MAX_PC_STR_LEN];
+	return _osmo_ss7_pointcode_print(buf, sizeof(buf), inst, pc);
+}
+
+/* same as osmo_ss7_pointcode_print() but using a separate buffer, useful for multiple point codes in the
+ * same LOGP/printf. */
+const char *osmo_ss7_pointcode_print2(struct osmo_ss7_instance *inst, uint32_t pc)
+{
+	static char buf[MAX_PC_STR_LEN];
+	return _osmo_ss7_pointcode_print(buf, sizeof(buf), inst, pc);
 }
 
 int osmo_ss7_pointcode_parse_mask_or_len(struct osmo_ss7_instance *inst, const char *in)
@@ -740,10 +754,15 @@ osmo_ss7_route_create(struct osmo_ss7_route_table *rtbl, uint32_t pc,
 	rt->cfg.pc = pc;
 	rt->cfg.mask = mask;
 	rt->cfg.linkset_name = talloc_strdup(rt, linkset_name);
-	if (lset)
+	if (lset) {
 		rt->dest.linkset = lset;
-	else
+		LOGSS7(rtbl->inst, LOGL_INFO, "Creating route: pc=%u=%s mask=0x%x via linkset '%s'\n",
+		       pc, osmo_ss7_pointcode_print(rtbl->inst, pc), mask, lset->cfg.name);
+	} else {
 		rt->dest.as = as;
+		LOGSS7(rtbl->inst, LOGL_INFO, "Creating route: pc=%u=%s mask=0x%x via AS '%s'\n",
+		       pc, osmo_ss7_pointcode_print(rtbl->inst, pc), mask, as->cfg.name);
+	}
 	rt->rtable = rtbl;
 
 	route_insert_sorted(rtbl, rt);

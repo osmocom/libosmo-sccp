@@ -138,20 +138,33 @@ static int hmrt_message_for_routing(struct osmo_ss7_instance *inst,
 		/* FIXME: Transmit over respective Link */
 		if (rt->dest.as) {
 			struct osmo_ss7_as *as = rt->dest.as;
+			DEBUGP(DLSS7,
+			       "Found route for dpc=%u=%s: pc=%u=%s mask=0x%x"
+			       " via AS %s proto=%s\n",
+			       dpc, osmo_ss7_pointcode_print(inst, dpc),
+			       rt->cfg.pc, osmo_ss7_pointcode_print2(inst, rt->cfg.pc), rt->cfg.mask,
+			       as->cfg.name, osmo_ss7_asp_protocol_name(as->cfg.proto));
+
 			switch (as->cfg.proto) {
 			case OSMO_SS7_ASP_PROT_M3UA:
+				DEBUGP(DLSS7, "rt->dest.as proto is M3UA for dpc=%u=%s\n",
+				       dpc, osmo_ss7_pointcode_print(inst, dpc));
 				return m3ua_tx_xua_as(as,xua);
 			case OSMO_SS7_ASP_PROT_IPA:
 				return ipa_tx_xua_as(as, xua);
 			default:
 				LOGP(DLSS7, LOGL_ERROR, "MTP message "
-					"for ASP of unknown protocol%u\n",
+					"for ASP of unknown protocol %u\n",
 					as->cfg.proto);
 				break;
 			}
 		} else if (rt->dest.linkset) {
-			LOGP(DLSS7, LOGL_ERROR, "MTP-TRANSFER.req for linkset"
-				"%s unsupported\n",rt->dest.linkset->cfg.name);
+			LOGP(DLSS7, LOGL_ERROR,
+			     "Found route for dpc=%u=%s: pc=%u=%s mask=0x%x"
+			     " via linkset %s, but MTP-TRANSFER.req unsupported for linkset.\n",
+			     dpc, osmo_ss7_pointcode_print(inst, dpc),
+			     rt->cfg.pc, osmo_ss7_pointcode_print2(inst, rt->cfg.pc), rt->cfg.mask,
+			     rt->dest.linkset->cfg.name);
 		} else
 			OSMO_ASSERT(0);
 	} else {
@@ -171,8 +184,12 @@ int m3ua_hmdc_rx_from_l2(struct osmo_ss7_instance *inst, struct xua_msg *xua)
 {
 	uint32_t dpc = xua->mtp.dpc;
 	if (osmo_ss7_pc_is_local(inst, dpc)) {
+		DEBUGP(DLSS7, "%s(): found dpc=%u=%s as local\n", __func__,
+		       dpc, osmo_ss7_pointcode_print(inst, dpc));
 		return hmdt_message_for_distribution(inst, xua);
 	} else {
+		DEBUGP(DLSS7, "%s(): dpc=%u=%s not local, message is for routing\n", __func__,
+		       dpc, osmo_ss7_pointcode_print(inst, dpc));
 		return hmrt_message_for_routing(inst, xua);
 	}
 }

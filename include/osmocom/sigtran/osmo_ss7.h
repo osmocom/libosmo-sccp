@@ -24,6 +24,7 @@ bool osmo_ss7_pc_is_local(struct osmo_ss7_instance *inst, uint32_t pc);
 int osmo_ss7_pointcode_parse(struct osmo_ss7_instance *inst, const char *str);
 int osmo_ss7_pointcode_parse_mask_or_len(struct osmo_ss7_instance *inst, const char *in);
 const char *osmo_ss7_pointcode_print(struct osmo_ss7_instance *inst, uint32_t pc);
+const char *osmo_ss7_pointcode_print2(struct osmo_ss7_instance *inst, uint32_t pc);
 
 /***********************************************************************
  * SS7 Routing Tables
