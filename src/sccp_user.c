@@ -74,11 +74,17 @@ sccp_user_bind_pc(struct osmo_sccp_instance *inst, const char *name,
 	if (!pc_valid)
 		pc = 0;
 
-	if (sccp_user_find(inst, ssn, pc))
+	scu = sccp_user_find(inst, ssn, pc);
+	if (scu) {
+		LOGP(DLSCCP, LOGL_ERROR,
+		     "Cannot bind user '%s' to SSN=%u PC=%u=%s (pc_valid=%u), this SSN and PC"
+		     " is already bound by '%s'\n",
+		     name, ssn, pc, osmo_ss7_pointcode_print(inst->ss7, pc), pc_valid, scu->name);
 		return NULL;
+	}
 
-	LOGP(DLSCCP, LOGL_INFO, "Binding user '%s' to SSN=%u PC=%u (pc_valid=%u)\n",
-		name, ssn, pc, pc_valid);
+	LOGP(DLSCCP, LOGL_INFO, "Binding user '%s' to SSN=%u PC=%u=%s (pc_valid=%u)\n",
+		name, ssn, pc, osmo_ss7_pointcode_print(inst->ss7, pc), pc_valid);
 
 	scu = talloc_zero(inst, struct osmo_sccp_user);
 	scu->name = talloc_strdup(scu, name);
@@ -247,8 +253,10 @@ osmo_sccp_simple_client(void *ctx, const char *name, uint32_t pc,
 
 	/* allocate + initialize SS7 instance */
 	ss7 = osmo_ss7_instance_find_or_create(ctx, 1);
-	if (!ss7)
+	if (!ss7) {
+		LOGP(DLSCCP, LOGL_ERROR, "Failed to find or create SS7 instance\n");
 		return NULL;
+	}
 	ss7->cfg.primary_pc = pc;
 
 	as_name = talloc_asprintf(ctx, "as-clnt-%s", name);
