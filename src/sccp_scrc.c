@@ -26,6 +26,7 @@
 #include <sccp/sccp_types.h>
 #include <osmocom/sigtran/osmo_ss7.h>
 #include <osmocom/sigtran/sccp_sap.h>
+#include <osmocom/sigtran/sccp_helpers.h>
 #include <osmocom/sigtran/protocol/sua.h>
 #include <osmocom/sigtran/protocol/mtp.h>
 
@@ -125,7 +126,8 @@ static int gen_mtp_transfer_req_xua(struct osmo_sccp_instance *inst,
 		xua->mtp.dpc = called->pc;
 	if (!xua->mtp.dpc) {
 		LOGP(DLSCCP, LOGL_ERROR, "MTP-TRANSFER.req from SCCP "
-			"without DPC?!?\n");
+			"without DPC?!? called=%s\n",
+			osmo_sccp_addr_dump(called));
 		return -1;
 	}
 
