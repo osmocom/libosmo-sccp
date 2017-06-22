@@ -294,7 +294,7 @@ struct osmo_ss7_as {
 		uint8_t qos_class;
 		struct {
 			uint32_t dpc;
-		} pc_override;;
+		} pc_override;
 
 		struct osmo_ss7_asp *asps[16];
 	} cfg;
