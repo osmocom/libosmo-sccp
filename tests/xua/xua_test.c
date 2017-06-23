@@ -155,7 +155,7 @@ static void test_helpers(void)
 
 	printf("Testing Decoded GT -> SUA encoding\n");
 	printf("IN: %s\n", osmo_sccp_gt_dump(gt_in));
-	printf("    %s\n", osmo_hexdump_nospc(gt_in, sizeof(struct osmo_sccp_gt)));
+	printf("    %s\n", osmo_hexdump_nospc((const unsigned char*)gt_in, sizeof(struct osmo_sccp_gt)));
 
 	/* encode sccp_addr to SUA GT */
 	xua_part_add_gt(msg, gt_in);
@@ -168,7 +168,7 @@ static void test_helpers(void)
 	/* parse + compare */
 	sua_parse_gt(&gt_out, msgb_data(msg), msgb_length(msg));
 	printf("OUT:%s\n", osmo_sccp_gt_dump(&gt_out));
-	printf("    %s\n", osmo_hexdump_nospc(&gt_out, sizeof(struct osmo_sccp_gt)));
+	printf("    %s\n", osmo_hexdump_nospc((const unsigned char*)&gt_out, sizeof(struct osmo_sccp_gt)));
 	OSMO_ASSERT(!memcmp(gt_in, &gt_out, sizeof(gt_out)));
 
 	msgb_free(msg);
