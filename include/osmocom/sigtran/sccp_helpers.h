@@ -4,8 +4,6 @@
 #include <osmocom/core/msgb.h>
 #include <osmocom/sigtran/sccp_sap.h>
 
-void osmo_sccp_make_addr_pc_ssn(struct osmo_sccp_addr *addr, uint32_t pc, uint32_t ssn);
-
 int osmo_sccp_tx_unitdata(struct osmo_sccp_user *scu,
 			  const struct osmo_sccp_addr *calling_addr,
 			  const struct osmo_sccp_addr *called_addr,
