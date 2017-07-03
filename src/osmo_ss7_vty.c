@@ -165,7 +165,11 @@ DEFUN(cs7_point_code, cs7_point_code_cmd,
 	"Point Code\n")
 {
 	struct osmo_ss7_instance *inst = vty->index;
-	uint32_t pc = osmo_ss7_pointcode_parse(inst, argv[0]);
+	int pc = osmo_ss7_pointcode_parse(inst, argv[0]);
+	if (pc < 0) {
+		vty_out(vty, "Invalid point code (%s)%s", argv[0], VTY_NEWLINE);
+		return CMD_WARNING;
+	}
 
 	inst->cfg.primary_pc = pc;
 	return CMD_SUCCESS;
@@ -271,10 +275,20 @@ DEFUN(cs7_rt_upd, cs7_rt_upd_cmd,
 {
 	struct osmo_ss7_route_table *rtable = vty->index;
 	struct osmo_ss7_route *rt;
-	uint32_t dpc = osmo_ss7_pointcode_parse(rtable->inst, argv[0]);
-	uint32_t mask = osmo_ss7_pointcode_parse_mask_or_len(rtable->inst, argv[1]);
+	int dpc = osmo_ss7_pointcode_parse(rtable->inst, argv[0]);
+	int mask = osmo_ss7_pointcode_parse_mask_or_len(rtable->inst, argv[1]);
 	const char *ls_name = argv[2];
 	unsigned int argind;
+
+	if (dpc < 0) {
+		vty_out(vty, "Invalid point code (%s)%s", argv[0], VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	if (mask < 0) {
+		vty_out(vty, "Invalid point code (%s)%s", argv[1], VTY_NEWLINE);
+		return CMD_WARNING;
+	}
 
 	rt = osmo_ss7_route_create(rtable, dpc, mask, ls_name);
 	if (!rt) {
@@ -307,8 +321,18 @@ DEFUN(cs7_rt_rem, cs7_rt_rem_cmd,
 {
 	struct osmo_ss7_route_table *rtable = vty->index;
 	struct osmo_ss7_route *rt;
-	uint32_t dpc = osmo_ss7_pointcode_parse(rtable->inst, argv[0]);
-	uint32_t mask = osmo_ss7_pointcode_parse_mask_or_len(rtable->inst, argv[1]);
+	int dpc = osmo_ss7_pointcode_parse(rtable->inst, argv[0]);
+	int mask = osmo_ss7_pointcode_parse_mask_or_len(rtable->inst, argv[1]);
+
+	if (dpc < 0) {
+		vty_out(vty, "Invalid point code (%s)%s", argv[0], VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	if (mask < 0) {
+		vty_out(vty, "Invalid point code (%s)%s", argv[1], VTY_NEWLINE);
+		return CMD_WARNING;
+	}
 
 	rt = osmo_ss7_route_find_dpc_mask(rtable, dpc, mask);
 	if (!rt) {
@@ -770,9 +794,16 @@ DEFUN(as_rout_key, as_rout_key_cmd,
 	struct osmo_ss7_as *as = vty->index;
 	struct osmo_ss7_routing_key *rkey = &as->cfg.routing_key;
 	int argind;
+	int pc;
 
+	pc = osmo_ss7_pointcode_parse(as->inst, argv[1]);
+	if (pc < 0) {
+		vty_out(vty, "Invalid point code (%s)%s", argv[1], VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	rkey->pc = pc;
 	rkey->context = atoi(argv[0]);
-	rkey->pc = osmo_ss7_pointcode_parse(as->inst, argv[1]);
 	argind = 2;
 
 	if (argind < argc && !strcmp(argv[argind], "si")) {
@@ -799,7 +830,11 @@ DEFUN(as_pc_override, as_pc_override_cmd,
 	"New Point Code\n")
 {
 	struct osmo_ss7_as *as = vty->index;
-	uint32_t pc = osmo_ss7_pointcode_parse(as->inst, argv[0]);
+	int pc = osmo_ss7_pointcode_parse(as->inst, argv[0]);
+	if (pc < 0) {
+		vty_out(vty, "Invalid point code (%s)%s", argv[0], VTY_NEWLINE);
+		return CMD_WARNING;
+	}
 
 	if (as->cfg.proto != OSMO_SS7_ASP_PROT_IPA) {
 		vty_out(vty, "Only IPA type AS support point-code override. "
@@ -1208,11 +1243,19 @@ DEFUN(cs7_sccpaddr_ri, cs7_sccpaddr_ri_cmd,
 DEFUN(cs7_sccpaddr_pc, cs7_sccpaddr_pc_cmd,
       "point-code POINT_CODE", "Add point-code Number\n" "PC\n")
 {
+	int pc;
 	struct osmo_sccp_addr_entry *entry =
 	    (struct osmo_sccp_addr_entry *)vty->index;
 	OSMO_ASSERT(entry);
+
+	pc = osmo_ss7_pointcode_parse(entry->inst, argv[0]);
+	if (pc < 0) {
+		vty_out(vty, "Invalid point code (%s)%s", argv[0], VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
 	entry->addr.presence |= OSMO_SCCP_ADDR_T_PC;
-	entry->addr.pc = osmo_ss7_pointcode_parse(entry->inst, argv[0]);
+	entry->addr.pc = pc;
 	return CMD_SUCCESS;
 }
 
