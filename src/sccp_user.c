@@ -236,9 +236,10 @@ void osmo_sccp_instance_destroy(struct osmo_sccp_instance *inst)
  ***********************************************************************/
 
 struct osmo_sccp_instance *
-osmo_sccp_simple_client(void *ctx, const char *name, uint32_t pc,
-			enum osmo_ss7_asp_protocol prot, int local_port,
-			const char *local_ip, int remote_port, const char *remote_ip)
+osmo_sccp_simple_client_on_ss7_id(void *ctx, uint32_t ss7_id, const char *name,
+				  uint32_t pc, enum osmo_ss7_asp_protocol prot,
+				  int local_port, const char *local_ip,
+				  int remote_port, const char *remote_ip)
 {
 	struct osmo_ss7_instance *ss7;
 	struct osmo_ss7_as *as;
@@ -252,7 +253,7 @@ osmo_sccp_simple_client(void *ctx, const char *name, uint32_t pc,
 		local_port = osmo_ss7_asp_protocol_port(prot);
 
 	/* allocate + initialize SS7 instance */
-	ss7 = osmo_ss7_instance_find_or_create(ctx, 1);
+	ss7 = osmo_ss7_instance_find_or_create(ctx, ss7_id);
 	if (!ss7) {
 		LOGP(DLSCCP, LOGL_ERROR, "Failed to find or create SS7 instance\n");
 		return NULL;
@@ -309,14 +310,24 @@ out_strings:
 	return NULL;
 }
 
+struct osmo_sccp_instance *
+osmo_sccp_simple_client(void *ctx, const char *name, uint32_t pc,
+			enum osmo_ss7_asp_protocol prot, int local_port,
+			const char *local_ip, int remote_port, const char *remote_ip)
+{
+	return osmo_sccp_simple_client_on_ss7_id(ctx, 1, name, pc, prot,
+						 local_port, local_ip,
+						 remote_port, remote_ip);
+}
+
 /***********************************************************************
  * Convenience function for SERVER
  ***********************************************************************/
 
 struct osmo_sccp_instance *
-osmo_sccp_simple_server(void *ctx, uint32_t pc,
-			enum osmo_ss7_asp_protocol prot, int local_port,
-			const char *local_ip)
+osmo_sccp_simple_server_on_ss7_id(void *ctx, uint32_t ss7_id, uint32_t pc,
+				  enum osmo_ss7_asp_protocol prot,
+				  int local_port, const char *local_ip)
 {
 	struct osmo_ss7_instance *ss7;
 	struct osmo_xua_server *xs;
@@ -325,7 +336,7 @@ osmo_sccp_simple_server(void *ctx, uint32_t pc,
 		local_port = osmo_ss7_asp_protocol_port(prot);
 
 	/* allocate + initialize SS7 instance */
-	ss7 = osmo_ss7_instance_find_or_create(ctx, 1);
+	ss7 = osmo_ss7_instance_find_or_create(ctx, ss7_id);
 	if (!ss7)
 		return NULL;
 	ss7->cfg.primary_pc = pc;
@@ -347,6 +358,15 @@ out_ss7:
 	osmo_ss7_instance_destroy(ss7);
 
 	return NULL;
+}
+
+struct osmo_sccp_instance *
+osmo_sccp_simple_server(void *ctx, uint32_t pc,
+			enum osmo_ss7_asp_protocol prot, int local_port,
+			const char *local_ip)
+{
+	return osmo_sccp_simple_server_on_ss7_id(ctx, 1, pc, prot,
+					         local_port, local_ip);
 }
 
 struct osmo_sccp_instance *

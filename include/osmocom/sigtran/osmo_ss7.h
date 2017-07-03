@@ -439,9 +439,20 @@ osmo_sccp_simple_client(void *ctx, const char *name, uint32_t pc,
 			const char *local_ip, int remote_port, const char *remote_ip);
 
 struct osmo_sccp_instance *
+osmo_sccp_simple_client_on_ss7_id(void *ctx, uint32_t ss7_id, const char *name,
+				  uint32_t pc, enum osmo_ss7_asp_protocol prot,
+				  int local_port, const char *local_ip,
+				  int remote_port, const char *remote_ip);
+
+struct osmo_sccp_instance *
 osmo_sccp_simple_server(void *ctx, uint32_t pc,
 			enum osmo_ss7_asp_protocol prot, int local_port,
 			const char *local_ip);
+
+struct osmo_sccp_instance *
+osmo_sccp_simple_server_on_ss7_id(void *ctx, uint32_t ss7_id, uint32_t pc,
+				  enum osmo_ss7_asp_protocol prot,
+				  int local_port, const char *local_ip);
 
 struct osmo_sccp_instance *
 osmo_sccp_simple_server_add_clnt(struct osmo_sccp_instance *inst,
