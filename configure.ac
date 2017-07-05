@@ -54,7 +54,7 @@ CFLAGS="$saved_CFLAGS"
 AC_SUBST(SYMBOL_VISIBILITY)
 
 CFLAGS="$CFLAGS -Wall"
-CPPFLAGS="$CFLAGS -Wall"
+CPPFLAGS="$CPPFLAGS -Wall"
 
 AC_OUTPUT(
     libosmo-sigtran.pc

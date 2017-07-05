@@ -29,7 +29,7 @@ echo
 set -x
 
 autoreconf --install --force
-./configure
+./configure CFLAGS="-Werror" CPPFLAGS="-Werror"
 $MAKE $PARALLEL_MAKE
 $MAKE distcheck \
   || cat-testlogs.sh
