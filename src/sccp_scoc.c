@@ -938,10 +938,10 @@ static void scoc_fsm_active(struct osmo_fsm_inst *fi, uint32_t event, void *data
 	struct osmo_scu_prim *prim = NULL;
 
 	switch (event) {
-	/* TODO: internal disco */
+#pragma message ("TODO: internal disco: send N-DISCONNECT.ind to user")
 		/* send N-DISCONNECT.ind to user */
-		scu_gen_encode_and_send(conn, event, xua, OSMO_SCU_PRIM_N_DISCONNECT,
-					PRIM_OP_INDICATION);
+		/*scu_gen_encode_and_send(conn, event, xua, OSMO_SCU_PRIM_N_DISCONNECT,
+					PRIM_OP_INDICATION);*/
 		/* fall-through */
 	case SCOC_E_SCU_N_DISC_REQ:
 		prim = data;
