@@ -122,7 +122,7 @@ struct sccp_connection {
 };
 
 /***********************************************************************
- * various helper functions 
+ * various helper functions
  ***********************************************************************/
 
 enum sccp_connection_state {
@@ -1596,7 +1596,7 @@ static uint32_t scu_prim_conn_id(const struct osmo_scu_prim *prim)
 	}
 }
 
-/*! \brief Main entrance function for primitives from SCCP User 
+/*! \brief Main entrance function for primitives from SCCP User
  *  \param[in] scu SCCP User sending us the primitive
  *  \param[in] oph Osmocom primitive sent by the user
  *  \returns 0 on success; negative on error */
