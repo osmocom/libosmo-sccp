@@ -53,8 +53,8 @@ AC_COMPILE_IFELSE([AC_LANG_SOURCE([char foo;])],
 CFLAGS="$saved_CFLAGS"
 AC_SUBST(SYMBOL_VISIBILITY)
 
-CFLAGS+=" -Wall"
-CPPFLAGS+=" -Wall"
+CFLAGS="$CFLAGS -Wall"
+CPPFLAGS="$CFLAGS -Wall"
 
 AC_OUTPUT(
     libosmo-sigtran.pc
