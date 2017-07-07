@@ -1587,6 +1587,41 @@ int osmo_ss7_is_config_node(struct vty *vty, int node)
 	}
 }
 
+/* Commands for SCCP-Addressbook */
+static void vty_init_addr(void)
+{
+	install_node(&sccpaddr_node, NULL);
+	vty_install_default(L_CS7_SCCPADDR_NODE);
+	install_element(L_CS7_NODE, &cs7_show_sccpaddr_cmd);
+	install_element(L_CS7_NODE, &cs7_sccpaddr_cmd);
+	install_element(L_CS7_NODE, &cs7_sccpaddr_del_cmd);
+	install_element(L_CS7_SCCPADDR_NODE, &cs7_sccpaddr_pc_del_cmd);
+	install_element(L_CS7_SCCPADDR_NODE, &cs7_sccpaddr_ssn_del_cmd);
+#if 0
+	/* FIXME: IP-Address based SCCP-Routing is currently not supported,
+	 * so we leave the related VTY options out for now */
+	install_element(L_CS7_SCCPADDR_NODE, &cs7_sccpaddr_ip_del_cmd);
+#endif
+	install_element(L_CS7_SCCPADDR_NODE, &cs7_sccpaddr_gt_del_cmd);
+	install_element(L_CS7_SCCPADDR_NODE, &cs7_sccpaddr_ri_cmd);
+	install_element(L_CS7_SCCPADDR_NODE, &cs7_sccpaddr_pc_cmd);
+	install_element(L_CS7_SCCPADDR_NODE, &cs7_sccpaddr_ssn_cmd);
+#if 0
+	/* FIXME: IP-Address based SCCP-Routing is currently not supported,
+	 * so we leave the related VTY options out for now */
+	install_element(L_CS7_SCCPADDR_NODE, &cs7_sccpaddr_ipv4_cmd);
+	install_element(L_CS7_SCCPADDR_NODE, &cs7_sccpaddr_ipv6_cmd);
+#endif
+	install_element(L_CS7_SCCPADDR_NODE, &cs7_sccpaddr_gt_cmd);
+	install_node(&sccpaddr_gt_node, NULL);
+	vty_install_default(L_CS7_SCCPADDR_GT_NODE);
+	install_element(L_CS7_SCCPADDR_GT_NODE, &cs7_sccpaddr_gt_gti_cmd);
+	install_element(L_CS7_SCCPADDR_GT_NODE, &cs7_sccpaddr_gt_tt_cmd);
+	install_element(L_CS7_SCCPADDR_GT_NODE, &cs7_sccpaddr_gt_npi_cmd);
+	install_element(L_CS7_SCCPADDR_GT_NODE, &cs7_sccpaddr_gt_nai_cmd);
+	install_element(L_CS7_SCCPADDR_GT_NODE, &cs7_sccpaddr_gt_digits_cmd);
+}
+
 static void vty_init_shared(void)
 {
 	install_element_ve(&show_cs7_user_cmd);
@@ -1628,6 +1663,8 @@ static void vty_init_shared(void)
 	install_element(L_CS7_AS_NODE, &as_qos_class_cmd);
 	install_element(L_CS7_AS_NODE, &as_rout_key_cmd);
 	install_element(L_CS7_AS_NODE, &as_pc_override_cmd);
+
+	vty_init_addr();
 }
 
 void osmo_ss7_vty_init_asp(void)
@@ -1653,38 +1690,6 @@ void osmo_ss7_vty_init_sg(void)
 	install_element(L_CS7_NODE, &no_cs7_xua_cmd);
 	install_element(L_CS7_XUA_NODE, &xua_local_ip_cmd);
 	install_element(L_CS7_XUA_NODE, &xua_accept_dyn_asp_cmd);
-
-	/* Commands for SCCP-Addressbook */
-	install_node(&sccpaddr_node, NULL);
-	vty_install_default(L_CS7_SCCPADDR_NODE);
-	install_element(L_CS7_NODE, &cs7_show_sccpaddr_cmd);
-	install_element(L_CS7_NODE, &cs7_sccpaddr_cmd);
-	install_element(L_CS7_NODE, &cs7_sccpaddr_del_cmd);
-	install_element(L_CS7_SCCPADDR_NODE, &cs7_sccpaddr_pc_del_cmd);
-	install_element(L_CS7_SCCPADDR_NODE, &cs7_sccpaddr_ssn_del_cmd);
-#if 0
-	/* FIXME: IP-Address based SCCP-Routing is currently not supported,
-	 * so we leave the related VTY options out for now */
-	install_element(L_CS7_SCCPADDR_NODE, &cs7_sccpaddr_ip_del_cmd);
-#endif
-	install_element(L_CS7_SCCPADDR_NODE, &cs7_sccpaddr_gt_del_cmd);
-	install_element(L_CS7_SCCPADDR_NODE, &cs7_sccpaddr_ri_cmd);
-	install_element(L_CS7_SCCPADDR_NODE, &cs7_sccpaddr_pc_cmd);
-	install_element(L_CS7_SCCPADDR_NODE, &cs7_sccpaddr_ssn_cmd);
-#if 0
-	/* FIXME: IP-Address based SCCP-Routing is currently not supported,
-	 * so we leave the related VTY options out for now */
-	install_element(L_CS7_SCCPADDR_NODE, &cs7_sccpaddr_ipv4_cmd);
-	install_element(L_CS7_SCCPADDR_NODE, &cs7_sccpaddr_ipv6_cmd);
-#endif
-	install_element(L_CS7_SCCPADDR_NODE, &cs7_sccpaddr_gt_cmd);
-	install_node(&sccpaddr_gt_node, NULL);
-	vty_install_default(L_CS7_SCCPADDR_GT_NODE);
-	install_element(L_CS7_SCCPADDR_GT_NODE, &cs7_sccpaddr_gt_gti_cmd);
-	install_element(L_CS7_SCCPADDR_GT_NODE, &cs7_sccpaddr_gt_tt_cmd);
-	install_element(L_CS7_SCCPADDR_GT_NODE, &cs7_sccpaddr_gt_npi_cmd);
-	install_element(L_CS7_SCCPADDR_GT_NODE, &cs7_sccpaddr_gt_nai_cmd);
-	install_element(L_CS7_SCCPADDR_GT_NODE, &cs7_sccpaddr_gt_digits_cmd);
 }
 
 void osmo_ss7_set_vty_alloc_ctx(void *ctx)
