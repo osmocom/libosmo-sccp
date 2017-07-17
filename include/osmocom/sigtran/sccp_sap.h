@@ -248,8 +248,8 @@ osmo_sccp_user_bind(struct osmo_sccp_instance *inst, const char *name,
 
 int osmo_sccp_user_sap_down(struct osmo_sccp_user *scu, struct osmo_prim_hdr *oph);
 
-struct osmo_sccp_addr *
-osmo_sccp_addr_by_name(const char *name, const struct osmo_ss7_instance *ss7);
+struct osmo_ss7_instance *
+osmo_sccp_addr_by_name(struct osmo_sccp_addr *dest_addr,
+		       const char *name);
 
-char * osmo_sccp_name_by_addr(const struct osmo_sccp_addr *addr,
-			      const struct osmo_ss7_instance *ss7);
+const char *osmo_sccp_name_by_addr(const struct osmo_sccp_addr *addr);
