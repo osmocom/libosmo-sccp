@@ -1195,7 +1195,6 @@ DEFUN(cs7_sccpaddr, cs7_sccpaddr_cmd,
 	return CMD_SUCCESS;
 }
 
-/* Create a new addressbook entry and switch nodes */
 DEFUN(cs7_sccpaddr_del, cs7_sccpaddr_del_cmd,
       "no sccp-address NAME",
       NO_STR "Delete an SCCP addressbook entry\n" "Name of the SCCP Address\n")
