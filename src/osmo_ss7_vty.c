@@ -1205,6 +1205,16 @@ DEFUN(cs7_sccpaddr, cs7_sccpaddr_cmd,
 		return CMD_WARNING;
 	}
 
+	/* Ensure that we do not use address names that
+	 * are already used in other ss7 instances. */
+	entry = addr_entry_by_name_global(name);
+	if (entry != NULL) {
+		vty_out(vty,
+			"address name (%s) already used in ss7 instance %u%s",
+			entry->name, entry->inst->cfg.id, VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
 	entry = addr_entry_by_name_local(name, inst);
 
 	/* Create a new addressbook entry if we can not find an
