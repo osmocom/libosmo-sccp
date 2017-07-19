@@ -242,54 +242,113 @@ osmo_sccp_simple_client_on_ss7_id(void *ctx, uint32_t ss7_id, const char *name,
 				  int remote_port, const char *remote_ip)
 {
 	struct osmo_ss7_instance *ss7;
+	bool ss7_created = false;
 	struct osmo_ss7_as *as;
+	bool as_created = false;
 	struct osmo_ss7_route *rt;
+	bool rt_created = false;
 	struct osmo_ss7_asp *asp;
-	char *as_name, *asp_name;
+	bool asp_created = false;
+	char *as_name, *asp_name = NULL;
 
+	/* Choose default ports when the caller does not supply valid port
+	 * numbers. */
 	if (!remote_port || remote_port < 0)
 		remote_port = osmo_ss7_asp_protocol_port(prot);
 	if (local_port < 0)
 		local_port = osmo_ss7_asp_protocol_port(prot);
 
-	/* allocate + initialize SS7 instance */
-	ss7 = osmo_ss7_instance_find_or_create(ctx, ss7_id);
+	/* Check if there is already an ss7 instance present under
+	 * the given id. If not, we will create a new one. */
+	ss7 = osmo_ss7_instance_find(ss7_id);
 	if (!ss7) {
-		LOGP(DLSCCP, LOGL_ERROR, "Failed to find or create SS7 instance\n");
-		return NULL;
+		LOGP(DLSCCP, LOGL_NOTICE, "%s: Creating SS7 instance\n",
+		     name);
+
+		/* Create a new ss7 instance */
+		ss7 = osmo_ss7_instance_find_or_create(ctx, ss7_id);
+		if (!ss7) {
+			LOGP(DLSCCP, LOGL_ERROR,
+			     "Failed to find or create SS7 instance\n");
+			return NULL;
+		}
+
+		/* Setup primary pointcode
+		 * NOTE: This means that the user must set the pointcode to a
+		 * proper value when a cs7 instance is defined via the VTY. */
+		ss7->cfg.primary_pc = pc;
+		ss7_created = true;
 	}
-	ss7->cfg.primary_pc = pc;
+	LOGP(DLSCCP, LOGL_NOTICE, "%s: Using SS7 instance %u, pc:%s\n", name,
+	     ss7->cfg.id, osmo_ss7_pointcode_print(ss7, ss7->cfg.primary_pc));
 
-	as_name = talloc_asprintf(ctx, "as-clnt-%s", name);
-	asp_name = talloc_asprintf(ctx, "asp-clnt-%s", name);
+	/* There must not be an existing SCCP istance, regarless if the simple
+	 * client has created the SS7 instance or if it was already present.
+	 * An already existing SCCP instance would be an indication that this
+	 * function has been called twice with the same SS7 instance, which
+	 * must not be the case! */
+	OSMO_ASSERT(ss7->sccp == NULL);
 
-	/* application server */
-	as = osmo_ss7_as_find_or_create(ss7, as_name, prot);
-	if (!as)
-		goto out_strings;
+	/* Check if there is already an application server that matches
+	 * the protocol we intend to use. If not, we will create one. */
+	as = osmo_ss7_as_find_by_proto(ss7, prot);
+	if (!as) {
+		LOGP(DLSCCP, LOGL_NOTICE, "%s: Creating AS instance\n",
+		     name);
+		as_name = talloc_asprintf(ctx, "as-clnt-%s", name);
+		as = osmo_ss7_as_find_or_create(ss7, as_name, prot);
+		talloc_free(as_name);
+		if (!as)
+			goto out_ss7;
+		as_created = true;
 
-	as->cfg.routing_key.pc = pc;
+		as->cfg.routing_key.pc = ss7->cfg.primary_pc;
 
-	/* install default route */
-	rt = osmo_ss7_route_create(ss7->rtable_system, 0, 0, as_name);
-	if (!rt)
-		goto out_as;
-	talloc_free(as_name);
+		/* install default route */
+		rt = osmo_ss7_route_create(ss7->rtable_system, 0, 0,
+					   as->cfg.name);
+		if (!rt)
+			goto out_as;
+		rt_created = true;
+	}
+	LOGP(DLSCCP, LOGL_NOTICE, "%s: Using AS instance %s\n", name,
+	     as->cfg.name);
 
-	/* application server process */
-	asp = osmo_ss7_asp_find_or_create(ss7, asp_name, remote_port, local_port,
-					  prot);
-	if (!asp)
-		goto out_rt;
-	asp->cfg.local.host = talloc_strdup(asp, local_ip);
-	asp->cfg.remote.host = talloc_strdup(asp, remote_ip);
-	osmo_ss7_as_add_asp(as, asp_name);
+	/* Check if we do already have an application server process
+	 * that is associated with the application server we have choosen
+	 * the application server process must also match the protocol
+	 * we intend to use. */
+	asp = osmo_ss7_asp_find_by_proto(as, prot);
+	if (!asp) {
+		LOGP(DLSCCP, LOGL_NOTICE, "%s: Creating ASP instance\n",
+		     name);
+		asp_name = talloc_asprintf(ctx, "asp-clnt-%s", name);
+		asp =
+		    osmo_ss7_asp_find_or_create(ss7, asp_name, remote_port,
+						local_port, prot);
+		talloc_free(asp_name);
+		if (!asp)
+			goto out_rt;
+		asp_created = true;
+
+		asp->cfg.local.host = talloc_strdup(asp, local_ip);
+		asp->cfg.remote.host = talloc_strdup(asp, remote_ip);
+
+		osmo_ss7_as_add_asp(as, asp->cfg.name);
+	}
+
+	/* Ensure that the ASP we use is set to client mode. */
+	asp->cfg.is_server = false;
+
+	/* Restart ASP */
 	if (prot != OSMO_SS7_ASP_PROT_IPA)
 		osmo_ss7_asp_use_default_lm(asp, LOGL_DEBUG);
-	talloc_free(asp_name);
 	osmo_ss7_asp_restart(asp);
+	LOGP(DLSCCP, LOGL_NOTICE, "%s: Using ASP instance %s\n", name,
+	     asp->cfg.name);
 
-	/* Allocate SCCP stack + SCCP user */
+	/* Allocate SCCP instance */
+	LOGP(DLSCCP, LOGL_NOTICE, "%s: Creating SCCP instance\n", name);
 	ss7->sccp = osmo_sccp_instance_create(ss7, NULL);
 	if (!ss7->sccp)
 		goto out_asp;
@@ -297,15 +356,17 @@ osmo_sccp_simple_client_on_ss7_id(void *ctx, uint32_t ss7_id, const char *name,
 	return ss7->sccp;
 
 out_asp:
-	osmo_ss7_asp_destroy(asp);
+	if (asp_created)
+		osmo_ss7_asp_destroy(asp);
 out_rt:
-	osmo_ss7_route_destroy(rt);
+	if (rt_created)
+		osmo_ss7_route_destroy(rt);
 out_as:
-	osmo_ss7_as_destroy(as);
-out_strings:
-	talloc_free(as_name);
-	talloc_free(asp_name);
-	osmo_ss7_instance_destroy(ss7);
+	if (as_created)
+		osmo_ss7_as_destroy(as);
+out_ss7:
+	if (ss7_created)
+		osmo_ss7_instance_destroy(ss7);
 
 	return NULL;
 }

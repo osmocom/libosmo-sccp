@@ -833,6 +833,41 @@ osmo_ss7_as_find_by_l_rk_id(struct osmo_ss7_instance *inst, uint32_t l_rk_id)
 	return NULL;
 }
 
+/*! \brief Find Application Server (AS) by given protocol.
+ *  \param[in] inst SS7 Instance on which we operate
+ *  \param[in] proto Protocol identifier that must match
+ *  \returns pointer to AS on success; NULL otherwise
+ *  If an AS has an ASP also matching the given protocol, that AS is preferred.
+ *  If there are multiple matches, return the first matching AS. */
+struct osmo_ss7_as *osmo_ss7_as_find_by_proto(struct osmo_ss7_instance *inst,
+					      enum osmo_ss7_asp_protocol proto)
+{
+	struct osmo_ss7_as *as;
+	struct osmo_ss7_as *as_without_asp = NULL;
+
+	OSMO_ASSERT(ss7_initialized);
+
+	/* Loop through the list with AS and try to find one where the proto
+	   matches up */
+	llist_for_each_entry(as, &inst->as_list, list) {
+		if (as->cfg.proto == proto) {
+
+			/* Put down the first AS that matches the proto, just in
+			 * case we will not find any matching ASP */
+			if (!as_without_asp)
+				as_without_asp = as;
+
+			/* Check if the candicate we have here has any suitable
+			 * ASP */
+			if (osmo_ss7_asp_find_by_proto(as, proto))
+				return as;
+		}
+	}
+
+	/* Return with the second best find, if there is any */
+	return as_without_asp;
+}
+
 /*! \brief Find or Create Application Server
  *  \param[in] inst SS7 Instance on which we operate
  *  \param[in] name Name of Application Server
@@ -1039,6 +1074,23 @@ osmo_ss7_asp_find_by_socket_addr(int fd)
 			    (!asp->cfg.remote.host || !strcmp(asp->cfg.remote.host, hostbuf_r)))
 				return asp;
 		}
+	}
+
+	return NULL;
+}
+
+/*! \brief Find an ASP that matches the given protocol.
+ *  \param[in] as Application Server in which to look for \ref asp
+ *  \returns SS7 ASP in case a matching one is found; NULL otherwise */
+struct osmo_ss7_asp
+*osmo_ss7_asp_find_by_proto(struct osmo_ss7_as *as,
+			    enum osmo_ss7_asp_protocol proto)
+{
+	unsigned int i;
+
+	for (i = 0; i < ARRAY_SIZE(as->cfg.asps); i++) {
+		if (as->cfg.asps[i] && as->cfg.asps[i]->cfg.proto == proto)
+			return as->cfg.asps[i];
 	}
 
 	return NULL;

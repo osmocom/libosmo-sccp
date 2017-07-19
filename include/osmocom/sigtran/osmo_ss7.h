@@ -307,6 +307,8 @@ struct osmo_ss7_as *
 osmo_ss7_as_find_by_rctx(struct osmo_ss7_instance *inst, uint32_t rctx);
 struct osmo_ss7_as *
 osmo_ss7_as_find_by_l_rk_id(struct osmo_ss7_instance *inst, uint32_t l_rk_id);
+struct osmo_ss7_as *osmo_ss7_as_find_by_proto(struct osmo_ss7_instance *inst,
+					      enum osmo_ss7_asp_protocol proto);
 struct osmo_ss7_as *
 osmo_ss7_as_find_or_create(struct osmo_ss7_instance *inst, const char *name,
 			  enum osmo_ss7_asp_protocol proto);
@@ -383,6 +385,9 @@ struct osmo_ss7_asp {
 
 struct osmo_ss7_asp *
 osmo_ss7_asp_find_by_name(struct osmo_ss7_instance *inst, const char *name);
+struct osmo_ss7_asp
+*osmo_ss7_asp_find_by_proto(struct osmo_ss7_as *as,
+			    enum osmo_ss7_asp_protocol proto);
 struct osmo_ss7_asp *
 osmo_ss7_asp_find_or_create(struct osmo_ss7_instance *inst, const char *name,
 			    uint16_t remote_port, uint16_t local_port,
