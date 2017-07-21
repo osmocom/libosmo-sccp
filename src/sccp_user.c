@@ -22,6 +22,7 @@
  */
 
 #include <stdbool.h>
+#include <string.h>
 
 #include <osmocom/core/linuxlist.h>
 #include <osmocom/core/logging.h>
@@ -30,6 +31,7 @@
 #include <osmocom/sigtran/sccp_sap.h>
 #include <osmocom/sigtran/mtp_sap.h>
 #include <osmocom/sigtran/protocol/mtp.h>
+#include <osmocom/sigtran/sccp_helpers.h>
 
 #include "sccp_internal.h"
 #include "xua_internal.h"
@@ -229,6 +231,26 @@ void osmo_sccp_instance_destroy(struct osmo_sccp_instance *inst)
 	sccp_scoc_flush_connections(inst);
 	llist_del(&inst->list);
 	talloc_free(inst);
+}
+
+/*! \brief derive a basic local SCCP-Address from a given SCCP instance.
+ *  \param[out] dest_addr pointer to output address memory
+ *  \param[in] inst SCCP instance
+ *  \param[in] ssn Subsystem Number */
+void osmo_sccp_local_addr_by_instance(struct osmo_sccp_addr *dest_addr,
+				      const struct osmo_sccp_instance *inst,
+				      uint32_t ssn)
+{
+	struct osmo_ss7_instance *ss7;
+
+	OSMO_ASSERT(dest_addr);
+	OSMO_ASSERT(inst);
+	ss7 = inst->ss7;
+	OSMO_ASSERT(ss7);
+
+	*dest_addr = (struct osmo_sccp_addr){};
+
+	osmo_sccp_make_addr_pc_ssn(dest_addr, ss7->cfg.primary_pc, ssn);
 }
 
 /***********************************************************************
