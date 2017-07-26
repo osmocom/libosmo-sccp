@@ -48,13 +48,13 @@ sccp_user_find(struct osmo_sccp_instance *inst, uint16_t ssn, uint32_t pc)
 
 	/* First try to find match for PC + SSN */
 	llist_for_each_entry(scu, &inst->users, list) {
-		if (scu->pc_valid && scu->pc == pc && scu->ssn == ssn)
+		if (osmo_ss7_pc_is_valid(scu->pc) && scu->pc == pc && scu->ssn == ssn)
 			return scu;
 	}
 
 	/* Then try to match on SSN only */
 	llist_for_each_entry(scu, &inst->users, list) {
-		if (!scu->pc_valid && scu->ssn == ssn)
+		if (!osmo_ss7_pc_is_valid(scu->pc) && scu->ssn == ssn)
 			return scu;
 	}
 
@@ -65,28 +65,25 @@ sccp_user_find(struct osmo_sccp_instance *inst, uint16_t ssn, uint32_t pc)
  *  \param[in] inst SCCP Instance
  *  \param[in] name human-readable name
  *  \param[in] ssn Sub-System Number to bind to
- *  \param[in] pc Point Code to bind to (if any)
- *  \param[in] pc_valid Whether or not \ref pc is valid/used
+ *  \param[in] pc Point Code to bind to, or OSMO_SS7_PC_INVALID if none.
  *  \returns Callee-allocated SCCP User on success; negative otherwise */
 static struct osmo_sccp_user *
 sccp_user_bind_pc(struct osmo_sccp_instance *inst, const char *name,
-		  osmo_prim_cb prim_cb, uint16_t ssn, uint32_t pc, bool pc_valid)
+		  osmo_prim_cb prim_cb, uint16_t ssn, uint32_t pc)
 {
 	struct osmo_sccp_user *scu;
-	if (!pc_valid)
-		pc = 0;
 
 	scu = sccp_user_find(inst, ssn, pc);
 	if (scu) {
 		LOGP(DLSCCP, LOGL_ERROR,
-		     "Cannot bind user '%s' to SSN=%u PC=%u=%s (pc_valid=%u), this SSN and PC"
+		     "Cannot bind user '%s' to SSN=%u PC=%s, this SSN and PC"
 		     " is already bound by '%s'\n",
-		     name, ssn, pc, osmo_ss7_pointcode_print(inst->ss7, pc), pc_valid, scu->name);
+		     name, ssn, osmo_ss7_pointcode_print(inst->ss7, pc), scu->name);
 		return NULL;
 	}
 
-	LOGP(DLSCCP, LOGL_INFO, "Binding user '%s' to SSN=%u PC=%u=%s (pc_valid=%u)\n",
-		name, ssn, pc, osmo_ss7_pointcode_print(inst->ss7, pc), pc_valid);
+	LOGP(DLSCCP, LOGL_INFO, "Binding user '%s' to SSN=%u PC=%s\n",
+		name, ssn, osmo_ss7_pointcode_print(inst->ss7, pc));
 
 	scu = talloc_zero(inst, struct osmo_sccp_user);
 	scu->name = talloc_strdup(scu, name);
@@ -94,7 +91,6 @@ sccp_user_bind_pc(struct osmo_sccp_instance *inst, const char *name,
 	scu->prim_cb = prim_cb;
 	scu->ssn = ssn;
 	scu->pc = pc;
-	scu->pc_valid = pc_valid;
 	llist_add_tail(&scu->list, &inst->users);
 
 	return scu;
@@ -104,13 +100,13 @@ sccp_user_bind_pc(struct osmo_sccp_instance *inst, const char *name,
  *  \param[in] inst SCCP Instance
  *  \param[in] name human-readable name
  *  \param[in] ssn Sub-System Number to bind to
- *  \param[in] pc Point Code to bind to (if any)
+ *  \param[in] pc Point Code to bind to
  *  \returns Callee-allocated SCCP User on success; negative otherwise */
 struct osmo_sccp_user *
 osmo_sccp_user_bind_pc(struct osmo_sccp_instance *inst, const char *name,
 		       osmo_prim_cb prim_cb, uint16_t ssn, uint32_t pc)
 {
-	return sccp_user_bind_pc(inst, name, prim_cb, ssn, pc, true);
+	return sccp_user_bind_pc(inst, name, prim_cb, ssn, pc);
 }
 
 /*! \brief Bind a given SCCP User to a given SSN (at any PC)
@@ -122,7 +118,7 @@ struct osmo_sccp_user *
 osmo_sccp_user_bind(struct osmo_sccp_instance *inst, const char *name,
 		    osmo_prim_cb prim_cb, uint16_t ssn)
 {
-	return sccp_user_bind_pc(inst, name, prim_cb, ssn, 0, false);
+	return sccp_user_bind_pc(inst, name, prim_cb, ssn, OSMO_SS7_PC_INVALID);
 }
 
 /*! \brief Unbind a given SCCP user
@@ -130,9 +126,9 @@ osmo_sccp_user_bind(struct osmo_sccp_instance *inst, const char *name,
  *  		at the time this function returns. */
 void osmo_sccp_user_unbind(struct osmo_sccp_user *scu)
 {
-	LOGP(DLSCCP, LOGL_INFO, "Unbinding user '%s' from SSN=%u PC=%u "
-		"(pc_valid=%u)\n", scu->name, scu->ssn, scu->pc,
-		scu->pc_valid);
+	LOGP(DLSCCP, LOGL_INFO, "Unbinding user '%s' from SSN=%u PC=%s\n",
+		scu->name, scu->ssn,
+		osmo_ss7_pointcode_print(scu->inst->ss7, scu->pc));
 	/* FIXME: free/release all connections held by this user? */
 	llist_del(&scu->list);
 	talloc_free(scu);

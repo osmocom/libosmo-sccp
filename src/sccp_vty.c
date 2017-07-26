@@ -42,7 +42,7 @@ static void show_user(struct vty *vty, struct osmo_sccp_user *user)
 {
 	struct osmo_sccp_instance *sccp = user->inst;
 
-	if (user->pc_valid)
+	if (osmo_ss7_pc_is_valid(user->pc))
 		vty_out(vty, "SSN %3u %7s : %s%s", user->ssn,
 			osmo_ss7_pointcode_print(sccp->ss7, user->pc),
 			user->name, VTY_NEWLINE);

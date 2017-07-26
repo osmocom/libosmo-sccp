@@ -34,7 +34,6 @@ struct osmo_sccp_user {
 	/*! \brief SSN and/or point code to which we are bound */
 	uint16_t ssn;
 	uint32_t pc;
-	bool pc_valid;
 
 	/* set if we are a server */
 	struct llist_head links;
