@@ -274,6 +274,7 @@ char *osmo_sccp_gt_dump(const struct osmo_sccp_gt *gt)
 	return buf;
 }
 
+/* Return string representation of SCCP address raw bytes in a static string. */
 char *osmo_sccp_addr_dump(const struct osmo_sccp_addr *addr)
 {
 	static char buf[256];
@@ -290,6 +291,29 @@ char *osmo_sccp_addr_dump(const struct osmo_sccp_addr *addr)
 	if (addr->presence & OSMO_SCCP_ADDR_T_IPv4)
 		append_to_buf(buf, &comma, "IP=%s", inet_ntoa(addr->ip.v4));
 	append_to_buf(buf, &comma, "GTI=%u", addr->gt.gti);
+	if (addr->presence & OSMO_SCCP_ADDR_T_GT)
+		append_to_buf(buf, &comma, "GT=(%s)", osmo_sccp_gt_dump(&addr->gt));
+
+	return buf;
+}
+
+/* Like osmo_sccp_addr_dump() but print human readable representations instead of raw values. */
+char *osmo_sccp_addr_name(const struct osmo_ss7_instance *ss7, const struct osmo_sccp_addr *addr)
+{
+	static char buf[256];
+	bool comma = false;
+
+	buf[0] = '\0';
+
+	append_to_buf(buf, &comma, "RI=%s", osmo_sccp_routing_ind_name(addr->ri));
+
+	if (addr->presence & OSMO_SCCP_ADDR_T_PC)
+		append_to_buf(buf, &comma, "PC=%s", osmo_ss7_pointcode_print(ss7, addr->pc));
+	if (addr->presence & OSMO_SCCP_ADDR_T_SSN)
+		append_to_buf(buf, &comma, "SSN=%s", osmo_sccp_ssn_name(addr->ssn));
+	if (addr->presence & OSMO_SCCP_ADDR_T_IPv4)
+		append_to_buf(buf, &comma, "IP=%s", inet_ntoa(addr->ip.v4));
+	append_to_buf(buf, &comma, "GTI=%s", osmo_sccp_gti_name(addr->gt.gti));
 	if (addr->presence & OSMO_SCCP_ADDR_T_GT)
 		append_to_buf(buf, &comma, "GT=(%s)", osmo_sccp_gt_dump(&addr->gt));
 

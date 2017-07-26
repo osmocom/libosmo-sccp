@@ -60,6 +60,11 @@ enum osmo_sccp_routing_ind {
 	OSMO_SCCP_RI_SSN_IP,
 };
 
+extern const struct value_string osmo_sccp_routing_ind_names[];
+static inline const char *osmo_sccp_routing_ind_name(enum osmo_sccp_routing_ind val)
+{ return get_value_string(osmo_sccp_routing_ind_names, val); }
+
+
 /* Q.713 3.4.1 + RFC 3868 3.10.2.3 */
 enum osmo_sccp_gti {
 	OSMO_SCCP_GTI_NO_GT,
@@ -68,6 +73,10 @@ enum osmo_sccp_gti {
 	OSMO_SCCP_GTI_TT_NPL_ENC,
 	OSMO_SCCP_GTI_TT_NPL_ENC_NAI,
 };
+
+extern const struct value_string osmo_sccp_gti_names[];
+static inline const char *osmo_sccp_gti_name(enum osmo_sccp_gti val)
+{ return get_value_string(osmo_sccp_gti_names, val); }
 
 /* RFC 3868 3.10.2.3 */
 enum osmo_sccp_npi {
@@ -125,6 +134,10 @@ enum osmo_sccp_ssn {
 	OSMO_SCCP_SSN_SMLC_BSSAP	= 252,
 	OSMO_SCCP_SSN_BSS_OAM		= 253,
 };
+
+extern const struct value_string osmo_sccp_ssn_names[];
+static inline const char *osmo_sccp_ssn_name(enum osmo_sccp_ssn val)
+{ return get_value_string(osmo_sccp_ssn_names, val); }
 
 struct osmo_sccp_gt {
 	uint8_t gti;

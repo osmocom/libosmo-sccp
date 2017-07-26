@@ -85,3 +85,50 @@ char *osmo_xlm_prim_name(struct osmo_prim_hdr *oph)
 
 	return prim_name_buf;
 }
+
+const struct value_string osmo_sccp_routing_ind_names[] = {
+	{ OSMO_SCCP_RI_NONE,	"NONE" },
+	{ OSMO_SCCP_RI_GT,	"GT" },
+	{ OSMO_SCCP_RI_SSN_PC,	"SSN_PC" },
+	{ OSMO_SCCP_RI_SSN_IP,	"SSN_IP" },
+	{ 0, NULL }
+};
+
+const struct value_string osmo_sccp_gti_names[] = {
+	{ OSMO_SCCP_GTI_NO_GT,		"NO_GT" },
+	{ OSMO_SCCP_GTI_NAI_ONLY,	"NAI_ONLY" },
+	{ OSMO_SCCP_GTI_TT_ONLY,	"TT_ONLY" },
+	{ OSMO_SCCP_GTI_TT_NPL_ENC,	"TT_NPL_ENC" },
+	{ OSMO_SCCP_GTI_TT_NPL_ENC_NAI,	"TT_NPL_ENC_NAI" },
+	{ 0, NULL }
+};
+
+const struct value_string osmo_sccp_ssn_names[] = {
+	{ OSMO_SCCP_SSN_MGMT,		"MGMT" },
+	{ OSMO_SCCP_SSN_ISUP,		"ISUP" },
+	{ OSMO_SCCP_SSN_OMAP,		"OMAP" },
+	{ OSMO_SCCP_SSN_MAP,		"MAP" },
+	{ OSMO_SCCP_SSN_HLR,		"HLR" },
+	{ OSMO_SCCP_SSN_VLR,		"VLR" },
+	{ OSMO_SCCP_SSN_MSC,		"MSC" },
+	{ OSMO_SCCP_SSN_EIR,		"EIR" },
+	{ OSMO_SCCP_SSN_AUC,		"AUC" },
+	{ OSMO_SCCP_SSN_ISDN_SS,	"ISDN_SS" },
+	{ OSMO_SCCP_SSN_RES_INTL,	"RES_INTL" },
+	{ OSMO_SCCP_SSN_BISDN,		"BISDN" },
+	{ OSMO_SCCP_SSN_TC_TEST,	"TC_TEST" },
+	{ OSMO_SCCP_SSN_RANAP,		"RANAP" },
+	{ OSMO_SCCP_SSN_RNSAP,		"RNSAP" },
+	{ OSMO_SCCP_SSN_GMLC_MAP,	"GMLC_MAP" },
+	{ OSMO_SCCP_SSN_CAP,		"CAP" },
+	{ OSMO_SCCP_SSN_gsmSCF_MAP,	"gsmSCF_MAP" },
+	{ OSMO_SCCP_SSN_SIWF_MAP,	"SIWF_MAP" },
+	{ OSMO_SCCP_SSN_SGSN_MAP,	"SGSN_MAP" },
+	{ OSMO_SCCP_SSN_GGSN_MAP,	"GGSN_MAP" },
+	{ OSMO_SCCP_SSN_PCAP,		"PCAP" },
+	{ OSMO_SCCP_SSN_BSC_BSSAP,	"BSC_BSSAP" },
+	{ OSMO_SCCP_SSN_MSC_BSSAP,	"MSC_BSSAP" },
+	{ OSMO_SCCP_SSN_SMLC_BSSAP,	"SMLC_BSSAP" },
+	{ OSMO_SCCP_SSN_BSS_OAM,	"BSS_OAM" },
+	{ 0, NULL }
+};
