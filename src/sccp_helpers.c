@@ -230,16 +230,19 @@ int osmo_sccp_tx_conn_resp(struct osmo_sccp_user *scu, uint32_t conn_id,
 	return osmo_sccp_tx_conn_resp_msg(scu, conn_id, resp_addr, msg);
 }
 
-static void append_to_buf(char *buf, bool *comma, const char *fmt, ...)
+static void append_to_buf(char *buf, size_t size, bool *comma, const char *fmt, ...)
 {
 	va_list ap;
+	size_t printed;
 
 	va_start(ap, fmt);
 	if (*comma == true) {
 		strcat(buf, ",");
 	} else
 		*comma = true;
-	vsprintf(buf+strlen(buf), fmt, ap);
+	printed = strlen(buf);
+	OSMO_ASSERT(printed <= size);
+	vsnprintf(buf + printed, size - printed, fmt, ap);
 	va_end(ap);
 }
 
@@ -260,16 +263,16 @@ char *osmo_sccp_gt_dump(const struct osmo_sccp_gt *gt)
 	if (gt->gti == OSMO_SCCP_GTI_TT_ONLY ||
 	    gt->gti == OSMO_SCCP_GTI_TT_NPL_ENC ||
 	    gt->gti == OSMO_SCCP_GTI_TT_NPL_ENC_NAI)
-		append_to_buf(buf, &comma, "TT=%u", gt->tt);
+		append_to_buf(buf, sizeof(buf), &comma, "TT=%u", gt->tt);
 
 	if (gt->gti == OSMO_SCCP_GTI_TT_NPL_ENC ||
 	    gt->gti == OSMO_SCCP_GTI_TT_NPL_ENC_NAI)
-		append_to_buf(buf, &comma, "NPL=%u", gt->npi);
+		append_to_buf(buf, sizeof(buf), &comma, "NPL=%u", gt->npi);
 
 	if (gt->gti == OSMO_SCCP_GTI_TT_NPL_ENC_NAI)
-		append_to_buf(buf, &comma, "NAI=%u", gt->nai);
+		append_to_buf(buf, sizeof(buf), &comma, "NAI=%u", gt->nai);
 
-	append_to_buf(buf, &comma, "DIG=%s", gt->digits);
+	append_to_buf(buf, sizeof(buf), &comma, "DIG=%s", gt->digits);
 
 	return buf;
 }
@@ -282,17 +285,17 @@ char *osmo_sccp_addr_dump(const struct osmo_sccp_addr *addr)
 
 	buf[0] = '\0';
 
-	append_to_buf(buf, &comma, "RI=%d", addr->ri);
+	append_to_buf(buf, sizeof(buf), &comma, "RI=%d", addr->ri);
 
 	if (addr->presence & OSMO_SCCP_ADDR_T_PC)
-		append_to_buf(buf, &comma, "PC=%u", addr->pc);
+		append_to_buf(buf, sizeof(buf), &comma, "PC=%u", addr->pc);
 	if (addr->presence & OSMO_SCCP_ADDR_T_SSN)
-		append_to_buf(buf, &comma, "SSN=%u", addr->ssn);
+		append_to_buf(buf, sizeof(buf), &comma, "SSN=%u", addr->ssn);
 	if (addr->presence & OSMO_SCCP_ADDR_T_IPv4)
-		append_to_buf(buf, &comma, "IP=%s", inet_ntoa(addr->ip.v4));
-	append_to_buf(buf, &comma, "GTI=%u", addr->gt.gti);
+		append_to_buf(buf, sizeof(buf), &comma, "IP=%s", inet_ntoa(addr->ip.v4));
+	append_to_buf(buf, sizeof(buf), &comma, "GTI=%u", addr->gt.gti);
 	if (addr->presence & OSMO_SCCP_ADDR_T_GT)
-		append_to_buf(buf, &comma, "GT=(%s)", osmo_sccp_gt_dump(&addr->gt));
+		append_to_buf(buf, sizeof(buf), &comma, "GT=(%s)", osmo_sccp_gt_dump(&addr->gt));
 
 	return buf;
 }
@@ -305,17 +308,17 @@ char *osmo_sccp_addr_name(const struct osmo_ss7_instance *ss7, const struct osmo
 
 	buf[0] = '\0';
 
-	append_to_buf(buf, &comma, "RI=%s", osmo_sccp_routing_ind_name(addr->ri));
+	append_to_buf(buf, sizeof(buf), &comma, "RI=%s", osmo_sccp_routing_ind_name(addr->ri));
 
 	if (addr->presence & OSMO_SCCP_ADDR_T_PC)
-		append_to_buf(buf, &comma, "PC=%s", osmo_ss7_pointcode_print(ss7, addr->pc));
+		append_to_buf(buf, sizeof(buf), &comma, "PC=%s", osmo_ss7_pointcode_print(ss7, addr->pc));
 	if (addr->presence & OSMO_SCCP_ADDR_T_SSN)
-		append_to_buf(buf, &comma, "SSN=%s", osmo_sccp_ssn_name(addr->ssn));
+		append_to_buf(buf, sizeof(buf), &comma, "SSN=%s", osmo_sccp_ssn_name(addr->ssn));
 	if (addr->presence & OSMO_SCCP_ADDR_T_IPv4)
-		append_to_buf(buf, &comma, "IP=%s", inet_ntoa(addr->ip.v4));
-	append_to_buf(buf, &comma, "GTI=%s", osmo_sccp_gti_name(addr->gt.gti));
+		append_to_buf(buf, sizeof(buf), &comma, "IP=%s", inet_ntoa(addr->ip.v4));
+	append_to_buf(buf, sizeof(buf), &comma, "GTI=%s", osmo_sccp_gti_name(addr->gt.gti));
 	if (addr->presence & OSMO_SCCP_ADDR_T_GT)
-		append_to_buf(buf, &comma, "GT=(%s)", osmo_sccp_gt_dump(&addr->gt));
+		append_to_buf(buf, sizeof(buf), &comma, "GT=(%s)", osmo_sccp_gt_dump(&addr->gt));
 
 	return buf;
 }
