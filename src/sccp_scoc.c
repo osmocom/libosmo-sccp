@@ -1670,11 +1670,11 @@ static void vty_show_connection(struct vty *vty, struct sccp_connection *conn)
 {
 	struct osmo_ss7_instance *s7i = conn->inst->ss7;
 	struct osmo_sccp_addr *remote_addr;
-	uint32_t local_pc;
+	uint32_t local_pc = OSMO_SS7_PC_INVALID;
 
 	if (conn->user->pc_valid)
 		local_pc = conn->user->pc;
-	else
+	else if (osmo_ss7_pc_is_valid(s7i->cfg.primary_pc))
 		local_pc = s7i->cfg.primary_pc;
 
 	if (conn->incoming)

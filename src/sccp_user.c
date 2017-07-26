@@ -366,6 +366,11 @@ osmo_sccp_simple_client_on_ss7_id(void *ctx, uint32_t ss7_id, const char *name,
 			goto out_ss7;
 		as_created = true;
 
+		if (!osmo_ss7_pc_is_valid(ss7->cfg.primary_pc)) {
+			LOGP(DLSCCP, LOGL_ERROR, "SS7 instance %u: no primary point-code set\n",
+			     ss7->cfg.id);
+			goto out_ss7;
+		}
 		as->cfg.routing_key.pc = ss7->cfg.primary_pc;
 
 		/* install default route */

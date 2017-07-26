@@ -91,8 +91,14 @@ static int sua2sccp_tx_m3ua(struct osmo_sccp_instance *inst,
 	param = &omp->u.transfer;
 	if (sua->mtp.opc)
 		param->opc = sua->mtp.opc;
-	else
+	else {
+		if (!osmo_ss7_pc_is_valid(s7i->cfg.primary_pc)) {
+			LOGP(DLSCCP, LOGL_ERROR, "SS7 instance %u: no primary point-code set\n",
+			     s7i->cfg.id);
+			return -1;
+		}
 		param->opc = s7i->cfg.primary_pc;
+	}
 	param->dpc = remote_pc;
 	param->sls = sua->mtp.sls;
 	param->sio = MTP_SIO(MTP_SI_SCCP, s7i->cfg.network_indicator);

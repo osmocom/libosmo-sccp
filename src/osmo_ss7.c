@@ -354,6 +354,8 @@ osmo_ss7_instance_find_or_create(void *ctx, uint32_t id)
 	if (!inst)
 		return NULL;
 
+	inst->cfg.primary_pc = OSMO_SS7_PC_INVALID;
+
 	inst->cfg.id = id;
 	LOGSS7(inst, LOGL_INFO, "Creating SS7 Instance\n");
 
@@ -1825,7 +1827,7 @@ void osmo_ss7_xua_server_destroy(struct osmo_xua_server *xs)
 bool osmo_ss7_pc_is_local(struct osmo_ss7_instance *inst, uint32_t pc)
 {
 	OSMO_ASSERT(ss7_initialized);
-	if (pc == inst->cfg.primary_pc)
+	if (osmo_ss7_pc_is_valid(inst->cfg.primary_pc) && pc == inst->cfg.primary_pc)
 		return true;
 	/* FIXME: Secondary and Capability Point Codes */
 	return false;

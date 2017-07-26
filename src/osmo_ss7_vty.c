@@ -166,7 +166,7 @@ DEFUN(cs7_point_code, cs7_point_code_cmd,
 {
 	struct osmo_ss7_instance *inst = vty->index;
 	int pc = osmo_ss7_pointcode_parse(inst, argv[0]);
-	if (pc < 0) {
+	if (pc < 0 || !osmo_ss7_pc_is_valid((uint32_t)pc)) {
 		vty_out(vty, "Invalid point code (%s)%s", argv[0], VTY_NEWLINE);
 		return CMD_WARNING;
 	}
@@ -1536,7 +1536,7 @@ static void write_one_cs7(struct vty *vty, struct osmo_ss7_instance *inst)
 	if (inst->cfg.pc_fmt.delimiter != '.')
 		vty_out(vty, " point-code delimiter dash%s", VTY_NEWLINE);
 
-	if (inst->cfg.primary_pc)
+	if (osmo_ss7_pc_is_valid(inst->cfg.primary_pc))
 		vty_out(vty, " point-code %s%s",
 			osmo_ss7_pointcode_print(inst, inst->cfg.primary_pc),
 			VTY_NEWLINE);
