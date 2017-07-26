@@ -26,6 +26,14 @@ int osmo_ss7_pointcode_parse_mask_or_len(struct osmo_ss7_instance *inst, const c
 const char *osmo_ss7_pointcode_print(struct osmo_ss7_instance *inst, uint32_t pc);
 const char *osmo_ss7_pointcode_print2(struct osmo_ss7_instance *inst, uint32_t pc);
 
+/* All known point-code formats have a length of or below 24 bit.
+ * A point-code value exceeding that is used to indicate an unset PC. */
+#define OSMO_SS7_PC_INVALID 0xffffffff
+static inline bool osmo_ss7_pc_is_valid(uint32_t pc)
+{
+	return pc <= 0x00ffffff;
+}
+
 /***********************************************************************
  * SS7 Routing Tables
  ***********************************************************************/

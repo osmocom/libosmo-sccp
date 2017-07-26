@@ -247,10 +247,16 @@ err:
 
 const char *_osmo_ss7_pointcode_print(char *buf, size_t len, struct osmo_ss7_instance *inst, uint32_t pc)
 {
-	const struct osmo_ss7_pc_fmt *pc_fmt = inst ? &inst->cfg.pc_fmt : &default_pc_fmt;
-	unsigned int num_comp_exp = num_pc_comp_exp(pc_fmt);
-	const char *fmtstr = gen_pc_fmtstr(pc_fmt, &num_comp_exp);
+	const struct osmo_ss7_pc_fmt *pc_fmt;
+	unsigned int num_comp_exp;
+	const char *fmtstr;
 
+	if (!osmo_ss7_pc_is_valid(pc))
+		return "(no PC)";
+
+	pc_fmt = inst ? &inst->cfg.pc_fmt : &default_pc_fmt;
+	num_comp_exp = num_pc_comp_exp(pc_fmt);
+	fmtstr = gen_pc_fmtstr(pc_fmt, &num_comp_exp);
 	OSMO_ASSERT(fmtstr);
 	snprintf(buf, len, fmtstr,
 		 pc_comp_shift_and_mask(pc_fmt, 0, pc),
