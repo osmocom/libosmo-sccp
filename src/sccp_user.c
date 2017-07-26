@@ -331,8 +331,10 @@ osmo_sccp_simple_client_on_ss7_id(void *ctx, uint32_t ss7_id, const char *name,
 			goto out_rt;
 		asp_created = true;
 
-		asp->cfg.local.host = talloc_strdup(asp, local_ip);
-		asp->cfg.remote.host = talloc_strdup(asp, remote_ip);
+		local_ip ? asp->cfg.local.host =
+		    talloc_strdup(asp, local_ip) : NULL;
+		remote_ip ? asp->cfg.remote.host =
+		    talloc_strdup(asp, remote_ip) : NULL;
 
 		osmo_ss7_as_add_asp(as, asp->cfg.name);
 	}
