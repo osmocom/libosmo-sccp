@@ -245,7 +245,7 @@ err:
 	return -EINVAL;
 }
 
-const char *_osmo_ss7_pointcode_print(char *buf, size_t len, struct osmo_ss7_instance *inst, uint32_t pc)
+const char *_osmo_ss7_pointcode_print(char *buf, size_t len, const struct osmo_ss7_instance *inst, uint32_t pc)
 {
 	const struct osmo_ss7_pc_fmt *pc_fmt;
 	unsigned int num_comp_exp;
@@ -269,7 +269,7 @@ const char *_osmo_ss7_pointcode_print(char *buf, size_t len, struct osmo_ss7_ins
 
 /* print a pointcode according to the structure configured for this
  * ss7_instance */
-const char *osmo_ss7_pointcode_print(struct osmo_ss7_instance *inst, uint32_t pc)
+const char *osmo_ss7_pointcode_print(const struct osmo_ss7_instance *inst, uint32_t pc)
 {
 	static char buf[MAX_PC_STR_LEN];
 	return _osmo_ss7_pointcode_print(buf, sizeof(buf), inst, pc);
@@ -277,7 +277,7 @@ const char *osmo_ss7_pointcode_print(struct osmo_ss7_instance *inst, uint32_t pc
 
 /* same as osmo_ss7_pointcode_print() but using a separate buffer, useful for multiple point codes in the
  * same LOGP/printf. */
-const char *osmo_ss7_pointcode_print2(struct osmo_ss7_instance *inst, uint32_t pc)
+const char *osmo_ss7_pointcode_print2(const struct osmo_ss7_instance *inst, uint32_t pc)
 {
 	static char buf[MAX_PC_STR_LEN];
 	return _osmo_ss7_pointcode_print(buf, sizeof(buf), inst, pc);
