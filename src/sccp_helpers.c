@@ -282,7 +282,7 @@ char *osmo_sccp_addr_dump(const struct osmo_sccp_addr *addr)
 
 	buf[0] = '\0';
 
-	append_to_buf(buf, &comma, "RI=7");
+	append_to_buf(buf, &comma, "RI=%d", addr->ri);
 
 	if (addr->presence & OSMO_SCCP_ADDR_T_PC)
 		append_to_buf(buf, &comma, "PC=%u", addr->pc);
