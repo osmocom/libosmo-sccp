@@ -1661,8 +1661,10 @@ static void vty_init_addr(void)
 	install_element(L_CS7_SCCPADDR_GT_NODE, &cs7_sccpaddr_gt_digits_cmd);
 }
 
-static void vty_init_shared(void)
+static void vty_init_shared(void *ctx)
 {
+	g_ctx = ctx;
+
 	install_element_ve(&show_cs7_user_cmd);
 
 	/* the mother of all VTY config nodes */
@@ -1706,14 +1708,14 @@ static void vty_init_shared(void)
 	vty_init_addr();
 }
 
-void osmo_ss7_vty_init_asp(void)
+void osmo_ss7_vty_init_asp(void *ctx)
 {
-	vty_init_shared();
+	vty_init_shared(ctx);
 }
 
-void osmo_ss7_vty_init_sg(void)
+void osmo_ss7_vty_init_sg(void *ctx)
 {
-	vty_init_shared();
+	vty_init_shared(ctx);
 
 	install_node(&rtable_node, NULL);
 	vty_install_default(L_CS7_RTABLE_NODE);
@@ -1730,8 +1732,3 @@ void osmo_ss7_vty_init_sg(void)
 	install_element(L_CS7_XUA_NODE, &xua_local_ip_cmd);
 	install_element(L_CS7_XUA_NODE, &xua_accept_dyn_asp_cmd);
 }
-
-void osmo_ss7_set_vty_alloc_ctx(void *ctx)
-{
-	g_ctx = ctx;
-};

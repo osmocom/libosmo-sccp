@@ -92,7 +92,7 @@ int main(int argc, char **argv)
 	osmo_ss7_init();
 	osmo_fsm_log_addr(false);
 	vty_init(&vty_info);
-	osmo_ss7_vty_init_asp();
+	osmo_ss7_vty_init_asp(NULL);
 	osmo_sccp_vty_init();
 
 	if (argc <= 1)

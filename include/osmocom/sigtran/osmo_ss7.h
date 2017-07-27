@@ -471,8 +471,7 @@ int osmo_ss7_tmode_to_xua(enum osmo_ss7_as_traffic_mode tmod);
 
 /* VTY related */
 struct vty;
-void osmo_ss7_set_vty_alloc_ctx(void *ctx);
-void osmo_ss7_vty_init_asp(void);
-void osmo_ss7_vty_init_sg(void);
+void osmo_ss7_vty_init_asp(void *ctx);
+void osmo_ss7_vty_init_sg(void *ctx);
 int osmo_ss7_vty_go_parent(struct vty *vty);
 int osmo_ss7_is_config_node(struct vty *vty, int node);

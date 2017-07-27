@@ -137,7 +137,7 @@ int main(int argc, char **argv)
 	osmo_ss7_init();
 	osmo_fsm_log_addr(false);
 	logging_vty_add_cmds(&log_info);
-	osmo_ss7_vty_init_sg();
+	osmo_ss7_vty_init_sg(NULL);
 	osmo_fsm_vty_add_cmds();
 
 	rc = vty_read_config_file(cmdline_config.config_file, NULL);
