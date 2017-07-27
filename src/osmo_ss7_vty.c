@@ -1300,6 +1300,8 @@ DEFUN(cs7_sccpaddr_pc, cs7_sccpaddr_pc_cmd,
 
 	entry->addr.presence |= OSMO_SCCP_ADDR_T_PC;
 	entry->addr.pc = pc;
+	if (entry->addr.ri == OSMO_SCCP_RI_NONE)
+		entry->addr.ri = OSMO_SCCP_RI_SSN_PC;
 	return CMD_SUCCESS;
 }
 
