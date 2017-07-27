@@ -231,7 +231,7 @@ int osmo_sccp_addr_encode(struct msgb *msg, const struct osmo_sccp_addr *in)
 		break;
 	default:
 		LOGP(DLSUA, LOGL_ERROR, "Unknown CCP Routing Indicator %u"
-			"requested\n", in->ri);
+			" requested\n", in->ri);
 		return -EINVAL;
 	}
 
