@@ -54,6 +54,7 @@ enum osmo_scu_prim_type {
 
 /* Q.713 3.4.1 + RFC 3868 3.10.2.3 */
 enum osmo_sccp_routing_ind {
+	OSMO_SCCP_RI_NONE,
 	OSMO_SCCP_RI_GT,
 	OSMO_SCCP_RI_SSN_PC,
 	OSMO_SCCP_RI_SSN_IP,

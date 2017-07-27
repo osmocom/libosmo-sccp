@@ -1048,6 +1048,11 @@ static void write_sccp_addressbook(struct vty *vty,
 		case OSMO_SCCP_RI_SSN_IP:
 			vty_out(vty, "  routing-indicator IP%s", VTY_NEWLINE);
 			break;
+		case OSMO_SCCP_RI_NONE:
+			break;
+		default:
+			vty_out(vty, "  ! invalid routing-indicator value: %u%s", entry->addr.ri, VTY_NEWLINE);
+			break;
 		}
 		if (entry->addr.presence & OSMO_SCCP_ADDR_T_PC)
 			vty_out(vty, "  point-code %s%s",
