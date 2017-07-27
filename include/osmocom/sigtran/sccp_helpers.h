@@ -17,6 +17,8 @@ int osmo_sccp_tx_unitdata_msg(struct osmo_sccp_user *scu,
 void osmo_sccp_make_addr_pc_ssn(struct osmo_sccp_addr *addr,
 				uint32_t pc, uint32_t ssn);
 
+void osmo_sccp_addr_set_ssn(struct osmo_sccp_addr *addr, uint32_t ssn);
+
 int osmo_sccp_tx_unitdata_ranap(struct osmo_sccp_user *scu,
 				uint32_t src_point_code,
 				uint32_t dst_point_code,
