@@ -253,6 +253,48 @@ void osmo_sccp_local_addr_by_instance(struct osmo_sccp_addr *dest_addr,
 	osmo_sccp_make_addr_pc_ssn(dest_addr, ss7->cfg.primary_pc, ssn);
 }
 
+/*! \brief check whether a given SCCP-Address is consistent.
+ *  \param[in] addr SCCP address to check
+ *  \param[in] presence mask with minimum required address components
+ *  \returns true when address data seems plausible */
+bool osmo_sccp_check_addr(struct osmo_sccp_addr *addr, uint32_t presence)
+{
+	/* Minimum requirements do not match */
+	if ((addr->presence & presence) != presence)
+		return false;
+
+	/* GT ranges */
+	if (addr->presence & OSMO_SCCP_ADDR_T_GT) {
+		if (addr->gt.gti > 15)
+			return false;
+		if (addr->gt.npi > 15)
+			return false;
+		if (addr->gt.nai > 127)
+			return false;
+	}
+
+	/* Routing by GT, but no GT present */
+	if (addr->ri == OSMO_SCCP_RI_GT
+	    && !(addr->presence & OSMO_SCCP_ADDR_T_GT))
+		return false;
+
+	/* Routing by PC/SSN, but no PC/SSN present */
+	if (addr->ri == OSMO_SCCP_RI_SSN_PC) {
+		if ((addr->presence & OSMO_SCCP_ADDR_T_PC) == 0)
+			return false;
+		if ((addr->presence & OSMO_SCCP_ADDR_T_SSN) == 0)
+			return false;
+	}
+
+	if (addr->ri == OSMO_SCCP_RI_SSN_IP) {
+		if ((addr->presence & OSMO_SCCP_ADDR_T_IPv4) == 0 &&
+		    (addr->presence & OSMO_SCCP_ADDR_T_IPv6) == 0)
+			return false;
+	}
+
+	return true;
+}
+
 /***********************************************************************
  * Convenience function for CLIENT
  ***********************************************************************/
