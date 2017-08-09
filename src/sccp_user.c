@@ -368,16 +368,20 @@ osmo_sccp_simple_client_on_ss7_id(void *ctx, uint32_t ss7_id, const char *name,
 			goto out_ss7;
 		}
 		as->cfg.routing_key.pc = ss7->cfg.primary_pc;
+	}
+	LOGP(DLSCCP, LOGL_NOTICE, "%s: Using AS instance %s\n", name,
+	     as->cfg.name);
 
-		/* install default route */
+	/* Create a default route if necessary */
+	rt = osmo_ss7_route_find_dpc_mask(ss7->rtable_system, 0, 0);
+	if (!rt) {
+		LOGP(DLSCCP, LOGL_NOTICE, "%s: Creating default route\n", name);
 		rt = osmo_ss7_route_create(ss7->rtable_system, 0, 0,
 					   as->cfg.name);
 		if (!rt)
 			goto out_as;
 		rt_created = true;
 	}
-	LOGP(DLSCCP, LOGL_NOTICE, "%s: Using AS instance %s\n", name,
-	     as->cfg.name);
 
 	/* Check if we do already have an application server process
 	 * that is associated with the application server we have choosen
