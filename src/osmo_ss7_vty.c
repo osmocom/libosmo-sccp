@@ -50,6 +50,8 @@
  * Core CS7 Configuration
  ***********************************************************************/
 
+enum cs7_role_t {CS7_ROLE_SG, CS7_ROLE_ASP};
+static enum cs7_role_t cs7_role;
 static void *g_ctx;
 
 static struct cmd_node cs7_node = {
@@ -1559,12 +1561,16 @@ static void write_one_cs7(struct vty *vty, struct osmo_ss7_instance *inst)
 	llist_for_each_entry(as, &inst->as_list, list)
 		write_one_as(vty, as);
 
-	/* now dump routes, as their target ASs exist */
-	llist_for_each_entry(rtable, &inst->rtable_list, list)
-		write_one_rtable(vty, rtable);
+	/* now dump everything that is relevent for the SG role */
+	if (cs7_role == CS7_ROLE_SG) {
 
-	llist_for_each_entry(oxs, &inst->xua_servers, list)
-		write_one_xua(vty, oxs);
+		/* dump routes, as their target ASs exist */
+		llist_for_each_entry(rtable, &inst->rtable_list, list)
+			write_one_rtable(vty, rtable);
+
+		llist_for_each_entry(oxs, &inst->xua_servers, list)
+			write_one_xua(vty, oxs);
+	}
 
 	/* Append SCCP Addressbook */
 	write_sccp_addressbook(vty, inst);
@@ -1717,11 +1723,13 @@ static void vty_init_shared(void *ctx)
 
 void osmo_ss7_vty_init_asp(void *ctx)
 {
+	cs7_role = CS7_ROLE_ASP;
 	vty_init_shared(ctx);
 }
 
 void osmo_ss7_vty_init_sg(void *ctx)
 {
+	cs7_role = CS7_ROLE_SG;
 	vty_init_shared(ctx);
 
 	install_node(&rtable_node, NULL);
