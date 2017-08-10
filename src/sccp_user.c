@@ -297,9 +297,12 @@ bool osmo_sccp_check_addr(struct osmo_sccp_addr *addr, uint32_t presence)
 
 struct osmo_sccp_instance *
 osmo_sccp_simple_client_on_ss7_id(void *ctx, uint32_t ss7_id, const char *name,
-				  uint32_t pc, enum osmo_ss7_asp_protocol prot,
-				  int local_port, const char *local_ip,
-				  int remote_port, const char *remote_ip)
+				  uint32_t default_pc,
+				  enum osmo_ss7_asp_protocol prot,
+				  int default_local_port,
+				  const char *default_local_ip,
+				  int default_remote_port,
+				  const char *default_remote_ip)
 {
 	struct osmo_ss7_instance *ss7;
 	bool ss7_created = false;
@@ -313,10 +316,10 @@ osmo_sccp_simple_client_on_ss7_id(void *ctx, uint32_t ss7_id, const char *name,
 
 	/* Choose default ports when the caller does not supply valid port
 	 * numbers. */
-	if (!remote_port || remote_port < 0)
-		remote_port = osmo_ss7_asp_protocol_port(prot);
-	if (local_port < 0)
-		local_port = osmo_ss7_asp_protocol_port(prot);
+	if (!default_remote_port || default_remote_port < 0)
+		default_remote_port = osmo_ss7_asp_protocol_port(prot);
+	if (default_local_port < 0)
+		default_local_port = osmo_ss7_asp_protocol_port(prot);
 
 	/* Check if there is already an ss7 instance present under
 	 * the given id. If not, we will create a new one. */
@@ -336,7 +339,7 @@ osmo_sccp_simple_client_on_ss7_id(void *ctx, uint32_t ss7_id, const char *name,
 		/* Setup primary pointcode
 		 * NOTE: This means that the user must set the pointcode to a
 		 * proper value when a cs7 instance is defined via the VTY. */
-		ss7->cfg.primary_pc = pc;
+		ss7->cfg.primary_pc = default_pc;
 		ss7_created = true;
 	}
 	LOGP(DLSCCP, LOGL_NOTICE, "%s: Using SS7 instance %u, pc:%s\n", name,
@@ -393,17 +396,18 @@ osmo_sccp_simple_client_on_ss7_id(void *ctx, uint32_t ss7_id, const char *name,
 		     name);
 		asp_name = talloc_asprintf(ctx, "asp-clnt-%s", name);
 		asp =
-		    osmo_ss7_asp_find_or_create(ss7, asp_name, remote_port,
-						local_port, prot);
+		    osmo_ss7_asp_find_or_create(ss7, asp_name,
+						default_remote_port,
+						default_local_port, prot);
 		talloc_free(asp_name);
 		if (!asp)
 			goto out_rt;
 		asp_created = true;
 
-		local_ip ? asp->cfg.local.host =
-		    talloc_strdup(asp, local_ip) : NULL;
-		remote_ip ? asp->cfg.remote.host =
-		    talloc_strdup(asp, remote_ip) : NULL;
+		default_local_ip ? asp->cfg.local.host =
+		    talloc_strdup(asp, default_local_ip) : NULL;
+		default_remote_ip ? asp->cfg.remote.host =
+		    talloc_strdup(asp, default_remote_ip) : NULL;
 
 		osmo_ss7_as_add_asp(as, asp->cfg.name);
 	}
@@ -443,13 +447,16 @@ out_ss7:
 }
 
 struct osmo_sccp_instance *
-osmo_sccp_simple_client(void *ctx, const char *name, uint32_t pc,
-			enum osmo_ss7_asp_protocol prot, int local_port,
-			const char *local_ip, int remote_port, const char *remote_ip)
+osmo_sccp_simple_client(void *ctx, const char *name, uint32_t default_pc,
+			enum osmo_ss7_asp_protocol prot, int default_local_port,
+			const char *default_local_ip, int default_remote_port,
+			const char *default_remote_ip)
 {
-	return osmo_sccp_simple_client_on_ss7_id(ctx, 1, name, pc, prot,
-						 local_port, local_ip,
-						 remote_port, remote_ip);
+	return osmo_sccp_simple_client_on_ss7_id(ctx, 1, name, default_pc, prot,
+						 default_local_port,
+						 default_local_ip,
+						 default_remote_port,
+						 default_remote_ip);
 }
 
 /***********************************************************************
