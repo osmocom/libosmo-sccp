@@ -54,3 +54,4 @@ int osmo_sccp_tx_conn_resp(struct osmo_sccp_user *scu, uint32_t conn_id,
 
 char *osmo_sccp_gt_dump(const struct osmo_sccp_gt *gt);
 char *osmo_sccp_addr_dump(const struct osmo_sccp_addr *addr);
+char *osmo_sccp_addr_name(const struct osmo_ss7_instance *ss7, const struct osmo_sccp_addr *addr);
