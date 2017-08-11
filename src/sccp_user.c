@@ -295,6 +295,18 @@ bool osmo_sccp_check_addr(struct osmo_sccp_addr *addr, uint32_t presence)
  * Convenience function for CLIENT
  ***********************************************************************/
 
+/*! \brief request an sccp client instance
+ *  \param[in] ctx talloc context
+ *  \param[in] ss7_id of the SS7/CS7 instance
+ *  \param[in] name human readable name
+ *  \param[in] default_pc pointcode to be used on missing VTY setting
+ *  \param[in] prot protocol to be used (e.g OSMO_SS7_ASP_PROT_M3UA)
+ *  \param[in] default_local_port local port to be usd on missing VTY setting
+ *  \param[in] default_local_ip local IP-address to be usd on missing VTY setting
+ *  \param[in] default_remote_port remote port to be usd on missing VTY setting
+ *  \param[in] default_remote_ip remote IP-address to be usd on missing VTY setting
+ *  \returns callee-allocated SCCP instance on success; NULL on error */
+
 struct osmo_sccp_instance *
 osmo_sccp_simple_client_on_ss7_id(void *ctx, uint32_t ss7_id, const char *name,
 				  uint32_t default_pc,
@@ -313,6 +325,12 @@ osmo_sccp_simple_client_on_ss7_id(void *ctx, uint32_t ss7_id, const char *name,
 	struct osmo_ss7_asp *asp;
 	bool asp_created = false;
 	char *as_name, *asp_name = NULL;
+
+	/*! The function will examine the given CS7 instance and its sub
+	 *  components (as, asp, etc.). If necessary it will allocate
+	 *  the missing components. If no CS7 instance can be detected
+	 *  under the caller supplied ID, a new instance will be created
+	 *  beforehand. */
 
 	/* Choose default ports when the caller does not supply valid port
 	 * numbers. */
@@ -450,12 +468,26 @@ out_ss7:
 	return NULL;
 }
 
+/*! \brief request an sccp client instance
+ *  \param[in] ctx talloc context
+ *  \param[in] name human readable name
+ *  \param[in] default_pc pointcode to be used on missing VTY setting
+ *  \param[in] prot protocol to be used (e.g OSMO_SS7_ASP_PROT_M3UA)
+ *  \param[in] default_local_port local port to be usd on missing VTY setting
+ *  \param[in] default_local_ip local IP-address to be usd on missing VTY setting
+ *  \param[in] default_remote_port remote port to be usd on missing VTY setting
+ *  \param[in] default_remote_ip remote IP-address to be usd on missing VTY setting
+ *  \returns callee-allocated SCCP instance on success; NULL on error */
 struct osmo_sccp_instance *
 osmo_sccp_simple_client(void *ctx, const char *name, uint32_t default_pc,
 			enum osmo_ss7_asp_protocol prot, int default_local_port,
 			const char *default_local_ip, int default_remote_port,
 			const char *default_remote_ip)
 {
+	/*! This is simplified version of osmo_sccp_simple_client_on_ss7_id().
+	 *  the only difference is that the ID of the CS7 instance will be
+	 *  set to 1 statically */
+
 	return osmo_sccp_simple_client_on_ss7_id(ctx, 1, name, default_pc, prot,
 						 default_local_port,
 						 default_local_ip,
