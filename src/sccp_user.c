@@ -342,6 +342,16 @@ osmo_sccp_simple_client_on_ss7_id(void *ctx, uint32_t ss7_id, const char *name,
 		ss7->cfg.primary_pc = default_pc;
 		ss7_created = true;
 	}
+
+	/* In case no valid point-code has been configured via the VTY, we
+	 * will fall back to the default pointcode. */
+	if (!osmo_ss7_pc_is_valid(ss7->cfg.primary_pc)) {
+		LOGP(DLSCCP, LOGL_ERROR,
+		     "SS7 instance %u: no primary point-code set, using default point-code\n",
+		     ss7->cfg.id);
+		ss7->cfg.primary_pc = default_pc;
+	}
+
 	LOGP(DLSCCP, LOGL_NOTICE, "%s: Using SS7 instance %u, pc:%s\n", name,
 	     ss7->cfg.id, osmo_ss7_pointcode_print(ss7, ss7->cfg.primary_pc));
 
@@ -364,12 +374,6 @@ osmo_sccp_simple_client_on_ss7_id(void *ctx, uint32_t ss7_id, const char *name,
 		if (!as)
 			goto out_ss7;
 		as_created = true;
-
-		if (!osmo_ss7_pc_is_valid(ss7->cfg.primary_pc)) {
-			LOGP(DLSCCP, LOGL_ERROR, "SS7 instance %u: no primary point-code set\n",
-			     ss7->cfg.id);
-			goto out_ss7;
-		}
 		as->cfg.routing_key.pc = ss7->cfg.primary_pc;
 	}
 	LOGP(DLSCCP, LOGL_NOTICE, "%s: Using AS instance %s\n", name,
