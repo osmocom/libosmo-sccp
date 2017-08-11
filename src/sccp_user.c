@@ -598,8 +598,13 @@ out_strings:
 	return NULL;
 }
 
-struct osmo_ss7_instance *osmo_sccp_get_ss7(struct osmo_sccp_instance *sccp)
+/*! \brief get the SS7 instance that is related to the given SCCP instance
+ *  \param[in] sccp SCCP instance
+ *  \returns SS7 instance; NULL if sccp was NULL */
+struct osmo_ss7_instance *osmo_sccp_get_ss7(const struct osmo_sccp_instance *sccp)
 {
+	if (!sccp)
+		return NULL;
 	return sccp->ss7;
 }
 

@@ -246,7 +246,7 @@ void osmo_sccp_vty_init(void);
 struct osmo_sccp_instance *
 osmo_sccp_instance_create(struct osmo_ss7_instance *ss7, void *priv);
 void osmo_sccp_instance_destroy(struct osmo_sccp_instance *inst);
-struct osmo_ss7_instance *osmo_sccp_get_ss7(struct osmo_sccp_instance *sccp);
+struct osmo_ss7_instance *osmo_sccp_get_ss7(const struct osmo_sccp_instance *sccp);
 struct osmo_sccp_instance *osmo_sccp_get_sccp(const struct osmo_sccp_user *scu);
 
 void osmo_sccp_user_unbind(struct osmo_sccp_user *scu);
