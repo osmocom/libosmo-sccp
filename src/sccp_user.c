@@ -602,3 +602,13 @@ struct osmo_ss7_instance *osmo_sccp_get_ss7(struct osmo_sccp_instance *sccp)
 {
 	return sccp->ss7;
 }
+
+/*! \brief get the SCCP instance that is related to the given sccp user
+ *  \param[in] scu SCCP user
+ *  \returns SCCP instance; NULL if scu was NULL */
+struct osmo_sccp_instance *osmo_sccp_get_sccp(const struct osmo_sccp_user *scu)
+{
+	if (!scu)
+		return NULL;
+	return scu->inst;
+}
