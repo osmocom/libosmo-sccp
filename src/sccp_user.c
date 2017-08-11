@@ -404,10 +404,10 @@ osmo_sccp_simple_client_on_ss7_id(void *ctx, uint32_t ss7_id, const char *name,
 			goto out_rt;
 		asp_created = true;
 
-		default_local_ip ? asp->cfg.local.host =
-		    talloc_strdup(asp, default_local_ip) : NULL;
-		default_remote_ip ? asp->cfg.remote.host =
-		    talloc_strdup(asp, default_remote_ip) : NULL;
+		asp->cfg.local.host =
+		    default_local_ip ? asp->cfg.local.host : NULL;
+		asp->cfg.remote.host =
+		    default_remote_ip ? asp->cfg.remote.host : NULL;
 
 		osmo_ss7_as_add_asp(as, asp->cfg.name);
 	}
