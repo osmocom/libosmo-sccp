@@ -632,7 +632,8 @@ static void write_one_asp(struct vty *vty, struct osmo_ss7_asp *asp)
 		osmo_ss7_asp_protocol_name(asp->cfg.proto), VTY_NEWLINE);
 	if (asp->cfg.description)
 		vty_out(vty, "  description %s%s", asp->cfg.description, VTY_NEWLINE);
-	vty_out(vty, "  remote-ip %s%s", asp->cfg.remote.host, VTY_NEWLINE);
+	if (asp->cfg.remote.host)
+		vty_out(vty, "  remote-ip %s%s", asp->cfg.remote.host, VTY_NEWLINE);
 	if (asp->cfg.qos_class)
 		vty_out(vty, "  qos-class %u%s", asp->cfg.qos_class, VTY_NEWLINE);
 }
