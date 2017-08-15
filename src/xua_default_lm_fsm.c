@@ -126,7 +126,6 @@ static void restart_asp(struct osmo_fsm_inst *fi)
 	int log_level = fi->log_level;
 
 	osmo_ss7_asp_restart(asp);
-	osmo_fsm_inst_term(fi, OSMO_FSM_TERM_ERROR, NULL);
 	osmo_ss7_asp_use_default_lm(asp, log_level);
 }
 
