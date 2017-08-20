@@ -23,8 +23,11 @@
 #include <string.h>
 #include <unistd.h>
 #include <getopt.h>
+#include <signal.h>
 
 #include <osmocom/core/select.h>
+#include <osmocom/core/signal.h>
+#include <osmocom/core/talloc.h>
 #include <osmocom/core/utils.h>
 #include <osmocom/core/logging.h>
 #include <osmocom/core/application.h>
@@ -41,6 +44,8 @@
 #include <osmocom/sigtran/sccp_helpers.h>
 #include <osmocom/sigtran/protocol/sua.h>
 #include <osmocom/sigtran/protocol/m3ua.h>
+
+static void *tall_stp_ctx;
 
 /* we only use logging sub-systems of the various libraries so far */
 static const struct log_info_cat log_info_cat[] = {
@@ -122,9 +127,37 @@ static void handle_options(int argc, char **argv)
 	}
 }
 
+static void signal_handler(int signal)
+{
+	fprintf(stdout, "signal %u received\n", signal);
+
+	switch (signal) {
+	case SIGINT:
+	case SIGTERM:
+		osmo_signal_dispatch(SS_L_GLOBAL, S_L_GLOBAL_SHUTDOWN, NULL);
+		sleep(1);
+		break;
+	case SIGABRT:
+		osmo_generate_backtrace();
+		/* in case of abort, we want to obtain a talloc report
+		 * and then return to the caller, who will abort the process */
+	case SIGUSR1:
+		talloc_report(tall_vty_ctx, stderr);
+		talloc_report_full(tall_stp_ctx, stderr);
+		break;
+	case SIGUSR2:
+		talloc_report_full(tall_vty_ctx, stderr);
+		break;
+	default:
+		break;
+	}
+}
+
 int main(int argc, char **argv)
 {
 	int rc;
+
+	tall_stp_ctx = talloc_named_const(NULL, 1, "osmo-stp");
 
 	osmo_init_logging(&log_info);
 	vty_init(&vty_info);
@@ -137,7 +170,7 @@ int main(int argc, char **argv)
 	osmo_ss7_init();
 	osmo_fsm_log_addr(false);
 	logging_vty_add_cmds(&log_info);
-	osmo_ss7_vty_init_sg(NULL);
+	osmo_ss7_vty_init_sg(tall_stp_ctx);
 	osmo_fsm_vty_add_cmds();
 
 	rc = vty_read_config_file(cmdline_config.config_file, NULL);
@@ -152,6 +185,13 @@ int main(int argc, char **argv)
 		perror("Erro binding VTY port\n");
 		exit(1);
 	}
+
+	signal(SIGINT, &signal_handler);
+	signal(SIGTERM, &signal_handler);
+	signal(SIGABRT, &signal_handler);
+	signal(SIGUSR1, &signal_handler);
+	signal(SIGUSR2, &signal_handler);
+	osmo_init_ignore_signals();
 
 	if (cmdline_config.daemonize) {
 		rc = osmo_daemonize();
