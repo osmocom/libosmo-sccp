@@ -182,7 +182,8 @@ DEFUN(cs7_point_code, cs7_point_code_cmd,
 
 DEFUN(cs7_permit_dyn_rkm, cs7_permit_dyn_rkm_cmd,
 	"xua rkm routing-key-allocation (static-only|dynamic-permitted)",
-	"SIGTRAN xxxUA related\n" "Routing Key Management Allocation Policy\n"
+	"SIGTRAN xxxUA related\n" "Routing Key Management\n"
+	"Routing Key Management Allocation Policy\n"
 	"Only static (pre-confgured) Routing Keys permitted\n"
 	"Dynamically allocate Routing Keys for what ASPs request\n")
 {
