@@ -778,51 +778,75 @@ const struct value_string mtp_si_vals[] = {
 	{ 0, NULL }
 };
 
-DEFUN(as_rout_key, as_rout_key_cmd,
-	"routing-key RCONTEXT DPC [si (aal2|bicc|b-isup|h248|isup|sat-isup|sccp|tup)] [ssn SSN]}",
-	"Define a routing key\n"
-	"Routing context number\n"
+#define ROUTING_KEY_CMD "routing-key RCONTEXT DPC"
+#define ROUTING_KEY_CMD_STRS \
+	"Define a routing key\n" \
+	"Routing context number\n" \
 	"Destination Point Code\n"
-	"Optional Match on Service Indicator\n"
-	"ATM Adaption Layer 2\n"
-	"Bearer Independent Call Control\n"
-	"Broadband ISDN User Part\n"
-	"H.248\n"
-	"ISDN User Part\n"
-	"Sattelite ISDN User Part\n"
-	"Signalling Connection Control Part\n"
+#define ROUTING_KEY_SI_ARG " si (aal2|bicc|b-isup|h248|isup|sat-isup|sccp|tup)"
+#define ROUTING_KEY_SI_ARG_STRS \
+	"Match on Service Indicator\n" \
+	"ATM Adaption Layer 2\n" \
+	"Bearer Independent Call Control\n" \
+	"Broadband ISDN User Part\n" \
+	"H.248\n" \
+	"ISDN User Part\n" \
+	"Sattelite ISDN User Part\n" \
+	"Signalling Connection Control Part\n" \
 	"Telephony User Part\n"
-	"Optional Match on Sub-System Number\n"
-	"Sub-System Number to match on\n")
+#define ROUTING_KEY_SSN_ARG " ssn SSN"
+#define ROUTING_KEY_SSN_ARG_STRS \
+	"Match on Sub-System Number\n" \
+	"Sub-System Number to match on\n"
+
+static int _rout_key(struct vty *vty,
+		     const char *rcontext, const char *dpc,
+		     const char *si, const char *ssn)
 {
 	struct osmo_ss7_as *as = vty->index;
 	struct osmo_ss7_routing_key *rkey = &as->cfg.routing_key;
-	int argind;
 	int pc;
 
-	pc = osmo_ss7_pointcode_parse(as->inst, argv[1]);
+	pc = osmo_ss7_pointcode_parse(as->inst, dpc);
 	if (pc < 0) {
-		vty_out(vty, "Invalid point code (%s)%s", argv[1], VTY_NEWLINE);
+		vty_out(vty, "Invalid point code (%s)%s", dpc, VTY_NEWLINE);
 		return CMD_WARNING;
 	}
-
 	rkey->pc = pc;
-	rkey->context = atoi(argv[0]);
-	argind = 2;
 
-	if (argind < argc && !strcmp(argv[argind], "si")) {
-		const char *si_str;
-		argind++;
-		si_str = argv[argind++];
-		/* parse numeric SI from string */
-		rkey->si = get_string_value(mtp_si_vals, si_str);
-	}
-	if (argind < argc && !strcmp(argv[argind], "ssn")) {
-		argind++;
-		rkey->ssn = atoi(argv[argind]);
-	}
+	rkey->context = atoi(rcontext);				/* FIXME: input validation */
+	rkey->si = si ? get_string_value(mtp_si_vals, si) : 0;	/* FIXME: input validation */
+	rkey->ssn = ssn ? atoi(ssn) : 0;			/* FIXME: input validation */
 
 	return CMD_SUCCESS;
+}
+
+DEFUN(as_rout_key, as_rout_key_cmd,
+      ROUTING_KEY_CMD,
+      ROUTING_KEY_CMD_STRS)
+{
+	return _rout_key(vty, argv[0], argv[1], NULL, NULL);
+}
+
+DEFUN(as_rout_key_si, as_rout_key_si_cmd,
+      ROUTING_KEY_CMD      ROUTING_KEY_SI_ARG,
+      ROUTING_KEY_CMD_STRS ROUTING_KEY_SI_ARG_STRS)
+{
+	return _rout_key(vty, argv[0], argv[1], argv[2], NULL);
+}
+
+DEFUN(as_rout_key_ssn, as_rout_key_ssn_cmd,
+      ROUTING_KEY_CMD      ROUTING_KEY_SSN_ARG,
+      ROUTING_KEY_CMD_STRS ROUTING_KEY_SSN_ARG_STRS)
+{
+	return _rout_key(vty, argv[0], argv[1], NULL, argv[2]);
+}
+
+DEFUN(as_rout_key_si_ssn, as_rout_key_si_ssn_cmd,
+      ROUTING_KEY_CMD      ROUTING_KEY_SI_ARG      ROUTING_KEY_SSN_ARG,
+      ROUTING_KEY_CMD_STRS ROUTING_KEY_SI_ARG_STRS ROUTING_KEY_SSN_ARG_STRS)
+{
+	return _rout_key(vty, argv[0], argv[1], argv[2], argv[3]);
 }
 
 DEFUN(as_pc_override, as_pc_override_cmd,
@@ -1718,6 +1742,9 @@ static void vty_init_shared(void *ctx)
 	install_element(L_CS7_AS_NODE, &as_recov_tout_cmd);
 	install_element(L_CS7_AS_NODE, &as_qos_class_cmd);
 	install_element(L_CS7_AS_NODE, &as_rout_key_cmd);
+	install_element(L_CS7_AS_NODE, &as_rout_key_si_cmd);
+	install_element(L_CS7_AS_NODE, &as_rout_key_ssn_cmd);
+	install_element(L_CS7_AS_NODE, &as_rout_key_si_ssn_cmd);
 	install_element(L_CS7_AS_NODE, &as_pc_override_cmd);
 
 	vty_init_addr();
