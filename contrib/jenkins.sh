@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/sh
 # jenkins build helper script for libosmo-sccp.  This is how we build on jenkins.osmocom.org
 
 if ! [ -x "$(command -v osmo-build-dep.sh)" ]; then
@@ -17,13 +17,12 @@ export deps inst
 mkdir "$deps" || true
 rm -rf "$inst"
 
-osmo-build-dep.sh libosmocore
-
-"$deps"/libosmocore/contrib/verify_value_string_arrays_are_terminated.py $(find . -name "*.[hc]")
+verify_value_string_arrays_are_terminated.py $(find . -name "*.[hc]")
 
 export PKG_CONFIG_PATH="$inst/lib/pkgconfig:$PKG_CONFIG_PATH"
 export LD_LIBRARY_PATH="$inst/lib"
 
+osmo-build-dep.sh libosmocore
 osmo-build-dep.sh libosmo-abis
 osmo-build-dep.sh libosmo-netif
 
