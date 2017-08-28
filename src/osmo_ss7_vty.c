@@ -1640,10 +1640,12 @@ int osmo_ss7_vty_go_parent(struct vty *vty)
 		break;
 	case L_CS7_SCCPADDR_GT_NODE:
 		vty->node = L_CS7_SCCPADDR_NODE;
+		vty->index = NULL;
 		break;
 	case L_CS7_NODE:
 	default:
 		vty->node = CONFIG_NODE;
+		vty->index = NULL;
 		break;
 	}
 	return 0;
