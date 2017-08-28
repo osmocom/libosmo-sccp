@@ -8,6 +8,8 @@ pkgconfig_DATA = libosmo-sccp.pc libosmo-mtp.pc libosmo-sigtran.pc libosmo-xua.p
 
 EXTRA_DIST = .version doc/examples/osmo-stp.cfg
 
+@RELMAKE@
+
 BUILT_SOURCES = $(top_srcdir)/.version
 $(top_srcdir)/.version:
 	echo $(VERSION) > $@-t && mv $@-t $@
