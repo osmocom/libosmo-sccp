@@ -134,8 +134,11 @@ static void signal_handler(int signal)
 	switch (signal) {
 	case SIGINT:
 	case SIGTERM:
+		/* FIXME: handle the signal somewhere else and gracefully shut down
+		 * SIGTRAN links
 		osmo_signal_dispatch(SS_L_GLOBAL, S_L_GLOBAL_SHUTDOWN, NULL);
-		sleep(1);
+		sleep(1); */
+		exit(0);
 		break;
 	case SIGABRT:
 		osmo_generate_backtrace();
