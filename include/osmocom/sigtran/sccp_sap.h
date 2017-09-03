@@ -129,10 +129,11 @@ enum osmo_sccp_ssn {
 	OSMO_SCCP_SSN_GGSN_MAP		= 150,
 	/* national network SSN within GSM/UMTS: 32-128 + 151-254 */
 	OSMO_SCCP_SSN_PCAP		= 249,
-	OSMO_SCCP_SSN_BSC_BSSAP		= 250,
-	OSMO_SCCP_SSN_MSC_BSSAP		= 251,
+	OSMO_SCCP_SSN_BSC_BSSAP_LE	= 250,
+	OSMO_SCCP_SSN_MSC_BSSAP_LE	= 251,
 	OSMO_SCCP_SSN_SMLC_BSSAP	= 252,
 	OSMO_SCCP_SSN_BSS_OAM		= 253,
+	OSMO_SCCP_SSN_BSSAP		= 254,
 };
 
 extern const struct value_string osmo_sccp_ssn_names[];
