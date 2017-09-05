@@ -556,6 +556,16 @@ DEFUN(no_cs7_asp, no_cs7_asp_cmd,
 	return CMD_SUCCESS;
 }
 
+DEFUN(asp_local_ip, asp_local_ip_cmd,
+	"local-ip A.B.C.D",
+	"Specify Local IP Address from which to contact ASP\n"
+	"Local IP Address from which to contact of ASP\n")
+{
+	struct osmo_ss7_asp *asp = vty->index;
+	osmo_talloc_replace_string(asp, &asp->cfg.local.host, argv[0]);
+	return CMD_SUCCESS;
+}
+
 DEFUN(asp_remote_ip, asp_remote_ip_cmd,
 	"remote-ip A.B.C.D",
 	"Specify Remote IP Address of ASP\n"
@@ -633,6 +643,8 @@ static void write_one_asp(struct vty *vty, struct osmo_ss7_asp *asp)
 		osmo_ss7_asp_protocol_name(asp->cfg.proto), VTY_NEWLINE);
 	if (asp->cfg.description)
 		vty_out(vty, "  description %s%s", asp->cfg.description, VTY_NEWLINE);
+	if (asp->cfg.local.host)
+		vty_out(vty, "  local-ip %s%s", asp->cfg.local.host, VTY_NEWLINE);
 	if (asp->cfg.remote.host)
 		vty_out(vty, "  remote-ip %s%s", asp->cfg.remote.host, VTY_NEWLINE);
 	if (asp->cfg.qos_class)
@@ -1728,6 +1740,7 @@ static void vty_init_shared(void *ctx)
 	install_element(L_CS7_NODE, &no_cs7_asp_cmd);
 	install_element(L_CS7_ASP_NODE, &cfg_description_cmd);
 	install_element(L_CS7_ASP_NODE, &asp_remote_ip_cmd);
+	install_element(L_CS7_ASP_NODE, &asp_local_ip_cmd);
 	install_element(L_CS7_ASP_NODE, &asp_qos_class_cmd);
 	install_element(L_CS7_ASP_NODE, &asp_block_cmd);
 	install_element(L_CS7_ASP_NODE, &asp_shutdown_cmd);
