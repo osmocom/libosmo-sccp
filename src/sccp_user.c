@@ -414,20 +414,35 @@ osmo_sccp_simple_client_on_ss7_id(void *ctx, uint32_t ss7_id, const char *name,
 	 * we intend to use. */
 	asp = osmo_ss7_asp_find_by_proto(as, prot);
 	if (!asp) {
-		LOGP(DLSCCP, LOGL_NOTICE, "%s: Creating ASP instance\n",
-		     name);
+		/* Check if the user has already created an ASP elsewhere under
+		 * the default asp name. */
 		asp_name = talloc_asprintf(ctx, "asp-clnt-%s", name);
-		asp =
-		    osmo_ss7_asp_find_or_create(ss7, asp_name,
-						default_remote_port,
-						default_local_port, prot);
-		talloc_free(asp_name);
-		if (!asp)
-			goto out_rt;
-		asp_created = true;
+		asp = osmo_ss7_asp_find_by_name(ss7, asp_name);
+		if (!asp) {
+			LOGP(DLSCCP, LOGL_NOTICE, "%s: Creating ASP instance\n",
+			     name);
+			asp =
+			    osmo_ss7_asp_find_or_create(ss7, asp_name,
+							default_remote_port,
+							default_local_port,
+							prot);
+			talloc_free(asp_name);
+			if (!asp)
+				goto out_rt;
+			asp_created = true;
 
-		asp->cfg.local.host = default_local_ip ? talloc_strdup(asp, default_local_ip) : NULL;
-		asp->cfg.remote.host = default_remote_ip ? talloc_strdup(asp, default_remote_ip) : NULL;
+			asp->cfg.local.host = NULL;
+			asp->cfg.remote.host = NULL;
+			if (default_local_ip) {
+				asp->cfg.local.host =
+				    talloc_strdup(asp, default_local_ip);
+			}
+			if (default_remote_ip) {
+				asp->cfg.remote.host =
+				    talloc_strdup(asp, default_remote_ip);
+			}
+		} else
+			talloc_free(asp_name);
 
 		osmo_ss7_as_add_asp(as, asp->cfg.name);
 	}
