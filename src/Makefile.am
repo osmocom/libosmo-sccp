@@ -1,5 +1,6 @@
 AM_CPPFLAGS = $(all_includes) -I$(top_srcdir)/include -I$(top_builddir)
-AM_CFLAGS=-Wall $(LIBOSMOCORE_CFLAGS) $(LIBOSMOGSM_CFLAGS) $(LIBOSMONETIF_CFLAGS)
+AM_CFLAGS=-Wall $(LIBOSMOCORE_CFLAGS) $(LIBOSMOGSM_CFLAGS) $(LIBOSMOVTY_CFLAGS) \
+		$(LIBOSMONETIF_CFLAGS)
 
 noinst_HEADERS = sccp_internal.h xua_asp_fsm.h xua_as_fsm.h xua_internal.h
 
@@ -32,4 +33,5 @@ libosmo_sigtran_la_SOURCES = sccp_sap.c sua.c m3ua.c xua_msg.c sccp_helpers.c \
 			     osmo_ss7.c osmo_ss7_hmrt.c xua_asp_fsm.c xua_as_fsm.c \
 			     osmo_ss7_vty.c sccp_vty.c ipa.c
 libosmo_sigtran_la_LDFLAGS = -version-info $(LIBVERSION) -no-undefined -export-symbols-regex '^osmo_'
-libosmo_sigtran_la_LIBADD = $(LIBOSMOCORE_LIBS) $(LIBOSMOGSM_LIBS) $(LIBOSMONETIF_LIBS) $(LIBSCTP_LIBS)
+libosmo_sigtran_la_LIBADD = $(LIBOSMOCORE_LIBS) $(LIBOSMOGSM_LIBS) $(LIBOSMOVTY_LIBS) \
+			    $(LIBOSMONETIF_LIBS) $(LIBSCTP_LIBS)
