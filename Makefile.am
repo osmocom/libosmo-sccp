@@ -15,3 +15,30 @@ $(top_srcdir)/.version:
 	echo $(VERSION) > $@-t && mv $@-t $@
 dist-hook:
 	echo $(VERSION) > $(distdir)/.tarball-version
+
+
+if HAVE_DOXYGEN
+
+html_DATA = $(top_builddir)/doc/html.tar
+
+doc: $(html_DATA)
+
+$(html_DATA): $(top_builddir)/doc/sccp/html/index.html
+	cd $(top_builddir)/doc && tar cf html.tar */html
+
+$(top_builddir)/doc/sccp/html/index.html: $(SOURCES) Doxyfile
+	@rm -rf doc/sccp
+	mkdir -p doc/sccp
+	$(DOXYGEN) Doxyfile
+
+install-data-hook:
+	cd $(DESTDIR)$(htmldir) && tar xf html.tar && rm -f html.tar
+
+uninstall-hook:
+	cd $(DESTDIR)$(htmldir) && rm -rf sccp
+
+DX_CLEAN = doc/sccp/html/search/* doc/sccp/{html,latex}/* doc/html.tar doc/doxygen_sqlite3.db doc/sccp/doxygen_sqlite3.db doc/*.tag
+
+endif
+
+MOSTLYCLEANFILES = $(DX_CLEAN)

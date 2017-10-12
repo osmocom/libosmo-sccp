@@ -11,6 +11,7 @@ Build-Depends: debhelper (>= 9),
                libtool,
                dh-autoreconf,
                git,
+               doxygen,
                libdpkg-perl,
                libosmo-netif-dev,
                libsctp-dev

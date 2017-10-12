@@ -60,6 +60,15 @@ AC_SUBST(SYMBOL_VISIBILITY)
 CFLAGS="$CFLAGS -Wall"
 CPPFLAGS="$CPPFLAGS -Wall"
 
+AC_ARG_ENABLE(doxygen,
+	[AS_HELP_STRING(
+		[--disable-doxygen],
+		[Disable generation of documentation using doxygen],
+	)],
+	[doxygen=$enableval], [doxygen="yes"])
+AC_PATH_PROG(DOXYGEN,doxygen,false)
+AM_CONDITIONAL(HAVE_DOXYGEN, test $DOXYGEN != false && test "x$doxygen" = "xyes")
+
 AC_OUTPUT(
     libosmo-sigtran.pc
     libosmo-sccp.pc
@@ -79,4 +88,5 @@ AC_OUTPUT(
     tests/ss7/Makefile
     examples/Makefile
     stp/Makefile
+    Doxyfile
     Makefile)

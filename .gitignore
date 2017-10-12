@@ -68,3 +68,4 @@ stp/osmo-stp
 config.*
 
 tags
+/Doxyfile
