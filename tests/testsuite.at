@@ -31,3 +31,8 @@ AT_KEYWORDS([ss7])
 cat $abs_srcdir/ss7/ss7_test.ok > expout
 AT_CHECK([$abs_top_builddir/tests/ss7/ss7_test], [], [expout], [ignore])
 AT_CLEANUP
+
+AT_SETUP([ni])
+AT_KEYWORDS([ni])
+AT_CHECK([$abs_top_builddir/tests/sccp/ni_test], [], [], [ignore])
+AT_CLEANUP

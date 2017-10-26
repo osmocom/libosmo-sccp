@@ -31,7 +31,7 @@ enum osmo_mtp_prim_type {
 	OSMO_MTP_PRIM_STATUS,
 };
 
-#define MTP_SIO(service, net_ind)	(((net_ind & 0x3) << 6) | (service & 0xF))
+#define MTP_SIO(service, net_ind)	(((net_ind & 0x3) << 4) | (service & 0xF))
 
 struct osmo_mtp_transfer_param {
 	uint32_t opc;

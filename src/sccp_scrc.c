@@ -104,6 +104,7 @@ static int sua2sccp_tx_m3ua(struct osmo_sccp_instance *inst,
 	param->dpc = remote_pc;
 	param->sls = sua->mtp.sls;
 	param->sio = MTP_SIO(MTP_SI_SCCP, s7i->cfg.network_indicator);
+	printf("XXX sio = %d\n", param->sio);
 
 	/* 3) send via MTP-SAP (osmo_ss7_instance) */
 	return osmo_ss7_user_mtp_xfer_req(s7i, omp);
