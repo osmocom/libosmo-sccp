@@ -245,7 +245,7 @@ int osmo_sccp_addr_encode(struct msgb *msg, const struct osmo_sccp_addr *in)
 			LOGP(DLSUA, LOGL_ERROR, "Invalid Point Code %u requested\n", in->pc);
 			return -EINVAL;
 		}
-		msgb_put_u16le(msg, in->pc & 0x3ff);
+		msgb_put_u16le(msg, in->pc & 0x3fff);
 	}
 
 	if (in->presence & OSMO_SCCP_ADDR_T_SSN) {
