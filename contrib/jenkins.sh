@@ -14,8 +14,9 @@ deps="$base/deps"
 inst="$deps/install"
 export deps inst
 
+osmo-clean-workspace.sh
+
 mkdir "$deps" || true
-rm -rf "$inst"
 
 verify_value_string_arrays_are_terminated.py $(find . -name "*.[hc]")
 
@@ -39,3 +40,5 @@ autoreconf --install --force
 $MAKE $PARALLEL_MAKE
 $MAKE distcheck \
   || cat-testlogs.sh
+
+osmo-clean-workspace.sh
