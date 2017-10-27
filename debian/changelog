@@ -1,3 +1,9 @@
+libosmo-sccp (0.8.0) unstable; urgency=medium
+
+  * New upstream 0.8.0 release.
+
+ -- Harald Welte <laforge@gnumonks.org>  Fri, 27 Oct 2017 21:50:08 +0200
+
 libosmo-sccp (0.7.1) UNRELEASED; urgency=medium
 
   * Move forward towards a new release.
