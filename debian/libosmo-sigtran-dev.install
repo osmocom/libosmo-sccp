@@ -1,0 +1,5 @@
+usr/include/osmocom/sigtran
+usr/lib/*/libosmo-sigtran*.a
+usr/lib/*/libosmo-sigtran*.so
+usr/lib/*/libosmo-sigtran*.la
+usr/lib/*/pkgconfig/libosmo-sigtran.pc

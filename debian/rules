@@ -11,15 +11,29 @@ VERSION := $(shell echo '$(DEBVERS)' | sed -e 's/[+-].*//' -e 's/~//g')
 %:
 	dh $@ --with autoreconf
 
-override_dh_autoreconf:
-	echo $(VERSION) > .tarball-version
-	dh_autoreconf
+override_dh_strip:
+	dh_strip -plibosmo-sigtran0 --dbg-package=libosmo-sigtran-dbg
+	dh_strip -posmo-stp --dbg-package=osmo-stp-dbg
 
-override_dh_clean:
-	dh_clean
-	rm -f .version tests/package.m4 tests/testsuite
+override_dh_install:
+	sed -i "/dependency_libs/ s/'.*'/''/" `find . -name '*.la'`
+	dh_install
 
 # Print test results in case of a failure
 override_dh_auto_test:
 	dh_auto_test || (find . -name testsuite.log -exec cat {} \; ; false)
 
+override_dh_autoreconf:
+	echo $(VERSION) > .tarball-version
+	dh_autoreconf
+
+override_dh_auto_configure:
+	dh_auto_configure -- --enable-static
+
+# Print test results in case of a failure
+override_dh_auto_test:
+	dh_auto_test || (find . -name testsuite.log -exec cat {} \; ; false)
+
+override_dh_clean:
+	dh_clean
+	rm -f .version tests/package.m4 tests/testsuite

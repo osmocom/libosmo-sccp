@@ -1,0 +1,7 @@
+usr/include/osmocom/sccp
+usr/lib/*/libsccp.a
+usr/lib/*/libmtp.a
+usr/lib/*/libxua.a
+usr/lib/*/pkgconfig/libosmo-sccp.pc
+usr/lib/*/pkgconfig/libosmo-mtp.pc
+usr/lib/*/pkgconfig/libosmo-xua.pc

@@ -25,10 +25,99 @@ Architecture: any
 Depends: ${misc:Depends}
 Multi-Arch: same
 Section: libdevel
-Description: Development files for libosmosccp, libosmomtp and libosmoxua
+Description: Development files for libsccp, libmtp and libxua
  SCCP is a network layer protocol that provides extended routing, flow control,
  segmentation, connection-orientation, and error correction facilities in
  Signaling System 7 telecommunications networks.
  It is heavily used in cellular networks such as GSM.
  .
  This package contains the development files for the library.
+
+Package: libosmo-sigtran0
+Section: libs
+Architecture: any
+Multi-Arch: same
+Depends: ${shlibs:Depends},
+         ${misc:Depends}
+Pre-Depends: ${misc:Pre-Depends}
+Description: Osmocom SIGTRAN library (SCCP, SUA, M3UA and more)
+  This is a shared library containing SS7/SIGTRAN related functionality,
+  including connection-less and connection-oriented SCCP as per ITU-T Q.71x,
+  M3UA (MTP3 User Adaptation) according to IETF RFC4666,
+  SUA (SCCP User Adpatation) according to IETF RFC3868
+  as well as MTP-level routing function and handling of signaling links,
+  linksets, ASPs, SGs, etc.
+
+Package: libosmo-sigtran-dbg
+Architecture: any
+Section: debug
+Multi-Arch: same
+Depends: libosmo-sigtran0 (= ${binary:Version}),
+         ${misc:Depends}
+Description: Documentation for the Osmocom SIGTRAN library
+  libosmo-sigtran is a shared library containing SS7/SIGTRAN related functionality,
+  including connection-less and connection-oriented SCCP as per ITU-T Q.71x,
+  M3UA (MTP3 User Adaptation) according to IETF RFC4666,
+  SUA (SCCP User Adpatation) according to IETF RFC3868
+  as well as MTP-level routing function and handling of signaling links,
+  linksets, ASPs, SGs, etc.
+
+
+Package: libosmo-sigtran-doc
+Architecture: all
+Section: doc
+Depends: ${misc:Depends},
+         libosmo-sigtran0 (= ${binary:Version}),
+         libjs-query
+Description: Documentation for the Osmocom SIGTRAN library
+  libosmo-sigtran is a shared library containing SS7/SIGTRAN related functionality,
+  including connection-less and connection-oriented SCCP as per ITU-T Q.71x,
+  M3UA (MTP3 User Adaptation) according to IETF RFC4666,
+  SUA (SCCP User Adpatation) according to IETF RFC3868
+  as well as MTP-level routing function and handling of signaling links,
+  linksets, ASPs, SGs, etc.
+
+Package: libosmo-sigtran-dev
+Architecture: any
+Multi-Arch: same
+Section: libdevel
+Depends: ${misc:Depends},
+         libosmo-sigtran0 (= ${binary:Version}),
+         libosmocore-dev,
+         libosmo-netif-dev
+Description: Development headers for the Osmocom SIGTRAN library
+  libosmo-sigtran is a shared library containing SS7/SIGTRAN related functionality,
+  including connection-less and connection-oriented SCCP as per ITU-T Q.71x,
+  M3UA (MTP3 User Adaptation) according to IETF RFC4666,
+  SUA (SCCP User Adpatation) according to IETF RFC3868
+  as well as MTP-level routing function and handling of signaling links,
+  linksets, ASPs, SGs, etc.
+
+Package: osmo-stp
+Architecture: any
+Multi-Arch: same
+Section: net
+Depends: libosmo-sigtran0,
+         ${shlib:Depends},
+         ${misc:Depends}
+Description: Osmocom SIGTRAN STP (Signaling Transfer Point)
+  This is the Osmocom (Open Source Mobile Communications) implementation
+  of a Signaling Transfer Point (STP) for SS7/SIGTRAN telecommunication
+  networks.  At this point it is a very minimal implementation, missing
+  lots of the functionality usually present in a STP, such as Global Title
+  Routing, Global Title Translation.
+
+Package: osmo-stp-dbg
+Architecture: any
+Multi-Arch: same
+Section: debug
+Depends: ${misc:Depends},
+         osmo-stp (= ${binary:Version})
+Description: Debug symbols for Osmocom SIGTRAN STP (Signaling Transfer Point)
+  This package contains debug symbols for the Osmocom SIGTRAN STP (OsmoSTP).
+  .
+  OsmoSTP is the Osmocom (Open Source Mobile Communications) implementation
+  of a Signaling Transfer Point (STP) for SS7/SIGTRAN telecommunication
+  networks.  At this point it is a very minimal implementation, missing
+  lots of the functionality usually present in a STP, such as Global Title
+  Routing, Global Title Translation.
