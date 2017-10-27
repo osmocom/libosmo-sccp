@@ -77,3 +77,4 @@ int osmo_isup_party_parse(char *out_digits, const uint8_t *in,
 			unsigned int in_num_bytes, bool odd);
 int osmo_sccp_addr_parse(struct osmo_sccp_addr *out,
 			const uint8_t *addr, unsigned int addrlen);
+int osmo_sccp_addr_encode(struct msgb *msg, const struct osmo_sccp_addr *in);

@@ -22,7 +22,8 @@ AT_CLEANUP
 AT_SETUP([xua])
 AT_KEYWORDS([xua])
 cat $abs_srcdir/xua/xua_test.ok > expout
-AT_CHECK([$abs_top_builddir/tests/xua/xua_test], [], [expout], [ignore])
+cat $abs_srcdir/xua/xua_test.err > experr
+AT_CHECK([$abs_top_builddir/tests/xua/xua_test], [], [expout], [experr])
 AT_CLEANUP
 
 AT_SETUP([ss7])

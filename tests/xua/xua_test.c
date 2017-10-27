@@ -34,6 +34,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
+#include <errno.h>
 
 static void test_isup_parse(void)
 {
@@ -138,6 +139,183 @@ static void test_sccp_addr_parser(void)
 		printf("sccp_addr_parse test case %u\n", i);
 		test_sccp_addr_parse(&tcase->expected, tcase->bin, tcase->bin_len);
 	}
+}
+
+struct sccp_addr_enc_testcase {
+	const char *name;
+	struct osmo_sccp_addr addr_in;
+	int rc;
+	char *exp_out;
+};
+
+static const struct sccp_addr_enc_testcase enc_cases[] = {
+	{
+		.name = "NOGT-PC1024",
+		.addr_in = {
+			.ri = OSMO_SCCP_RI_SSN_PC,
+			.presence = OSMO_SCCP_ADDR_T_PC,
+			.pc = 1024,
+		},
+		.rc = 3,
+		.exp_out = "410004",
+	}, {
+		.name = "NOGT-PC16383",
+		.addr_in = {
+			.ri = OSMO_SCCP_RI_SSN_PC,
+			.presence = OSMO_SCCP_ADDR_T_PC,
+			.pc = 16383,
+		},
+		.rc = 3,
+		.exp_out = "41ff3f",
+	}, {
+		.name = "NOGT-PC16383-SSN90",
+		.addr_in = {
+			.ri = OSMO_SCCP_RI_SSN_PC,
+			.presence = OSMO_SCCP_ADDR_T_PC | OSMO_SCCP_ADDR_T_SSN,
+			.pc = 16383,
+			.ssn = 0x5A,
+		},
+		.rc = 4,
+		.exp_out = "43ff3f5a",
+	}, {
+		.name = "GT-PC16383-NAIONLY",
+		.addr_in = {
+			.ri = OSMO_SCCP_RI_SSN_PC,
+			.presence = OSMO_SCCP_ADDR_T_PC | OSMO_SCCP_ADDR_T_GT,
+			.pc = 16383,
+			.gt.gti = OSMO_SCCP_GTI_NAI_ONLY,
+			.gt.nai = 0x7f,
+		},
+		.rc = 4,
+		.exp_out = "45ff3f7f",
+	}, {
+		.name = "GT-NOPC-NAIONLY",
+		.addr_in = {
+			.ri = OSMO_SCCP_RI_GT,
+			.presence = OSMO_SCCP_ADDR_T_GT,
+			.gt.gti = OSMO_SCCP_GTI_NAI_ONLY,
+			.gt.nai = 0x03,
+		},
+		.rc = 2,
+		.exp_out = "0403",
+	}, {
+		.name = "GT-NOPC-TTONLY",
+		.addr_in = {
+			.ri = OSMO_SCCP_RI_GT,
+			.presence = OSMO_SCCP_ADDR_T_GT,
+			.gt.gti = OSMO_SCCP_GTI_TT_ONLY,
+			.gt.tt =  0x03,
+		},
+		.rc = -EINVAL,
+	}, {
+		.name = "GT-NOPC-TT_NPL_ENC-ODD",
+		.addr_in = {
+			.ri = OSMO_SCCP_RI_GT,
+			.presence = OSMO_SCCP_ADDR_T_GT,
+			.gt.gti = OSMO_SCCP_GTI_TT_NPL_ENC,
+			.gt.tt =  0x03,
+			.gt.npi = 1,
+			.gt.digits = "123",
+		},
+		.rc = 5,
+		.exp_out = "0c03112103",
+	}, {
+		.name = "GT-NOPC-TT_NPL_ENC-EVEN",
+		.addr_in = {
+			.ri = OSMO_SCCP_RI_GT,
+			.presence = OSMO_SCCP_ADDR_T_GT,
+			.gt.gti = OSMO_SCCP_GTI_TT_NPL_ENC,
+			.gt.tt =  0x03,
+			.gt.npi = 1,
+			.gt.digits = "1234",
+		},
+		.rc = 5,
+		.exp_out = "0c03122143",
+	}, {
+		.name = "GT-NOPC-TT_NPL_ENC_NAI-EVEN",
+		.addr_in = {
+			.ri = OSMO_SCCP_RI_GT,
+			.presence = OSMO_SCCP_ADDR_T_GT,
+			.gt.gti = OSMO_SCCP_GTI_TT_NPL_ENC_NAI,
+			.gt.tt =  0x03,
+			.gt.npi = 1,
+			.gt.nai = 4,
+			.gt.digits = "1234",
+		},
+		.rc = 6,
+		.exp_out = "100312042143",
+	}, {
+		.name = "GT-NOPC-GTI_INVALID",
+		.addr_in = {
+			.ri = OSMO_SCCP_RI_GT,
+			.presence = OSMO_SCCP_ADDR_T_GT,
+			.gt.gti = 23,
+			.gt.tt =  0x03,
+			.gt.npi = 1,
+			.gt.nai = 4,
+			.gt.digits = "1234",
+		},
+		.rc = -EINVAL,
+	}, {
+		.name = "GT-NOPC-TT_NPL_ENC_NAI-EVEN-NONNUM",
+		.addr_in = {
+			.ri = OSMO_SCCP_RI_GT,
+			.presence = OSMO_SCCP_ADDR_T_GT,
+			.gt.gti = OSMO_SCCP_GTI_TT_NPL_ENC_NAI,
+			.gt.tt =  0x03,
+			.gt.npi = 1,
+			.gt.nai = 4,
+			.gt.digits = "1ABF",
+		},
+		.rc = 6,
+		.exp_out = "10031204a1fb",
+	},
+
+};
+
+static void testcase_sccp_addr_encdec(const struct sccp_addr_enc_testcase *tcase)
+{
+	struct msgb *msg = msgb_alloc(1024, "encdec");
+	struct osmo_sccp_addr out;
+	char *str;
+	int rc;
+
+	printf("\n=> %s\n", tcase->name);
+
+	printf("input addr: %s\n", osmo_sccp_addr_dump(&tcase->addr_in));
+	rc = osmo_sccp_addr_encode(msg, &tcase->addr_in);
+	printf("rc=%d, expected rc=%d\n", rc, tcase->rc);
+	OSMO_ASSERT(rc == tcase->rc);
+
+	if (rc <= 0) {
+		msgb_free(msg);
+		return;
+	}
+
+	str = osmo_hexdump_nospc(msg->data, msg->len);
+	printf("encoded  addr: %s\n", str);
+	if (tcase->exp_out) {
+		printf("expected addr: %s\n", tcase->exp_out);
+		OSMO_ASSERT(!strcmp(tcase->exp_out, str));
+	}
+
+	rc = osmo_sccp_addr_parse(&out, msg->data, msg->len);
+	printf("decod addr: %s\n", osmo_sccp_addr_dump(&out));
+
+	OSMO_ASSERT(!memcmp(&out, &tcase->addr_in, sizeof(out)));
+
+	msgb_free(msg);
+}
+
+static void test_sccp_addr_encdec(void)
+{
+	int i;
+
+	printf("Testing SCCP Address Encode/Decode\n");
+	for (i = 0; i < ARRAY_SIZE(enc_cases); i++) {
+		testcase_sccp_addr_encdec(&enc_cases[i]);
+	}
+	printf("\n");
 }
 
 /* sccp_addr_testcases[0].expected.gt transcoded into a SUA Global Title IE */
@@ -408,12 +586,15 @@ int main(int argc, char **argv)
 	log_init(&log_info, NULL);
 	stderr_target = log_target_create_stderr();
 	log_add_target(stderr_target);
+	log_set_use_color(stderr_target, 0);
+	log_set_print_filename(stderr_target, 0);
 
 	test_isup_parse();
 	test_sccp_addr_parser();
 	test_helpers();
 	test_sccp2sua();
 	test_rkm();
+	test_sccp_addr_encdec();
 
 	printf("All tests passed.\n");
 	return 0;
