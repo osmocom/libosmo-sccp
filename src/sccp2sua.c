@@ -163,13 +163,15 @@ int osmo_sccp_addr_parse(struct osmo_sccp_addr *out,
 		out->gt.gti = OSMO_SCCP_GTI_TT_ONLY;
 		out->gt.tt = *cur++;
 		/* abort, for national use only */
+		LOGP(DLSUA, LOGL_ERROR, "Unsupported national GTI %u\n", sca->global_title_indicator);
 		return -EINVAL;
 	case SCCP_TITLE_IND_TRANS_NUM_ENC:
 		out->presence |= OSMO_SCCP_ADDR_T_GT;
 		out->gt.gti = OSMO_SCCP_GTI_TT_NPL_ENC;
 		out->gt.tt = *cur++;
 		out->gt.npi = *cur >> 4;
-		switch (*cur++ & 0xF) {
+		encoding = *cur++ & 0xF;
+		switch (encoding) {
 		case 1:
 			odd = true;
 			break;
@@ -177,6 +179,7 @@ int osmo_sccp_addr_parse(struct osmo_sccp_addr *out,
 			odd = false;
 			break;
 		default:
+			LOGP(DLSUA, LOGL_ERROR, "Unknown GT encoding 0x%x\n", encoding);
 			return -1;
 		}
 		break;
@@ -237,11 +240,20 @@ int osmo_sccp_addr_encode(struct msgb *msg, const struct osmo_sccp_addr *in)
 
 	if (in->presence & OSMO_SCCP_ADDR_T_PC) {
 		sca->point_code_indicator = 1;
+		/* ITU-T Q.713 states that signalling point codes are 14bit */
+		if (in->pc > 0x3fff) {
+			LOGP(DLSUA, LOGL_ERROR, "Invalid Point Code %u requested\n", in->pc);
+			return -EINVAL;
+		}
 		msgb_put_u16le(msg, in->pc & 0x3ff);
 	}
 
 	if (in->presence & OSMO_SCCP_ADDR_T_SSN) {
 		sca->ssn_indicator = 1;
+		if (in->ssn > 0xff) {
+			LOGP(DLSUA, LOGL_ERROR, "Invalid SSN %u requested\n", in->ssn);
+			return -EINVAL;
+		}
 		msgb_put_u8(msg, in->ssn);
 	}
 
@@ -277,6 +289,9 @@ int osmo_sccp_addr_encode(struct msgb *msg, const struct osmo_sccp_addr *in)
 		msgb_put_u8(msg, (in->gt.npi << 4) | (odd ? 1 : 2));
 		msgb_put_u8(msg, in->gt.nai & 0x7f);
 		break;
+	default:
+		LOGP(DLSUA, LOGL_ERROR, "Unsupported GTI %u requested\n", in->gt.gti);
+		return -EINVAL;
 	}
 	osmo_isup_party_encode(msg, in->gt.digits);
 
