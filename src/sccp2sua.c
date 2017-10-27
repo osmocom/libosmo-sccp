@@ -262,6 +262,16 @@ int osmo_sccp_addr_encode(struct msgb *msg, const struct osmo_sccp_addr *in)
 		goto out;
 	}
 
+	if (in->gt.npi && (in->gt.npi > 0xF)) {
+		LOGP(DLSUA, LOGL_ERROR, "Unsupported Numbering Plan %u", in->gt.npi);
+		return -EINVAL;
+	}
+
+	if (in->gt.nai && (in->gt.nai > 0x7F)) {
+		LOGP(DLSUA, LOGL_ERROR, "Unsupported Nature of Address %u", in->gt.nai);
+		return -EINVAL;
+	}
+
 	odd = strlen(in->gt.digits) & 1;
 	switch (in->gt.gti) {
 	case OSMO_SCCP_GTI_NO_GT:
