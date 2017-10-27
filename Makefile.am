@@ -23,21 +23,21 @@ html_DATA = $(top_builddir)/doc/html.tar
 
 doc: $(html_DATA)
 
-$(html_DATA): $(top_builddir)/doc/sccp/html/index.html
+$(html_DATA): $(top_builddir)/doc/sigtran/html/index.html
 	cd $(top_builddir)/doc && tar cf html.tar */html
 
-$(top_builddir)/doc/sccp/html/index.html: $(SOURCES) Doxyfile
-	@rm -rf doc/sccp
-	mkdir -p doc/sccp
+$(top_builddir)/doc/sigtran/html/index.html: $(SOURCES) Doxyfile
+	@rm -rf doc/sigtran
+	mkdir -p doc/sigtran
 	$(DOXYGEN) Doxyfile
 
 install-data-hook:
 	cd $(DESTDIR)$(htmldir) && tar xf html.tar && rm -f html.tar
 
 uninstall-hook:
-	cd $(DESTDIR)$(htmldir) && rm -rf sccp
+	cd $(DESTDIR)$(htmldir) && rm -rf sigtran
 
-DX_CLEAN = doc/sccp/html/search/* doc/sccp/{html,latex}/* doc/html.tar doc/doxygen_sqlite3.db doc/sccp/doxygen_sqlite3.db doc/*.tag
+DX_CLEAN = doc/sigtran/html/search/* doc/sigtran/{html,latex}/* doc/html.tar doc/doxygen_sqlite3.db doc/sigtran/doxygen_sqlite3.db doc/*.tag
 
 endif
 
