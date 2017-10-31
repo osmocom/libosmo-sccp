@@ -139,7 +139,6 @@ int sccp_test_user_vty_install(struct osmo_sccp_instance *inst, int ssn)
 	g_calling_addr.ssn = ssn;
 
 	install_node(&scu_node, NULL);
-	vty_install_default(SCU_NODE);
 	install_element(SCU_NODE, &scu_called_ssn_cmd);
 	install_element(SCU_NODE, &scu_conn_req_cmd);
 	install_element(SCU_NODE, &scu_conn_resp_cmd);

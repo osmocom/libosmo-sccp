@@ -1683,7 +1683,6 @@ int osmo_ss7_is_config_node(struct vty *vty, int node)
 static void vty_init_addr(void)
 {
 	install_node(&sccpaddr_node, NULL);
-	vty_install_default(L_CS7_SCCPADDR_NODE);
 	install_element(L_CS7_NODE, &cs7_show_sccpaddr_cmd);
 	install_element(L_CS7_NODE, &cs7_sccpaddr_cmd);
 	install_element(L_CS7_NODE, &cs7_sccpaddr_del_cmd);
@@ -1706,7 +1705,6 @@ static void vty_init_addr(void)
 #endif
 	install_element(L_CS7_SCCPADDR_NODE, &cs7_sccpaddr_gt_cmd);
 	install_node(&sccpaddr_gt_node, NULL);
-	vty_install_default(L_CS7_SCCPADDR_GT_NODE);
 	install_element(L_CS7_SCCPADDR_GT_NODE, &cs7_sccpaddr_gt_gti_cmd);
 	install_element(L_CS7_SCCPADDR_GT_NODE, &cs7_sccpaddr_gt_tt_cmd);
 	install_element(L_CS7_SCCPADDR_GT_NODE, &cs7_sccpaddr_gt_npi_cmd);
@@ -1724,7 +1722,6 @@ static void vty_init_shared(void *ctx)
 	install_element(CONFIG_NODE, &cs7_instance_cmd);
 
 	install_node(&cs7_node, config_write_cs7);
-	vty_install_default(L_CS7_NODE);
 	install_element(L_CS7_NODE, &cfg_description_cmd);
 	install_element(L_CS7_NODE, &cs7_net_ind_cmd);
 	install_element(L_CS7_NODE, &cs7_point_code_cmd);
@@ -1734,7 +1731,6 @@ static void vty_init_shared(void *ctx)
 	install_element(L_CS7_NODE, &cs7_permit_dyn_rkm_cmd);
 
 	install_node(&asp_node, NULL);
-	vty_install_default(L_CS7_ASP_NODE);
 	install_element_ve(&show_cs7_asp_cmd);
 	install_element(L_CS7_NODE, &cs7_asp_cmd);
 	install_element(L_CS7_NODE, &no_cs7_asp_cmd);
@@ -1746,7 +1742,6 @@ static void vty_init_shared(void *ctx)
 	install_element(L_CS7_ASP_NODE, &asp_shutdown_cmd);
 
 	install_node(&as_node, NULL);
-	vty_install_default(L_CS7_AS_NODE);
 	install_element_ve(&show_cs7_as_cmd);
 	install_element(L_CS7_NODE, &cs7_as_cmd);
 	install_element(L_CS7_NODE, &no_cs7_as_cmd);
@@ -1777,7 +1772,6 @@ void osmo_ss7_vty_init_sg(void *ctx)
 	vty_init_shared(ctx);
 
 	install_node(&rtable_node, NULL);
-	vty_install_default(L_CS7_RTABLE_NODE);
 	install_element_ve(&show_cs7_route_cmd);
 	install_element(L_CS7_NODE, &cs7_route_table_cmd);
 	install_element(L_CS7_RTABLE_NODE, &cfg_description_cmd);
@@ -1785,7 +1779,6 @@ void osmo_ss7_vty_init_sg(void *ctx)
 	install_element(L_CS7_RTABLE_NODE, &cs7_rt_rem_cmd);
 
 	install_node(&xua_node, NULL);
-	vty_install_default(L_CS7_XUA_NODE);
 	install_element(L_CS7_NODE, &cs7_xua_cmd);
 	install_element(L_CS7_NODE, &no_cs7_xua_cmd);
 	install_element(L_CS7_XUA_NODE, &xua_local_ip_cmd);
