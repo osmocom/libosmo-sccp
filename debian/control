@@ -68,7 +68,7 @@ Architecture: all
 Section: doc
 Depends: ${misc:Depends},
          libosmo-sigtran0 (= ${binary:Version}),
-         libjs-query
+         libjs-jquery
 Description: Documentation for the Osmocom SIGTRAN library
   libosmo-sigtran is a shared library containing SS7/SIGTRAN related functionality,
   including connection-less and connection-oriented SCCP as per ITU-T Q.71x,
