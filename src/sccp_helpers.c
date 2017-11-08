@@ -324,3 +324,10 @@ char *osmo_sccp_addr_name(const struct osmo_ss7_instance *ss7, const struct osmo
 
 	return buf;
 }
+
+/* Derive ss7 from the sccp instance and call osmo_sccp_addr_name() with that.
+ * If sccp is passed as NULL, simply use the default point code format. */
+char *osmo_sccp_inst_addr_name(const struct osmo_sccp_instance *sccp, const struct osmo_sccp_addr *addr)
+{
+	return osmo_sccp_addr_name(sccp? sccp->ss7 : NULL, addr);
+}
