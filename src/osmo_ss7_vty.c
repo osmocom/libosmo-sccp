@@ -927,7 +927,7 @@ static void write_one_as(struct vty *vty, struct osmo_ss7_as *as)
 	vty_out(vty, "%s", VTY_NEWLINE);
 
 	if (as->cfg.pc_override.dpc)
-		vty_out(vty, " point-code override dpc %s%s",
+		vty_out(vty, "  point-code override dpc %s%s",
 			osmo_ss7_pointcode_print(as->inst, as->cfg.pc_override.dpc), VTY_NEWLINE);
 }
 
