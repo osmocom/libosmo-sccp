@@ -29,6 +29,7 @@
 #include <osmocom/core/logging.h>
 #include <osmocom/core/timer.h>
 #include <osmocom/core/socket.h>
+#include <osmocom/core/byteswap.h>
 #include <osmocom/gsm/ipa.h>
 #include <osmocom/gsm/protocol/ipaccess.h>
 
@@ -169,18 +170,18 @@ static int ipa_rx_msg_sccp(struct osmo_ss7_asp *asp, struct msgb *msg)
 	data_hdr.si = MTP_SI_SCCP;
 	if (asp->cfg.is_server) {
 		/* Source: the PC of the routing key */
-		data_hdr.opc = as->cfg.routing_key.pc;
+		data_hdr.opc = osmo_htonl(as->cfg.routing_key.pc);
 		/* Destination: Based on VTY config */
-		data_hdr.dpc = as->cfg.pc_override.dpc;
+		data_hdr.dpc = osmo_htonl(as->cfg.pc_override.dpc);
 	} else {
 		/* Source: Based on VTY config */
-		data_hdr.opc = as->cfg.pc_override.dpc;
+		data_hdr.opc = osmo_htonl(as->cfg.pc_override.dpc);
 		/* Destination: PC of the routing key */
-		data_hdr.dpc = as->cfg.routing_key.pc;
+		data_hdr.dpc = osmo_htonl(as->cfg.routing_key.pc);
 	}
 	xua = m3ua_xfer_from_data(&data_hdr, msgb_l2(msg), msgb_l2len(msg));
-	xua->mtp.opc = data_hdr.opc;
-	xua->mtp.dpc = data_hdr.dpc;
+	xua->mtp.opc = osmo_ntohl(data_hdr.opc);
+	xua->mtp.dpc = osmo_ntohl(data_hdr.dpc);
 
 	return m3ua_hmdc_rx_from_l2(asp->inst, xua);
 }
