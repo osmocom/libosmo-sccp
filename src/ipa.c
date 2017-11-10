@@ -38,8 +38,10 @@
 #include <osmocom/sigtran/xua_msg.h>
 
 #include <osmocom/sigtran/mtp_sap.h>
+#include <osmocom/sigtran/sccp_sap.h>
 #include <osmocom/sigtran/osmo_ss7.h>
 #include <osmocom/sigtran/protocol/m3ua.h>
+#include <osmocom/sigtran/protocol/sua.h>
 #include <osmocom/sigtran/protocol/mtp.h>
 
 #include "xua_internal.h"
@@ -134,11 +136,74 @@ static struct osmo_ss7_as *find_as_for_asp(struct osmo_ss7_asp *asp)
 	return NULL;
 }
 
+/* Patch a SCCP message and add point codes to Called/Calling Party (if missing) */
+static struct msgb *patch_sccp_with_pc(struct osmo_ss7_asp *asp, struct msgb *sccp_msg_in,
+					uint32_t opc, uint32_t dpc)
+{
+	struct osmo_sccp_addr addr;
+	struct msgb *sccp_msg_out;
+	struct xua_msg *sua;
+	int rc;
+
+	/* start by converting SCCP to SUA */
+	sua = osmo_sccp_to_xua(sccp_msg_in);
+	if (!sua) {
+		LOGPASP(asp, DLSS7, LOGL_ERROR, "Couldn't convert SCCP to SUA: %s\n",
+			msgb_hexdump(sccp_msg_in));
+		msgb_free(sccp_msg_in);
+		return NULL;
+	}
+	/* free the input message and work with SUA version instead */
+	msgb_free(sccp_msg_in);
+
+	rc = sua_addr_parse(&addr, sua, SUA_IEI_DEST_ADDR);
+	switch (rc) {
+	case 0:
+		if (addr.presence & OSMO_SCCP_ADDR_T_PC)
+			break;
+		/* if there's no point code in dest_addr, add one */
+		addr.presence |= OSMO_SCCP_ADDR_T_PC;
+		addr.pc = dpc;
+		xua_msg_free_tag(sua, SUA_IEI_DEST_ADDR);
+		xua_msg_add_sccp_addr(sua, SUA_IEI_DEST_ADDR, &addr);
+		break;
+	case -ENODEV: /* no destination address in message */
+		break;
+	default: /* some other error */
+		xua_msg_free(sua);
+		return NULL;
+	}
+
+	rc = sua_addr_parse(&addr, sua, SUA_IEI_SRC_ADDR);
+	switch (rc) {
+	case 0:
+		if (addr.presence & OSMO_SCCP_ADDR_T_PC)
+			break;
+		/* if there's no point code in src_addr, add one */
+		addr.presence |= OSMO_SCCP_ADDR_T_PC;
+		addr.pc = opc;
+		xua_msg_free_tag(sua, SUA_IEI_SRC_ADDR);
+		xua_msg_add_sccp_addr(sua, SUA_IEI_SRC_ADDR, &addr);
+		break;
+	case -ENODEV: /* no source address in message */
+		break;
+	default: /* some other error */
+		xua_msg_free(sua);
+		return NULL;
+	}
+
+	/* re-encode SUA to SCCP and return */
+	sccp_msg_out = osmo_sua_to_sccp(sua);
+	xua_msg_free(sua);
+	return sccp_msg_out;
+}
+
 static int ipa_rx_msg_sccp(struct osmo_ss7_asp *asp, struct msgb *msg)
 {
 	struct m3ua_data_hdr data_hdr;
 	struct xua_msg *xua = xua_msg_alloc();
 	struct osmo_ss7_as *as = find_as_for_asp(asp);
+	uint32_t opc, dpc;
 
 	if (!as) {
 		LOGPASP(asp, DLSS7, LOGL_ERROR, "Rx message for IPA ASP without AS?!\n");
@@ -150,13 +215,15 @@ static int ipa_rx_msg_sccp(struct osmo_ss7_asp *asp, struct msgb *msg)
 	msgb_pull_to_l2(msg);
 
 	/* We have received an IPA-encapsulated SCCP message, without
-	 * any MTP routing label.  This means we have no real idea where
-	 * it came from, nor where it goes to.  We could simply treat it
-	 * as being for the local point code, but then this means that
-	 * we would have to implement SCCP connection coupling in order
-	 * to route the connections to any other point code.  The reason
-	 * for this is the lack of addressing information inside the
-	 * non-CR/CC connection oriented messages.
+	 * any MTP routing label.  Furthermore, the SCCP Called/Calling
+	 * Party are SSN-only, with no GT or PC.  This means we have no
+	 * real idea where it came from, nor where it goes to.  We could
+	 * simply treat it as being for the local point code, but then
+	 * this means that we would have to implement SCCP connection
+	 * coupling in order to route the connections to any other point
+	 * code.  The reason for this is the lack of addressing
+	 * information inside the non-CR/CC connection oriented
+	 * messages.
 	 *
 	 * The only other alternative we have is to simply have a
 	 * STP (server) side configuration that specifies which point
@@ -166,23 +233,33 @@ static int ipa_rx_msg_sccp(struct osmo_ss7_asp *asp, struct msgb *msg)
 	 * to us.  This is all quite ugly, but then what can we do :/
 	 */
 
-	memset(&data_hdr, 0, sizeof(data_hdr));
-	data_hdr.si = MTP_SI_SCCP;
+	/* First, determine the DPC and OPC to use */
 	if (asp->cfg.is_server) {
 		/* Source: the PC of the routing key */
-		data_hdr.opc = osmo_htonl(as->cfg.routing_key.pc);
+		opc = as->cfg.routing_key.pc;
 		/* Destination: Based on VTY config */
-		data_hdr.dpc = osmo_htonl(as->cfg.pc_override.dpc);
+		dpc = as->cfg.pc_override.dpc;
 	} else {
 		/* Source: Based on VTY config */
-		data_hdr.opc = osmo_htonl(as->cfg.pc_override.dpc);
+		opc = as->cfg.pc_override.dpc;
 		/* Destination: PC of the routing key */
-		data_hdr.dpc = osmo_htonl(as->cfg.routing_key.pc);
+		dpc = as->cfg.routing_key.pc;
 	}
-	xua = m3ua_xfer_from_data(&data_hdr, msgb_l2(msg), msgb_l2len(msg));
-	xua->mtp.opc = osmo_ntohl(data_hdr.opc);
-	xua->mtp.dpc = osmo_ntohl(data_hdr.dpc);
 
+	/* Second, patch this into the SCCP message */
+	msg = patch_sccp_with_pc(asp, msg, opc, dpc);
+
+	/* Third, create a MTP3/M3UA label with those point codes */
+	memset(&data_hdr, 0, sizeof(data_hdr));
+	data_hdr.si = MTP_SI_SCCP;
+	data_hdr.opc = osmo_htonl(opc);
+	data_hdr.dpc = osmo_htonl(dpc);
+	/* Create M3UA message in XUA structure */
+	xua = m3ua_xfer_from_data(&data_hdr, msgb_l2(msg), msgb_l2len(msg));
+	/* Update xua->mtp with values from data_hdr */
+	m3ua_dh_to_xfer_param(&xua->mtp, &data_hdr);
+
+	/* Pass on as if we had received it from an M3UA ASP */
 	return m3ua_hmdc_rx_from_l2(asp->inst, xua);
 }
 
