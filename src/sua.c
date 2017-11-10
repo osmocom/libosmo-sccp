@@ -60,10 +60,15 @@
 
 struct msgb *sccp_msgb_alloc(const char *name)
 {
+	struct msgb *msg;
 	if (!name)
 		name = "SCCP";
-	return msgb_alloc_headroom(SCCP_MSG_SIZE+SCCP_MSG_HEADROOM,
-				   SCCP_MSG_HEADROOM, name);
+	msg = msgb_alloc_headroom(SCCP_MSG_SIZE+SCCP_MSG_HEADROOM,
+				  SCCP_MSG_HEADROOM, name);
+	if (!msg)
+		return NULL;
+	msg->l2h = msg->tail;
+	return msg;
 }
 
 /***********************************************************************
