@@ -835,11 +835,22 @@ out_err:
 /* Server: We're waiting for an ID ACK */
 static void ipa_asp_fsm_wait_id_ack2(struct osmo_fsm_inst *fi, uint32_t event, void *data)
 {
+	struct ipa_asp_fsm_priv *iafp = fi->priv;
+	struct osmo_ss7_asp *asp = iafp->asp;
+	struct osmo_ss7_instance *inst = asp->inst;
+	struct osmo_ss7_as *as = osmo_ss7_as_find_by_rctx(inst, 0);
+
+	OSMO_ASSERT(as);
+
 	switch (event) {
 	case IPA_ASP_E_ID_ACK:
 		/* ACK received, we can go to active state now.  The
 		 * ACTIVE onenter function will inform the AS */
 		osmo_fsm_inst_state_chg(fi, IPA_ASP_S_ACTIVE, 0, 0);
+		/* As opposed to M3UA, there is no RKM and we have to implicitly automatically add
+		 * a route once an IPA connection has come up */
+		osmo_ss7_route_create(inst->rtable_system, as->cfg.routing_key.pc, 0xffffff,
+				      as->cfg.name);
 		break;
 	}
 }
@@ -1007,6 +1018,27 @@ static const struct osmo_fsm_state ipa_asp_states[] = {
 	},
 };
 
+static void ipa_asp_fsm_cleanup(struct osmo_fsm_inst *fi, enum osmo_fsm_term_cause cause)
+{
+	struct ipa_asp_fsm_priv *iafp = fi->priv;
+	struct osmo_ss7_asp *asp = iafp->asp;
+	struct osmo_ss7_instance *inst = asp->inst;
+	struct osmo_ss7_as *as = osmo_ss7_as_find_by_rctx(inst, 0);
+	struct osmo_ss7_route *rt;
+
+	OSMO_ASSERT(as);
+
+	/* find the route which we have created if we ever reached ipa_asp_fsm_wait_id_ack2 */
+	rt = osmo_ss7_route_find_dpc_mask(inst->rtable_system, as->cfg.routing_key.pc, 0xffffff);
+	/* no route found, bail out */
+	if (!rt)
+		return;
+	/* route points to different AS, bail out */
+	if (rt->dest.as != as)
+		return;
+
+	osmo_ss7_route_destroy(rt);
+}
 
 struct osmo_fsm ipa_asp_fsm = {
 	.name = "IPA_ASP",
@@ -1020,6 +1052,7 @@ struct osmo_fsm ipa_asp_fsm = {
 			       S(XUA_ASP_E_ASPSM_BEAT) |
 			       S(XUA_ASP_E_ASPSM_BEAT_ACK),
 	.allstate_action = ipa_asp_allstate,
+	.cleanup = ipa_asp_fsm_cleanup,
 };
 
 
