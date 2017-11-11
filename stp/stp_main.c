@@ -65,7 +65,7 @@ static const char stp_copyright[] =
 	"Free Software lives by contribution.  If you use this, please contribute!\r\n";
 
 static struct vty_app_info vty_info = {
-	.name	= "osmo-stp",
+	.name	= "OsmoSTP",
 	.copyright = stp_copyright,
 	.version = PACKAGE_VERSION,
 	.go_parent_cb = osmo_ss7_vty_go_parent,
