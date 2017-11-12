@@ -3,6 +3,8 @@
 /* (C) 2017 by Harald Welte <laforge@gnumonks.org>
  * All Rights Reserved
  *
+ * SPDX-License-Identifier: GPL-2.0+
+ *
  * based on my 2011 Erlang implementation osmo_ss7/src/sua_sccp_conv.erl
  *
  * References: ITU-T Q.713 and IETF RFC 3868

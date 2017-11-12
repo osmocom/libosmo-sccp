@@ -3,6 +3,8 @@
  * 
  * All Rights reserved.
  *
+ * SPDX-License-Identifier: GPL-2.0+
+ *
  * Based on my earlier Erlang implementation xua_asp_fsm.erl in
  * osmo-ss7.git
  */

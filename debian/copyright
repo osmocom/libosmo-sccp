@@ -5,7 +5,7 @@ Source: http://cgit.osmocom.org/libosmo-sccp/
 Files: *
 Copyright: 2009-2010,2013  On-Waves
            2009-2011,2013  Holger Hans Peter Freyther <zecke@selfish.org>
-           2010            Harald Welte <laforge@gnumonks.org>
+           2010,2016-2017  Harald Welte <laforge@gnumonks.org>
 License: GPL-2+
 
 Files: tests/m2ua/m2ua_test.c
