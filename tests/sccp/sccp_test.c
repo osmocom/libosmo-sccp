@@ -886,15 +886,17 @@ static void test_sccp_parsing(void)
 				FAIL("GTI length is wrong: %d\n", result.called.gti_len);
 			}
 
-			if (memcmp(&parse_result[current_test].dst_gti_data[0],
-				   result.called.gti_data, result.called.gti_len) != 0) {
+			if (parse_result[current_test].dst_gti_data
+			    && memcmp(&parse_result[current_test].dst_gti_data[0],
+				      result.called.gti_data, result.called.gti_len) != 0) {
 				FAIL("GTI data is wrong: %d '%s'\n",
 				     result.called.gti_len,
 				     osmo_hexdump(result.called.gti_data, result.called.gti_len));
 			}
 
-			if (memcmp(&parse_result[current_test].src_gti_data[0],
-				   result.calling.gti_data, result.calling.gti_len) != 0) {
+			if (parse_result[current_test].src_gti_data
+			    && memcmp(&parse_result[current_test].src_gti_data[0],
+				      result.calling.gti_data, result.calling.gti_len) != 0) {
 				FAIL("GTI data is wrong: %d\n", result.calling.gti_len);
 			}
 		}
