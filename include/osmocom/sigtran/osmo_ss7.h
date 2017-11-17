@@ -108,6 +108,8 @@ osmo_ss7_instance_find_or_create(void *ctx, uint32_t id);
 void osmo_ss7_instance_destroy(struct osmo_ss7_instance *inst);
 int osmo_ss7_instance_set_pc_fmt(struct osmo_ss7_instance *inst,
 				uint8_t c0, uint8_t c1, uint8_t c2);
+int osmo_ss7_instance_bind(struct osmo_ss7_instance *inst);
+int osmo_ss7_bind_all_instances();
 
 /***********************************************************************
  * MTP Users (Users of MTP, such as SCCP or ISUP)
@@ -439,6 +441,9 @@ osmo_ss7_xua_server_find(struct osmo_ss7_instance *inst, enum osmo_ss7_asp_proto
 struct osmo_xua_server *
 osmo_ss7_xua_server_create(struct osmo_ss7_instance *inst, enum osmo_ss7_asp_protocol proto,
 			   uint16_t local_port, const char *local_host);
+
+int
+osmo_ss7_xua_server_bind(struct osmo_xua_server *xs);
 
 int
 osmo_ss7_xua_server_set_local_host(struct osmo_xua_server *xs, const char *local_host);

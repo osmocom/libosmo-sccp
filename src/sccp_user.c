@@ -521,6 +521,7 @@ osmo_sccp_simple_server_on_ss7_id(void *ctx, uint32_t ss7_id, uint32_t pc,
 {
 	struct osmo_ss7_instance *ss7;
 	struct osmo_xua_server *xs;
+	int rc;
 
 	if (local_port < 0)
 		local_port = osmo_ss7_asp_protocol_port(prot);
@@ -534,6 +535,10 @@ osmo_sccp_simple_server_on_ss7_id(void *ctx, uint32_t ss7_id, uint32_t pc,
 	xs = osmo_ss7_xua_server_create(ss7, prot, local_port, local_ip);
 	if (!xs)
 		goto out_ss7;
+
+	rc = osmo_ss7_xua_server_bind(xs);
+	if (rc < 0)
+		goto out_xs;
 
 	/* Allocate SCCP stack */
 	ss7->sccp = osmo_sccp_instance_create(ss7, NULL);

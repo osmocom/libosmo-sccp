@@ -423,6 +423,42 @@ int osmo_ss7_instance_set_pc_fmt(struct osmo_ss7_instance *inst,
 	return 0;
 }
 
+/*! \brief bind all xUA servers belonging to an SS7 Instance
+ *  \param[in] inst SS7 Instance to apply the socket binding (and start listening)
+ *  \returns 0 on success; negative value on error */
+int osmo_ss7_instance_bind(struct osmo_ss7_instance *inst)
+{
+	struct osmo_xua_server *oxs;
+	int rc = 0;
+
+	llist_for_each_entry(oxs, &inst->xua_servers, list) {
+		if (osmo_ss7_xua_server_bind(oxs) < 0) {
+			LOGSS7(inst, LOGL_ERROR, "Unable to bind xUA server %s:%u\n",
+				oxs->cfg.local.host, oxs->cfg.local.port);
+			rc = -1;
+		}
+	}
+	return rc;
+}
+
+/*! \brief bind all xUA servers on each of the stored SS7 instances
+ *  \returns 0 on success; negative value on error */
+int osmo_ss7_bind_all_instances()
+{
+	OSMO_ASSERT(ss7_initialized);
+
+	struct osmo_ss7_instance *inst;
+	int rc = 0;
+
+	llist_for_each_entry(inst, &osmo_ss7_instances, list) {
+		if (osmo_ss7_instance_bind(inst) < 0 ) {
+			LOGSS7(inst, LOGL_ERROR, "Unable to bind all xUA servers in ss7 instance\n");
+			rc = -1;
+		}
+	}
+	return rc;
+}
+
 /***********************************************************************
  * MTP Users (Users of MTP, such as SCCP or ISUP)
  ***********************************************************************/
@@ -1745,7 +1781,7 @@ osmo_ss7_xua_server_find(struct osmo_ss7_instance *inst, enum osmo_ss7_asp_proto
 	return NULL;
 }
 
-/*! \brief create a new xUA server listening to given ip/port
+/*! \brief create a new xUA server configured with given ip/port
  *  \param[in] ctx talloc allocation context
  *  \param[in] proto protocol (xUA variant) to use
  *  \param[in] local_port local SCTP port to bind/listen to
@@ -1757,7 +1793,6 @@ osmo_ss7_xua_server_create(struct osmo_ss7_instance *inst, enum osmo_ss7_asp_pro
 			   uint16_t local_port, const char *local_host)
 {
 	struct osmo_xua_server *oxs = talloc_zero(inst, struct osmo_xua_server);
-	int rc;
 
 	OSMO_ASSERT(ss7_initialized);
 	if (!oxs)
@@ -1781,13 +1816,6 @@ osmo_ss7_xua_server_create(struct osmo_ss7_instance *inst, enum osmo_ss7_asp_pro
 	osmo_stream_srv_link_set_port(oxs->server, oxs->cfg.local.port);
 	osmo_stream_srv_link_set_proto(oxs->server, asp_proto_to_ip_proto(proto));
 
-	rc = osmo_stream_srv_link_open(oxs->server);
-	if (rc < 0) {
-		osmo_stream_srv_link_destroy(oxs->server);
-		oxs->server = NULL;
-		talloc_free(oxs);
-	}
-
 	oxs->inst = inst;
 	llist_add_tail(&oxs->list, &inst->xua_servers);
 
@@ -1796,6 +1824,19 @@ osmo_ss7_xua_server_create(struct osmo_ss7_instance *inst, enum osmo_ss7_asp_pro
 		inst->sccp = osmo_sccp_instance_create(inst, NULL);
 
 	return oxs;
+}
+
+/*! \brief Set the xUA server to bind/listen to the currently configured ip/port
+ *  \param[in] xs xUA server to operate
+ *  \returns 0 on success, negative value on error.
+ */
+int
+osmo_ss7_xua_server_bind(struct osmo_xua_server *xs)
+{
+	LOGP(DLSS7, LOGL_INFO, "(Re)binding %s Server to %s:%u\n",
+		get_value_string(osmo_ss7_asp_protocol_vals, xs->cfg.proto),
+		xs->cfg.local.host, xs->cfg.local.port);
+	return osmo_stream_srv_link_open(xs->server);
 }
 
 int

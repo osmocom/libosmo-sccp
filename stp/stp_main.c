@@ -183,6 +183,8 @@ int main(int argc, char **argv)
 		exit(1);
 	}
 
+	osmo_ss7_bind_all_instances();
+
 	rc = telnet_init_dynif(NULL, NULL, vty_get_bind_addr(), OSMO_VTY_PORT_STP);
 	if (rc < 0) {
 		perror("Erro binding VTY port\n");
