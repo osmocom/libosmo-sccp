@@ -677,7 +677,7 @@ DEFUN(cs7_as, cs7_as_cmd,
 	enum osmo_ss7_asp_protocol protocol = parse_asp_proto(argv[1]);
 
 	if (protocol == OSMO_SS7_ASP_PROT_NONE) {
-		vty_out(vty, "invalid protocol '%s'%s", argv[3], VTY_NEWLINE);
+		vty_out(vty, "invalid protocol '%s'%s", argv[1], VTY_NEWLINE);
 		return CMD_WARNING;
 	}
 
