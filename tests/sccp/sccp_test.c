@@ -450,6 +450,7 @@ void sccp_write_cb(struct sccp_connection *conn, struct msgb *data, void *gctx, 
 	}
 
 	write_called = 1;
+	msgb_free(data);
 }
 
 void sccp_c_read(struct sccp_connection *connection, struct msgb *msgb, unsigned int len)
@@ -502,6 +503,7 @@ static void sccp_udt_write_cb(struct sccp_connection *conn, struct msgb *data, v
 	}
 
 	matched = 1;
+	msgb_free(data);
 }
 
 static void test_sccp_system(void)
@@ -981,6 +983,8 @@ static void test_sccp_address(void)
 				osmo_hexdump(msg->data, ret));
 		}
 	}
+
+	talloc_free(msg);
 }
 
 static const struct log_info_cat default_categories[] = {
