@@ -497,6 +497,42 @@ static void write_one_xua(struct vty *vty, struct osmo_xua_server *xs)
 		vty_out(vty, "  accept-asp-connections dynamic-permitted%s", VTY_NEWLINE);
 }
 
+static void vty_dump_xua_server(struct vty *vty, struct osmo_xua_server *xs)
+{
+	vty_out(vty, "xUA server for %s on %s:%u%s",
+		get_value_string(osmo_ss7_asp_protocol_vals, xs->cfg.proto),
+		xs->cfg.local.host ? xs->cfg.local.host : "0.0.0.0",
+		xs->cfg.local.port, VTY_NEWLINE);
+}
+
+/* List all addressbook entries */
+DEFUN(show_cs7_xua, show_cs7_xua_cmd,
+      "show cs7 "XUA_VAR_STR" [<0-65534>]",
+      SHOW_STR CS7_STR XUA_VAR_HELP_STR "Port Number")
+{
+	struct osmo_ss7_instance *inst;
+	struct osmo_xua_server *xs;
+	enum osmo_ss7_asp_protocol proto = parse_asp_proto(argv[0]);
+
+	llist_for_each_entry(inst, &osmo_ss7_instances, list) {
+		if (argc > 1) {
+			int port = atoi(argv[1]);
+			xs = osmo_ss7_xua_server_find(inst, proto, port);
+			if (!xs) {
+				vty_out(vty, "%% No matching server found%s", VTY_NEWLINE);
+				return CMD_WARNING;
+			}
+			vty_dump_xua_server(vty, xs);
+		} else {
+			llist_for_each_entry(xs, &inst->xua_servers, list) {
+				if (xs->cfg.proto == proto)
+					vty_dump_xua_server(vty, xs);
+			}
+		}
+	}
+	return CMD_SUCCESS;
+}
+
 
 /***********************************************************************
  * Application Server Process
@@ -1721,6 +1757,7 @@ static void vty_init_shared(void *ctx)
 	g_ctx = ctx;
 
 	install_element_ve(&show_cs7_user_cmd);
+	install_element_ve(&show_cs7_xua_cmd);
 
 	/* the mother of all VTY config nodes */
 	install_element(CONFIG_NODE, &cs7_instance_cmd);
