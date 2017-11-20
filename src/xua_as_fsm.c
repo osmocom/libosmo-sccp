@@ -315,6 +315,13 @@ static void xua_as_fsm_pending(struct osmo_fsm_inst *fi, uint32_t event, void *d
 	}
 }
 
+static void xua_as_fsm_cleanup(struct osmo_fsm_inst *fi, enum osmo_fsm_term_cause cause)
+{
+	struct xua_as_fsm_priv *xafp = (struct xua_as_fsm_priv *) fi->priv;
+
+	osmo_timer_del(&xafp->recovery.t_r);
+}
+
 static const struct osmo_fsm_state xua_as_fsm_states[] = {
 	[XUA_AS_S_DOWN] = {
 		.in_event_mask = S(XUA_ASPAS_ASP_INACTIVE_IND) |
@@ -368,6 +375,7 @@ struct osmo_fsm xua_as_fsm = {
 	.num_states = ARRAY_SIZE(xua_as_fsm_states),
 	.log_subsys = DLSS7,
 	.event_names = xua_as_event_names,
+	.cleanup = xua_as_fsm_cleanup,
 };
 
 /*! \brief Start an AS FSM for a given Application Server

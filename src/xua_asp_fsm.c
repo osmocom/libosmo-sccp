@@ -611,6 +611,13 @@ static int xua_asp_fsm_timer_cb(struct osmo_fsm_inst *fi)
 	return 0;
 }
 
+static void xua_asp_fsm_cleanup(struct osmo_fsm_inst *fi, enum osmo_fsm_term_cause cause)
+{
+	struct xua_asp_fsm_priv *xafp = fi->priv;
+
+	osmo_timer_del(&xafp->t_ack.timer);
+}
+
 static const struct osmo_fsm_state xua_asp_states[] = {
 	[XUA_ASP_S_DOWN] = {
 		.in_event_mask = S(XUA_ASP_E_M_ASP_UP_REQ) |
@@ -668,6 +675,7 @@ struct osmo_fsm xua_asp_fsm = {
 			       S(XUA_ASP_E_ASPSM_BEAT) |
 			       S(XUA_ASP_E_ASPSM_BEAT_ACK),
 	.allstate_action = xua_asp_allstate,
+	.cleanup = xua_asp_fsm_cleanup,
 };
 
 static struct osmo_fsm_inst *ipa_asp_fsm_start(struct osmo_ss7_asp *asp,
@@ -1040,6 +1048,7 @@ static void ipa_asp_fsm_cleanup(struct osmo_fsm_inst *fi, enum osmo_fsm_term_cau
 		return;
 
 	osmo_ss7_route_destroy(rt);
+	osmo_timer_del(&iafp->pong_timer);
 }
 
 struct osmo_fsm ipa_asp_fsm = {
