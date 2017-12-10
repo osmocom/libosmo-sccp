@@ -34,7 +34,7 @@
 #include "sccp_internal.h"
 
 #define SCU_MSG_SIZE		2048
-#define SCU_MSG_HEADROOM	0
+#define SCU_MSG_HEADROOM	512
 
 static struct msgb *scu_msgb_alloc(const char *name)
 {
