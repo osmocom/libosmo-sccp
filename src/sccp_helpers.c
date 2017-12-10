@@ -33,9 +33,12 @@
 
 #include "sccp_internal.h"
 
+#define SCU_MSG_SIZE		2048
+#define SCU_MSG_HEADROOM	0
+
 static struct msgb *scu_msgb_alloc(const char *name)
 {
-	return sccp_msgb_alloc("SCU");
+	return msgb_alloc_headroom(SCU_MSG_SIZE+SCU_MSG_HEADROOM, SCU_MSG_HEADROOM, name);
 }
 
 void osmo_sccp_make_addr_pc_ssn(struct osmo_sccp_addr *addr, uint32_t pc, uint32_t ssn)
