@@ -217,12 +217,15 @@ static int hmrt_message_for_routing(struct osmo_ss7_instance *inst,
 		/* FIXME: Transmit over respective Link */
 		if (rt->dest.as) {
 			struct osmo_ss7_as *as = rt->dest.as;
-			DEBUGP(DLSS7,
-			       "Found route for dpc=%u=%s: pc=%u=%s mask=0x%x"
-			       " via AS %s proto=%s\n",
-			       dpc, osmo_ss7_pointcode_print(inst, dpc),
-			       rt->cfg.pc, osmo_ss7_pointcode_print2(inst, rt->cfg.pc), rt->cfg.mask,
-			       as->cfg.name, osmo_ss7_asp_protocol_name(as->cfg.proto));
+
+			if (log_check_level(DLSS7, LOGL_DEBUG)) {
+				/* osmo_ss7_route_name() calls osmo_ss7_pointcode_print() and
+				 * osmo_ss7_pointcode_print2(), guard against its static buffer being
+				 * overwritten. */
+				const char *rt_name = osmo_ss7_route_name(rt, false);
+				DEBUGP(DLSS7, "Found route for dpc=%u=%s: %s\n",
+				       dpc, osmo_ss7_pointcode_print(inst, dpc), rt_name);
+			}
 
 			switch (as->cfg.proto) {
 			case OSMO_SS7_ASP_PROT_M3UA:
@@ -238,12 +241,16 @@ static int hmrt_message_for_routing(struct osmo_ss7_instance *inst,
 				break;
 			}
 		} else if (rt->dest.linkset) {
-			LOGP(DLSS7, LOGL_ERROR,
-			     "Found route for dpc=%u=%s: pc=%u=%s mask=0x%x"
-			     " via linkset %s, but MTP-TRANSFER.req unsupported for linkset.\n",
-			     dpc, osmo_ss7_pointcode_print(inst, dpc),
-			     rt->cfg.pc, osmo_ss7_pointcode_print2(inst, rt->cfg.pc), rt->cfg.mask,
-			     rt->dest.linkset->cfg.name);
+			if (log_check_level(DLSS7, LOGL_ERROR)) {
+				/* osmo_ss7_route_name() calls osmo_ss7_pointcode_print() and
+				 * osmo_ss7_pointcode_print2(), guard against its static buffer being
+				 * overwritten. */
+				const char *rt_name = osmo_ss7_route_name(rt, false);
+				LOGP(DLSS7, LOGL_ERROR,
+				     "Found route for dpc=%u=%s: %s,"
+				     " but MTP-TRANSFER.req unsupported for linkset.\n",
+				     dpc, osmo_ss7_pointcode_print(inst, dpc), rt_name);
+			}
 		} else
 			OSMO_ASSERT(0);
 	} else {
