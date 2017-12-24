@@ -293,6 +293,27 @@ bool osmo_sccp_check_addr(struct osmo_sccp_addr *addr, uint32_t presence)
 	return true;
 }
 
+/*! Compose a human readable string to describe the SCCP user's connection.
+ * The output follows ['<scu.name>':]<local-sccp-addr>, e.g.  "'OsmoHNBW':RI=SSN_PC,PC=0.23.5,SSN=RANAP",
+ * or just "RI=SSN_PC,PC=0.23.5,SSN=RANAP" if no scu->name is set.
+ * This calls osmo_sccp_addr_name(), which returns a static buffer; hence calling this function and
+ * osmo_sccp_addr_name() in the same printf statement is likely to conflict. */
+const char *osmo_sccp_user_name(struct osmo_sccp_user *scu)
+{
+	static char buf[128];
+	struct osmo_sccp_addr sca;
+	/* Interestingly enough, the osmo_sccp_user stores an SSN and PC, but not in an osmo_sccp_addr
+	 * struct. To be able to use osmo_sccp_addr_name(), we need to first create an osmo_sccp_addr. */
+	osmo_sccp_make_addr_pc_ssn(&sca, scu->pc, scu->ssn);
+	snprintf(buf, sizeof(buf),
+		 "%s%s%s",
+		 scu->name && *scu->name ? scu->name : "",
+		 scu->name && *scu->name ? ":" : "",
+		 osmo_sccp_addr_name(scu->inst->ss7, &sca));
+	buf[sizeof(buf)-1] = '\0';
+	return buf;
+}
+
 /***********************************************************************
  * Convenience function for CLIENT
  ***********************************************************************/

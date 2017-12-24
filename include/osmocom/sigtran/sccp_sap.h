@@ -275,3 +275,5 @@ void osmo_sccp_local_addr_by_instance(struct osmo_sccp_addr *dest_addr,
 				      uint32_t ssn);
 
 bool osmo_sccp_check_addr(struct osmo_sccp_addr *addr, uint32_t presence);
+
+const char *osmo_sccp_user_name(struct osmo_sccp_user *scu);
