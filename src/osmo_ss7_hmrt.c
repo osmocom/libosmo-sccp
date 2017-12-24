@@ -139,6 +139,65 @@ static int hmdt_message_for_distribution(struct osmo_ss7_instance *inst, struct 
 	}
 }
 
+/*! Return human readable representation of the route, in a static buffer.
+ * This uses both osmo_ss7_pointcode_print() and osmo_ss7_pointcode_print2(), so pairing
+ * osmo_ss7_route_name() with osmo_ss7_pointcode_print() in the same printf statement is likely to
+ * conflict.
+ * \param[in] rt  The route information to print, or NULL.
+ * \param[in] list_asps  If true, append info for all ASPs for the route's AS.
+ * \returns A string constant or static buffer. */
+const char *osmo_ss7_route_name(struct osmo_ss7_route *rt, bool list_asps)
+{
+	static char buf[256];
+	char *pos = buf;
+	struct osmo_ss7_instance *inst;
+	size_t l;
+
+	if (!rt)
+		return "no route";
+
+	inst = rt->rtable->inst;
+
+#define APPEND(fmt, args ...) \
+	do { \
+		l = snprintf(pos, sizeof(buf) - (pos - buf), fmt, ## args); \
+		pos += l; \
+		if (pos - buf >= sizeof(buf) ) \
+			goto out; \
+	} while (0)
+
+	APPEND("pc=%u=%s mask=0x%x=%s",
+	       rt->cfg.pc, osmo_ss7_pointcode_print(inst, rt->cfg.pc),
+	       rt->cfg.mask, osmo_ss7_pointcode_print2(inst, rt->cfg.mask));
+
+	if (rt->dest.as) {
+		struct osmo_ss7_as *as = rt->dest.as;
+		int i;
+		APPEND(" via AS %s proto=%s", as->cfg.name, osmo_ss7_asp_protocol_name(as->cfg.proto));
+
+		if (list_asps) {
+			for (i = 0; i < ARRAY_SIZE(as->cfg.asps); i++) {
+				struct osmo_ss7_asp *asp = as->cfg.asps[i];
+				if (!asp)
+					continue;
+				APPEND(" ASP");
+				if (asp->cfg.name)
+					APPEND(" %s", asp->cfg.name);
+				if (asp->sock_name)
+					APPEND(" %s", asp->sock_name);
+			}
+		}
+	} else if (rt->dest.linkset)
+		APPEND(" via linkset %s", rt->dest.linkset->cfg.name);
+	else
+		APPEND(" has no route set");
+#undef APPEND
+
+out:
+	buf[sizeof(buf)-1] = '\0';
+	return buf;
+}
+
 /* HMDC->HMRT Msg For Routing; Figure 26/Q.704 */
 /* local message was receive d from L4, SRM, SLM, STM or SLTC, or
  * remote message received from L2 and HMDC determined msg for routing */
