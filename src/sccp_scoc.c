@@ -1623,7 +1623,9 @@ int osmo_sccp_user_sap_down(struct osmo_sccp_user *scu, struct osmo_prim_hdr *op
 		/* Allocate new connection structure */
 		conn = conn_create_id(inst, prim->u.connect.conn_id);
 		if (!conn) {
-			/* FIXME: inform user */
+			/* FIXME: inform SCCP user with proper reply */
+			LOGP(DLSCCP, LOGL_ERROR, "Cannot create conn-id for primitive %s\n",
+			     osmo_scu_prim_name(&prim->oph));
 			goto out;
 		}
 		conn->user = scu;
@@ -1635,7 +1637,9 @@ int osmo_sccp_user_sap_down(struct osmo_sccp_user *scu, struct osmo_prim_hdr *op
 		/* Resolve existing connection structure */
 		conn = conn_find_by_id(inst, scu_prim_conn_id(prim));
 		if (!conn) {
-			/* FIXME: inform user */
+			/* FIXME: inform SCCP user with proper reply */
+			LOGP(DLSCCP, LOGL_ERROR, "Received unknown conn-id %u for primitive %s\n",
+			     scu_prim_conn_id(prim), osmo_scu_prim_name(&prim->oph));
 			goto out;
 		}
 		break;
