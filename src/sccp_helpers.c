@@ -300,7 +300,8 @@ char *osmo_sccp_addr_dump(const struct osmo_sccp_addr *addr)
 		append_to_buf(buf, sizeof(buf), &comma, "SSN=%u", addr->ssn);
 	if (addr->presence & OSMO_SCCP_ADDR_T_IPv4)
 		append_to_buf(buf, sizeof(buf), &comma, "IP=%s", inet_ntoa(addr->ip.v4));
-	append_to_buf(buf, sizeof(buf), &comma, "GTI=%u", addr->gt.gti);
+	if (addr->gt.gti != OSMO_SCCP_GTI_NO_GT || addr->presence & OSMO_SCCP_ADDR_T_GT)
+		append_to_buf(buf, sizeof(buf), &comma, "GTI=%u", addr->gt.gti);
 	if (addr->presence & OSMO_SCCP_ADDR_T_GT)
 		append_to_buf(buf, sizeof(buf), &comma, "GT=(%s)", osmo_sccp_gt_dump(&addr->gt));
 
@@ -323,7 +324,8 @@ char *osmo_sccp_addr_name(const struct osmo_ss7_instance *ss7, const struct osmo
 		append_to_buf(buf, sizeof(buf), &comma, "SSN=%s", osmo_sccp_ssn_name(addr->ssn));
 	if (addr->presence & OSMO_SCCP_ADDR_T_IPv4)
 		append_to_buf(buf, sizeof(buf), &comma, "IP=%s", inet_ntoa(addr->ip.v4));
-	append_to_buf(buf, sizeof(buf), &comma, "GTI=%s", osmo_sccp_gti_name(addr->gt.gti));
+	if (addr->gt.gti != OSMO_SCCP_GTI_NO_GT || addr->presence & OSMO_SCCP_ADDR_T_GT)
+		append_to_buf(buf, sizeof(buf), &comma, "GTI=%s", osmo_sccp_gti_name(addr->gt.gti));
 	if (addr->presence & OSMO_SCCP_ADDR_T_GT)
 		append_to_buf(buf, sizeof(buf), &comma, "GT=(%s)", osmo_sccp_gt_dump(&addr->gt));
 

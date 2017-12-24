@@ -7,8 +7,8 @@ sccp_addr_parse test case 1
 expected: RI=1,SSN=8,GTI=4,GT=(TT=0,NPL=1,NAI=4,DIG=919869299992)
 parsed:   RI=1,SSN=8,GTI=4,GT=(TT=0,NPL=1,NAI=4,DIG=919869299992)
 sccp_addr_parse test case 2
-expected: RI=2,SSN=254,GTI=0
-parsed:   RI=2,SSN=254,GTI=0
+expected: RI=2,SSN=254
+parsed:   RI=2,SSN=254
 Testing Decoded GT -> SUA encoding
 IN: TT=0,NPL=1,NAI=4,DIG=919969679389
     0400000001000000040000003931393936393637393338390000000000000000000000000000000000000000
@@ -135,25 +135,25 @@ Parsing Nested M3UA Routing Key IE
 Testing SCCP Address Encode/Decode
 
 => NOGT-PC1024
-input addr: RI=2,PC=1024,GTI=0
+input addr: RI=2,PC=1024
 rc=3, expected rc=3
 encoded  addr: 410004
 expected addr: 410004
-decod addr: RI=2,PC=1024,GTI=0
+decod addr: RI=2,PC=1024
 
 => NOGT-PC16383
-input addr: RI=2,PC=16383,GTI=0
+input addr: RI=2,PC=16383
 rc=3, expected rc=3
 encoded  addr: 41ff3f
 expected addr: 41ff3f
-decod addr: RI=2,PC=16383,GTI=0
+decod addr: RI=2,PC=16383
 
 => NOGT-PC16383-SSN90
-input addr: RI=2,PC=16383,SSN=90,GTI=0
+input addr: RI=2,PC=16383,SSN=90
 rc=4, expected rc=4
 encoded  addr: 43ff3f5a
 expected addr: 43ff3f5a
-decod addr: RI=2,PC=16383,SSN=90,GTI=0
+decod addr: RI=2,PC=16383,SSN=90
 
 => GT-PC16383-NAIONLY
 input addr: RI=2,PC=16383,GTI=1,GT=()
