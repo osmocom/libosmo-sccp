@@ -17,7 +17,7 @@ Build-Depends: debhelper (>= 9),
                libsctp-dev
 Standards-Version: 3.9.7
 Vcs-Git: git://git.osmocom.org/libosmo-sccp.git
-Vcs-Browser: http://git.osmocom.org/gitweb?p=libosmo-sccp.git;a=summary
+Vcs-Browser: http://git.osmocom.org/libosmo-sccp/
 Homepage: https://projects.osmocom.org/projects/libosmo-sccp
 
 Package: libosmo-sccp-dev
