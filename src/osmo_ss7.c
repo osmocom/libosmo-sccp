@@ -1251,6 +1251,8 @@ int osmo_ss7_asp_restart(struct osmo_ss7_asp *asp)
 		if (rc < 0) {
 			LOGSS7(asp->inst, LOGL_ERROR, "Unable to open stream"
 				" client for ASP %s\n", asp->cfg.name);
+			/* we don't return error in here because osmo_stream_cli_open2()
+			   will continue to retry to connect so the error is transient  */
 		}
 		/* TODO: make this configurable and not implicit */
 		role = XUA_ASPFSM_ROLE_ASP;
