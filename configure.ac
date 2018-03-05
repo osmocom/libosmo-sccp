@@ -57,6 +57,24 @@ then
 	CPPFLAGS="$CPPFLAGS -fsanitize=address -fsanitize=undefined"
 fi
 
+AC_ARG_ENABLE(werror,
+	[AS_HELP_STRING(
+		[--enable-werror],
+		[Turn all compiler warnings into errors, with exceptions:
+		 a) deprecation (allow upstream to mark deprecation without breaking builds);
+		 b) "#warning" pragmas (allow to remind ourselves of errors without breaking builds)
+		]
+	)],
+	[werror=$enableval], [werror="no"])
+if test x"$werror" = x"yes"
+then
+	WERROR_FLAGS="-Werror"
+	WERROR_FLAGS+=" -Wno-error=deprecated -Wno-error=deprecated-declarations"
+	WERROR_FLAGS+=" -Wno-error=cpp" # "#warning"
+	CFLAGS="$CFLAGS $WERROR_FLAGS"
+	CPPFLAGS="$CPPFLAGS $WERROR_FLAGS"
+fi
+
 # The following test is taken from WebKit's webkit.m4
 saved_CFLAGS="$CFLAGS"
 CFLAGS="$CFLAGS -fvisibility=hidden "
@@ -79,6 +97,9 @@ AC_ARG_ENABLE(doxygen,
 	[doxygen=$enableval], [doxygen="yes"])
 AC_PATH_PROG(DOXYGEN,doxygen,false)
 AM_CONDITIONAL(HAVE_DOXYGEN, test $DOXYGEN != false && test "x$doxygen" = "xyes")
+
+AC_MSG_RESULT([CFLAGS="$CFLAGS"])
+AC_MSG_RESULT([CPPFLAGS="$CPPFLAGS"])
 
 AC_OUTPUT(
     libosmo-sigtran.pc
