@@ -881,6 +881,11 @@ static void ipa_asp_fsm_wait_id_get(struct osmo_fsm_inst *fi, uint32_t event, vo
 		data_len = msgb_l2len(msg_get)-1;
 		LOGPFSM(fi, "Received IPA CCM IDENTITY REQUEST for IEs %s\n",
 			osmo_hexdump(req_data, data_len));
+		/* avoid possible unsigned integer underflow, as ipa_ccm_make_id_resp_from_req()
+		 * expects an unsigned integer, and in case of a zero-length L2 message we might
+		 * have data_len == -1 here */
+		if (data_len < 0)
+			data_len = 0;
 		/* Send ID_RESP to server */
 		msg_resp = ipa_ccm_make_id_resp_from_req(iafp->ipa_unit, req_data, data_len);
 		if (!msg_resp) {
