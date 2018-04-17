@@ -161,8 +161,8 @@ int main(int argc, char **argv)
 	int rc;
 
 	tall_stp_ctx = talloc_named_const(NULL, 1, "osmo-stp");
-
-	osmo_init_logging(&log_info);
+	msgb_talloc_ctx_init(tall_stp_ctx, 0);
+	osmo_init_logging2(tall_stp_ctx, &log_info);
 	vty_init(&vty_info);
 
 	handle_options(argc, argv);

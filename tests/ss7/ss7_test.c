@@ -280,8 +280,9 @@ static void init_logging(void)
 {
 	const int log_cats[] = { DLSS7, DLSUA, DLM3UA, DLSCCP, DLINP };
 	unsigned int i;
-
-	osmo_init_logging(&log_info);
+	void *tall_ctx = talloc_named_const(NULL, 1, "example");
+	msgb_talloc_ctx_init(tall_ctx, 0);
+	osmo_init_logging2(tall_ctx, &log_info);
 
 	log_set_print_filename(osmo_stderr_target, 0);
 
