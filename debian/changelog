@@ -1,3 +1,60 @@
+libosmo-sccp (0.9.0) unstable; urgency=medium
+
+  [ Neels Hofmeyr ]
+  * jenkins: use osmo-clean-workspace.sh before and after build
+  * vty: skip installing cmds now always installed by default
+  * add osmo_sccp_inst_addr_name(), a variant of osmo_sccp_addr_name()
+  * sccp vty: be fatal for addressbook entry errors
+  * add --enable-sanitize config option
+  * sccp_test: sanitize: fix msgb mem leaks
+  * sccp_test: sanitize: don't memcmp NULL pointers
+  * xua_test: sanitize: fix msgb leak
+  * osmo_sccp_addr_name / _dump: drop 'NO_GT' output
+  * typo: osmo-stp main: 'Erro'
+  * add osmo_sccp_user_name()
+  * add osmo_ss7_route_name()
+  * cosmetic: hmrt_message_for_routing(): use osmo_ss7_route_name()
+  * error log: sccp_scoc.c: log failure to create/resolve conn_id
+  * configure: add --enable-werror
+  * jenkins.sh: use --enable-werror configure flag, not CFLAGS
+
+  [ Max ]
+  * Fix typo in .deb dependency
+  * Enable sanitize for CI tests
+  * SS7: clarify handling of stream opening error
+
+  [ Harald Welte ]
+  * xua: Write 'local-ip' only if non-NULL
+  * vty: Make sure 'point-code override dpc' is saved with correct indent
+  * ipa: Fix setting of OPC/DPC based on routing-context + override
+  * ipa: Fix endianness of pseud-M3UA header
+  * initialize msg->l2h in sccp_msgb_alloc()
+  * ipa: Patch DPC/OPC information into SCCP Calling/Called Party Address
+  * ipa: Automatically create / destroy route on IPA connect/disconnect
+  * osmo-stp: Align prompt formatting with other Osmocom programs
+  * STP: Add osmoappdesc.py
+  * debian/copyright: Fix upstream-name
+  * Add SPDX-License-Identifier + missing copyright statements
+  * Add "show cs7 (m3ua}sua}ipa)" command to show xUA servers
+  * xua_as[p]_fsm: Use osmo_timer_del() on FSM cleanup
+  * sccp_helpers: don't return msgb with l2h set
+  * Allocate SCCP user primitives with headroom
+  * sccp_types.h: Fix value for SCCP_REFUSAL_UNEQUIPPED_USER
+  * debian/control: Fix Vcs-Browser
+  * ipa_asp_fsm: Prevent against integer underflow
+
+  [ Pau Espin Pedrol ]
+  * ss7_vty: Fix out-of-bounds access in 'as' cmd
+  * contrib/test: Fix config of local/remote ports
+  * ss7: Re-bind xUA server socket after setting new IP
+  * contrib: jenkins.sh: Disable doxygen in libosmocore build
+  * use osmo_init_logging2
+
+  [ Martin Hauke ]
+  * build: AC_PROG_LIBTOOL is the same as LT_INIT
+
+ -- Pau Espin Pedrol <pespin@sysmocom.de>  Thu, 03 May 2018 17:08:07 +0200
+
 libosmo-sccp (0.8.1) unstable; urgency=medium
 
   * New upstream 0.8.1 release.
