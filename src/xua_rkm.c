@@ -545,6 +545,7 @@ int osmo_xlm_sap_down(struct osmo_ss7_asp *asp, struct osmo_prim_hdr *oph)
 		break;
 	}
 
+	msgb_free(prim->oph.msg);
 	return 0;
 }
 

@@ -175,6 +175,7 @@ static int lm_timer_cb(struct osmo_fsm_inst *fi)
 		 * let's dynamically register */
 		osmo_fsm_inst_state_chg(fi, S_RKM_REG, 10, T_WAIT_RK_REG_RESP);
 		prim = xua_xlm_prim_alloc(OSMO_XLM_PRIM_M_RK_REG, PRIM_OP_REQUEST);
+		OSMO_ASSERT(prim);
 		as = find_first_as_in_asp(lmp->asp);
 		if (!as) {
 			LOGPFSML(fi, LOGL_ERROR, "Unable to find AS!\n");
