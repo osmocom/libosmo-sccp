@@ -387,8 +387,8 @@ static const struct sccp2sua_testcase sccp2sua_testcases[] = {
 			.hdr = XUA_HDR(SUA_MSGC_CL, SUA_CL_CLDT),
 			.parts = {
 				PARTU32(SUA_IEI_PROTO_CLASS, &sua_proto_class0),
-				PARTARR(SUA_IEI_DEST_ADDR, &sua_addr_ssn_bssmap),
-				PARTARR(SUA_IEI_SRC_ADDR, &sua_addr_ssn_bssmap),
+				PARTARR(SUA_IEI_DEST_ADDR, sua_addr_ssn_bssmap),
+				PARTARR(SUA_IEI_SRC_ADDR, sua_addr_ssn_bssmap),
 			},
 		},
 	}, {
@@ -398,8 +398,8 @@ static const struct sccp2sua_testcase sccp2sua_testcases[] = {
 			.hdr = XUA_HDR(SUA_MSGC_CL, SUA_CL_CLDT),
 			.parts = {
 				PARTU32(SUA_IEI_PROTO_CLASS, &sua_proto_class0),
-				PARTARR(SUA_IEI_DEST_ADDR, &sua_addr_ssn_bssmap_pc1),
-				PARTARR(SUA_IEI_SRC_ADDR, &sua_addr_ssn_bssmap_pc92),
+				PARTARR(SUA_IEI_DEST_ADDR, sua_addr_ssn_bssmap_pc1),
+				PARTARR(SUA_IEI_SRC_ADDR, sua_addr_ssn_bssmap_pc92),
 			},
 		},
 	}, {
@@ -409,8 +409,8 @@ static const struct sccp2sua_testcase sccp2sua_testcases[] = {
 			.hdr = XUA_HDR(SUA_MSGC_CL, SUA_CL_CLDT),
 			.parts = {
 				PARTU32(SUA_IEI_PROTO_CLASS, &sua_proto_class0),
-				PARTARR(SUA_IEI_DEST_ADDR, &sua_addr_ssn_bssmap_pc1),
-				PARTARR(SUA_IEI_SRC_ADDR, &sua_addr_ssn_bssmap_pc92),
+				PARTARR(SUA_IEI_DEST_ADDR, sua_addr_ssn_bssmap_pc1),
+				PARTARR(SUA_IEI_SRC_ADDR, sua_addr_ssn_bssmap_pc92),
 			},
 		},
 	}, {
@@ -420,8 +420,8 @@ static const struct sccp2sua_testcase sccp2sua_testcases[] = {
 			.hdr = XUA_HDR(SUA_MSGC_CL, SUA_CL_CLDT),
 			.parts = {
 				PARTU32(SUA_IEI_PROTO_CLASS, &sua_proto_class0),
-				PARTARR(SUA_IEI_DEST_ADDR, &sua_addr_ssn_bssmap),
-				PARTARR(SUA_IEI_SRC_ADDR, &sua_addr_ssn_bssmap),
+				PARTARR(SUA_IEI_DEST_ADDR, sua_addr_ssn_bssmap),
+				PARTARR(SUA_IEI_SRC_ADDR, sua_addr_ssn_bssmap),
 			},
 		},
 	}, {
@@ -432,7 +432,7 @@ static const struct sccp2sua_testcase sccp2sua_testcases[] = {
 			.parts = {
 				PARTU32(SUA_IEI_PROTO_CLASS, &sua_proto_class2),
 				PARTU32(SUA_IEI_SRC_REF, &sua_loc_ref_bsc),
-				PARTARR(SUA_IEI_DEST_ADDR, &sua_addr_ssn_bssmap),
+				PARTARR(SUA_IEI_DEST_ADDR, sua_addr_ssn_bssmap),
 			},
 		},
 	}, {
@@ -443,7 +443,7 @@ static const struct sccp2sua_testcase sccp2sua_testcases[] = {
 			.parts = {
 				PARTU32(SUA_IEI_PROTO_CLASS, &sua_proto_class2),
 				PARTU32(SUA_IEI_SRC_REF, &sua_loc_ref_msc),
-				PARTARR(SUA_IEI_DEST_ADDR, &sua_addr_ssn_bssmap),
+				PARTARR(SUA_IEI_DEST_ADDR, sua_addr_ssn_bssmap),
 			},
 		},
 	}, {
