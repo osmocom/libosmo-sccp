@@ -443,7 +443,7 @@ static const struct sccp2sua_testcase sccp2sua_testcases[] = {
 			.parts = {
 				PARTU32(SUA_IEI_PROTO_CLASS, &sua_proto_class2),
 				PARTU32(SUA_IEI_SRC_REF, &sua_loc_ref_msc),
-				PARTARR(SUA_IEI_DEST_ADDR, &sua_loc_ref_bsc),
+				PARTARR(SUA_IEI_DEST_ADDR, &sua_addr_ssn_bssmap),
 			},
 		},
 	}, {
