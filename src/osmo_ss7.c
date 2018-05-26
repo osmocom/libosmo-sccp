@@ -307,6 +307,7 @@ static const uint16_t prot2port[] = {
 	[OSMO_SS7_ASP_PROT_NONE] = 0,
 	[OSMO_SS7_ASP_PROT_SUA] = SUA_PORT,
 	[OSMO_SS7_ASP_PROT_M3UA] = M3UA_PORT,
+	[OSMO_SS7_ASP_PROT_IPA] = 5000,
 };
 
 int osmo_ss7_asp_protocol_port(enum osmo_ss7_asp_protocol prot)
