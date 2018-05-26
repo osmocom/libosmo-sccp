@@ -288,9 +288,7 @@ int ipa_rx_msg(struct osmo_ss7_asp *asp, struct msgb *msg)
 		rc = ipa_rx_msg_sccp(asp, msg);
 		break;
 	default:
-		LOGPASP(asp, DLSS7, LOGL_DEBUG, "Unknown Stream ID 0x%02x: %s\n",
-			hh->proto, msgb_hexdump(msg));
-		rc = -1;
+		rc = ss7_asp_rx_unknown(asp, hh->proto, msg);
 	}
 
 	return rc;

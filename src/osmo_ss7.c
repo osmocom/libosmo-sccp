@@ -1450,11 +1450,8 @@ static int xua_srv_conn_cb(struct osmo_stream_srv *conn)
 		rc = sua_rx_msg(asp, msg);
 	else if (ppid == M3UA_PPID && asp->cfg.proto == OSMO_SS7_ASP_PROT_M3UA)
 		rc = m3ua_rx_msg(asp, msg);
-	else {
-		LOGPASP(asp, DLSS7, LOGL_NOTICE, "SCTP chunk for unknown PPID %u "
-			"received\n", ppid);
-		rc = 0;
-	}
+	else
+		rc = ss7_asp_rx_unknown(asp, ppid, msg);
 
 out:
 	msgb_free(msg);
@@ -1591,11 +1588,8 @@ static int xua_cli_read_cb(struct osmo_stream_cli *conn)
 		rc = sua_rx_msg(asp, msg);
 	else if (ppid == M3UA_PPID && asp->cfg.proto == OSMO_SS7_ASP_PROT_M3UA)
 		rc = m3ua_rx_msg(asp, msg);
-	else {
-		LOGPASP(asp, DLSS7, LOGL_NOTICE, "SCTP chunk for unknown PPID %u "
-			"received\n", ppid);
-		rc = 0;
-	}
+	else
+		rc = ss7_asp_rx_unknown(asp, ppid, msg);
 
 out:
 	msgb_free(msg);
@@ -1917,4 +1911,30 @@ enum osmo_ss7_as_traffic_mode osmo_ss7_tmode_from_xua(uint32_t in)
 	case M3UA_TMOD_BCAST:
 		return OSMO_SS7_AS_TMOD_BCAST;
 	}
+}
+
+static osmo_ss7_asp_rx_unknown_cb *g_osmo_ss7_asp_rx_unknown_cb;
+
+int ss7_asp_rx_unknown(struct osmo_ss7_asp *asp, int ppid_mux, struct msgb *msg)
+{
+	if (g_osmo_ss7_asp_rx_unknown_cb)
+		return (*g_osmo_ss7_asp_rx_unknown_cb)(asp, ppid_mux, msg);
+
+	switch(asp->cfg.proto) {
+	case OSMO_SS7_ASP_PROT_IPA:
+		LOGPASP(asp, DLSS7, LOGL_NOTICE, "Rx IPA for unknown Stream ID 0x%02x: %s\n",
+			ppid_mux, msgb_hexdump(msg));
+		break;
+	default:
+		LOGPASP(asp, DLSS7, LOGL_NOTICE, "Rx SCTP chunk for unknown PPID %u: %s\n",
+			ppid_mux, msgb_hexdump(msg));
+		break;
+	}
+	return 0;
+}
+
+/*! Register a call-back function for unknown SCTP PPID / IPA Stream ID */
+void osmo_ss7_register_rx_unknown_cb(osmo_ss7_asp_rx_unknown_cb *cb)
+{
+	g_osmo_ss7_asp_rx_unknown_cb = cb;
 }
