@@ -279,8 +279,15 @@ static int scrc_translate_node_9(struct osmo_sccp_instance *inst,
 	    translated.ri != OSMO_SCCP_RI_SSN_IP) {
 		/* TODO: GT Routing */
 		LOGP(DLSCCP, LOGL_NOTICE, "GT Routing not implemented yet\n");
+#if 1
+		/* Prevent endless recursion, see OS#2666. */
+		sccp_sclc_rx_scrc_rout_fail(inst, xua,
+			SCCP_RETURN_CAUSE_SUBSYSTEM_FAILURE);
+		return 0;
+#else
 		/* Node 7 (Sheet 5) */
 		return scrc_node_7(inst, xua, called);
+#endif
 	}
 
 	/* Check DPC resultant from GT translation */
