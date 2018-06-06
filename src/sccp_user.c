@@ -611,7 +611,6 @@ osmo_sccp_simple_server_add_clnt(struct osmo_sccp_instance *inst,
 	as = osmo_ss7_as_find_or_create(ss7, as_name, prot);
 	if (!as)
 		goto out_strings;
-	talloc_free(as_name);
 
 	/* route only selected PC to the client */
 	rt = osmo_ss7_route_create(ss7->rtable_system, pc, 0xffff, as_name);
@@ -624,6 +623,7 @@ osmo_sccp_simple_server_add_clnt(struct osmo_sccp_instance *inst,
 	asp->cfg.is_server = true;
 	osmo_ss7_as_add_asp(as, asp_name);
 	talloc_free(asp_name);
+	talloc_free(as_name);
 	osmo_ss7_asp_restart(asp);
 
 	return ss7->sccp;
