@@ -4,6 +4,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <signal.h>
+#include <ctype.h>
 
 #include <osmocom/core/select.h>
 #include <osmocom/core/utils.h>
@@ -23,15 +24,17 @@
 
 static struct osmo_sccp_instance *g_sccp;
 
-static struct osmo_sccp_instance *sua_server_helper(void)
+static struct osmo_sccp_instance *sua_server_helper(int local_port, const char *local_address, int local_pc,
+						    int remote_port, const char *remote_address, int remote_pc)
 {
 	struct osmo_sccp_instance *sccp;
 
-	sccp = osmo_sccp_simple_server(NULL, 1, OSMO_SS7_ASP_PROT_M3UA,
-					-1, "127.0.0.2");
+	sccp = osmo_sccp_simple_server(NULL, local_pc, OSMO_SS7_ASP_PROT_M3UA, local_port, local_address);
+	if (sccp == NULL)
+		return NULL;
 
-	osmo_sccp_simple_server_add_clnt(sccp, OSMO_SS7_ASP_PROT_M3UA,
-					"23", 23, -1, 0, NULL);
+	osmo_sccp_simple_server_add_clnt(sccp, OSMO_SS7_ASP_PROT_M3UA, "client", remote_pc, local_port,
+					 remote_port, remote_address);
 
 	return sccp;
 }
@@ -79,10 +82,118 @@ static struct vty_app_info vty_info = {
 	.version = 0,
 };
 
+#define DEFAULT_LOCAL_PC	-1
+#define DEFAULT_LOCAL_ADDRESS	"127.0.0.2"
+#define DEFAULT_LOCAL_PORT	M3UA_PORT
+#define DEFAULT_REMOTE_PC	23
+#define DEFAULT_REMOTE_ADDRESS	"127.0.0.1"
+#define DEFAULT_REMOTE_PORT	M3UA_PORT
+
+static void usage(void) {
+	fprintf(stderr, "m3ua_example [-c] [-l LOCAL_ADDRESS[:LOCAL_PORT]]\n"
+			"             [-r REMOTE_ADDRESS[:REMOTE_PORT]]\n"
+			"             [-L LOCAL_POINT_CODE] [-R REMOTE_POINT_CODE]\n"
+			"Options:\n"
+			"  -c: Run in client mode (default is server mode)\n"
+			"  -l: local IP address and SCTP port (default is %s:%d)\n"
+			"  -r: remote IP address and SCTP port (default is %s:%d)\n"
+			"  -L: local point code (default is %d)\n"
+			"  -R: remote point code (default is %d)\n",
+			DEFAULT_LOCAL_ADDRESS, DEFAULT_LOCAL_PORT,
+			DEFAULT_REMOTE_ADDRESS, DEFAULT_REMOTE_PORT,
+			DEFAULT_LOCAL_PC, DEFAULT_REMOTE_PC);
+	exit(1);
+}
+
+static int is_decimal_string(const char *s)
+{
+	const char *p = s;
+
+	if (*p == '\0')
+		return 0;
+
+	while (*p) {
+		if (!isdigit(*p++))
+			return 0;
+	}
+	return 1;
+}
+
+static int parse_address_port(char **address, int *port, const char *arg)
+{
+	char *s, *colon;
+
+	s = strdup(arg);
+	OSMO_ASSERT(s);
+
+	colon = strrchr(s, ':');
+	if (colon) {
+		char *portstr = colon + 1;
+		*colon = '\0';
+		if (*portstr == '\0') {
+			fprintf(stderr, "missing port number after : in '%s'\n", arg);
+			free(s);
+			return 1;
+		}
+		if (!is_decimal_string(portstr)) {
+			fprintf(stderr, "invalid port number: '%s'\n", portstr);
+			free(s);
+			return 1;
+		}
+		*port = atoi(portstr);
+	}
+
+	*address = s;
+	return 0;
+}
+
 int main(int argc, char **argv)
 {
-	bool client;
-	int rc;
+	bool client = false;
+	int rc, ch;
+	char *local_address = DEFAULT_LOCAL_ADDRESS;
+	int local_port = DEFAULT_LOCAL_PORT;
+	int local_pc = DEFAULT_LOCAL_PC;
+	char *remote_address = DEFAULT_REMOTE_ADDRESS;
+	int remote_port = DEFAULT_LOCAL_PORT;
+	int remote_pc = DEFAULT_REMOTE_PC;
+
+	while ((ch = getopt(argc, argv, "cl:r:p:L:R:")) != -1) {
+		switch (ch) {
+		case 'c':
+			client = true;
+			break;
+		case 'l':
+			if (parse_address_port(&local_address, &local_port, optarg))
+				exit(1);
+			break;
+		case 'r':
+			if (parse_address_port(&remote_address, &remote_port, optarg))
+				exit(1);
+			break;
+		case 'L':
+			if (!is_decimal_string(optarg)) {
+				fprintf(stderr, "invalid decimal point code: '%s'\n", optarg);
+				exit(1);
+			}
+			local_pc = atoi(optarg);
+			break;
+		case 'R':
+			if (!is_decimal_string(optarg)) {
+				fprintf(stderr, "invalid decimal point code: '%s'\n", optarg);
+				exit(1);
+			}
+			remote_pc = atoi(optarg);
+			break;
+		default:
+			usage();
+		}
+	}
+	argc -= optind;
+	argv += optind;
+
+	if (argc != 0)
+		usage();
 
 	talloc_enable_leak_report_full();
 
@@ -96,23 +207,27 @@ int main(int argc, char **argv)
 	osmo_ss7_vty_init_asp(NULL);
 	osmo_sccp_vty_init();
 
-	if (argc <= 1)
-		client = true;
-	else
-		client = false;
-
 	rc = telnet_init_dynif(NULL, NULL, vty_get_bind_addr(), 2324+client);
 	if (rc < 0) {
-		perror("Erro binding VTY port\n");
+		perror("Error binding VTY port");
 		exit(1);
 	}
 
-
 	if (client) {
-		g_sccp = osmo_sccp_simple_client(NULL, "client", 23, OSMO_SS7_ASP_PROT_M3UA, 0, NULL, M3UA_PORT, "127.0.0.2");
+		g_sccp = osmo_sccp_simple_client(NULL, "client", local_pc, OSMO_SS7_ASP_PROT_M3UA,
+						 local_port, local_address, remote_port, remote_address);
+		if (g_sccp == NULL) {
+			perror("Could not create SCCP client");
+			exit (1);
+		}
 		sccp_test_user_vty_install(g_sccp, OSMO_SCCP_SSN_BSSAP);
 	} else {
-		g_sccp = sua_server_helper();
+		g_sccp = sua_server_helper(local_port, local_address, local_pc,
+					   remote_port, remote_address, remote_pc);
+		if (g_sccp == NULL) {
+			perror("Could not create SCCP server");
+			exit(1);
+		}
 		sccp_test_server_init(g_sccp);
 	}
 
