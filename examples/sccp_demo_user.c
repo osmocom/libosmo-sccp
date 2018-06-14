@@ -78,7 +78,7 @@ static void init_logging(void)
 }
 
 static struct vty_app_info vty_info = {
-	.name	= "sccp-test",
+	.name	= "sccp-demo-user",
 	.version = 0,
 };
 
@@ -90,7 +90,7 @@ static struct vty_app_info vty_info = {
 #define DEFAULT_REMOTE_PORT	M3UA_PORT
 
 static void usage(void) {
-	fprintf(stderr, "m3ua_example [-c] [-l LOCAL_ADDRESS[:LOCAL_PORT]]\n"
+	fprintf(stderr, "sccp_demo_user [-c] [-l LOCAL_ADDRESS[:LOCAL_PORT]]\n"
 			"             [-r REMOTE_ADDRESS[:REMOTE_PORT]]\n"
 			"             [-L LOCAL_POINT_CODE] [-R REMOTE_POINT_CODE]\n"
 			"Options:\n"

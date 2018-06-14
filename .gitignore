@@ -60,7 +60,7 @@ tests/package.m4
 tests/testsuite
 tests/testsuite.log
 
-examples/m3ua_example
+examples/sccp_demo_user
 
 stp/osmo-stp
 
