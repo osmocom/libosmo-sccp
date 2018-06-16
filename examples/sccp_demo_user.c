@@ -82,12 +82,17 @@ static struct vty_app_info vty_info = {
 	.version = 0,
 };
 
-#define DEFAULT_LOCAL_PC	-1
-#define DEFAULT_LOCAL_ADDRESS	"127.0.0.2"
-#define DEFAULT_LOCAL_PORT	M3UA_PORT
-#define DEFAULT_REMOTE_PC	23
-#define DEFAULT_REMOTE_ADDRESS	"127.0.0.1"
-#define DEFAULT_REMOTE_PORT	M3UA_PORT
+#define DEFAULT_LOCAL_ADDRESS_SERVER	"127.0.0.1"
+#define DEFAULT_LOCAL_ADDRESS_CLIENT	"127.0.0.2"
+#define DEFAULT_REMOTE_ADDRESS_CLIENT	DEFAULT_LOCAL_ADDRESS_SERVER
+#define DEFAULT_REMOTE_ADDRESS_SERVER	DEFAULT_LOCAL_ADDRESS_CLIENT
+#define DEFAULT_LOCAL_PORT_SERVER	M3UA_PORT
+#define DEFAULT_LOCAL_PORT_CLIENT	M3UA_PORT
+#define DEFAULT_REMOTE_PORT_CLIENT	DEFAULT_LOCAL_PORT_SERVER
+#define DEFAULT_REMOTE_PORT_SERVER	DEFAULT_LOCAL_PORT_CLIENT
+#define DEFAULT_REMOTE_PORT_SERVER_STR	DEFAULT_LOCAL_PORT_CLIENT_STR
+#define DEFAULT_PC_SERVER	1
+#define DEFAULT_PC_CLIENT	23
 
 static void usage(void) {
 	fprintf(stderr, "sccp_demo_user [-c] [-l LOCAL_ADDRESS[:LOCAL_PORT]]\n"
@@ -95,13 +100,18 @@ static void usage(void) {
 			"             [-L LOCAL_POINT_CODE] [-R REMOTE_POINT_CODE]\n"
 			"Options:\n"
 			"  -c: Run in client mode (default is server mode)\n"
-			"  -l: local IP address and SCTP port (default is %s:%d)\n"
-			"  -r: remote IP address and SCTP port (default is %s:%d)\n"
-			"  -L: local point code (default is %d)\n"
-			"  -R: remote point code (default is %d)\n",
-			DEFAULT_LOCAL_ADDRESS, DEFAULT_LOCAL_PORT,
-			DEFAULT_REMOTE_ADDRESS, DEFAULT_REMOTE_PORT,
-			DEFAULT_LOCAL_PC, DEFAULT_REMOTE_PC);
+			"  -l: local IP address and SCTP port (default is %s:%d in server mode,\n"
+			"                                       %s:%d in client mode)\n"
+			"  -r: remote IP address and SCTP port (default is %s:%d in server mode,\n"
+			"                                       %s:%d in client mode)\n"
+			"  -L: local point code (default is %d in server mode, %d in client mode)\n"
+			"  -R: remote point code (default is %d in server mode, %d in client mode)\n",
+			DEFAULT_LOCAL_ADDRESS_SERVER, DEFAULT_LOCAL_PORT_SERVER,
+			DEFAULT_LOCAL_ADDRESS_CLIENT, DEFAULT_LOCAL_PORT_CLIENT,
+			DEFAULT_REMOTE_ADDRESS_SERVER, DEFAULT_REMOTE_PORT_SERVER,
+			DEFAULT_REMOTE_ADDRESS_CLIENT, DEFAULT_REMOTE_PORT_CLIENT,
+			DEFAULT_PC_SERVER, DEFAULT_PC_CLIENT,
+			DEFAULT_PC_CLIENT, DEFAULT_PC_SERVER);
 	exit(1);
 }
 
@@ -151,25 +161,42 @@ int main(int argc, char **argv)
 {
 	bool client = false;
 	int rc, ch;
-	char *local_address = DEFAULT_LOCAL_ADDRESS;
-	int local_port = DEFAULT_LOCAL_PORT;
-	int local_pc = DEFAULT_LOCAL_PC;
-	char *remote_address = DEFAULT_REMOTE_ADDRESS;
-	int remote_port = DEFAULT_LOCAL_PORT;
-	int remote_pc = DEFAULT_REMOTE_PC;
+	char *local_address = DEFAULT_LOCAL_ADDRESS_SERVER;
+	int local_port = DEFAULT_LOCAL_PORT_SERVER;
+	int local_pc = DEFAULT_PC_SERVER;
+	char *remote_address = DEFAULT_REMOTE_ADDRESS_SERVER;
+	int remote_port = DEFAULT_REMOTE_PORT_SERVER;
+	int remote_pc = DEFAULT_PC_CLIENT;
+	bool lflag = false, rflag = false, Lflag = false, Rflag = false;
 
 	while ((ch = getopt(argc, argv, "cl:r:p:L:R:")) != -1) {
 		switch (ch) {
 		case 'c':
 			client = true;
+
+			/* Set client-mode defaults unless already overridden during option parsing. */
+			if (!lflag) {
+				local_address = DEFAULT_LOCAL_ADDRESS_CLIENT;
+				local_port = DEFAULT_LOCAL_PORT_CLIENT;
+			}
+			if (!Lflag)
+				local_pc = DEFAULT_PC_CLIENT;
+			if (!rflag) {
+				remote_address = DEFAULT_REMOTE_ADDRESS_CLIENT;
+				remote_port = DEFAULT_REMOTE_PORT_CLIENT;
+			}
+			if (!Rflag)
+				remote_pc = DEFAULT_PC_SERVER;
 			break;
 		case 'l':
 			if (parse_address_port(&local_address, &local_port, optarg))
 				exit(1);
+			lflag = true;
 			break;
 		case 'r':
 			if (parse_address_port(&remote_address, &remote_port, optarg))
 				exit(1);
+			rflag = true;
 			break;
 		case 'L':
 			if (!is_decimal_string(optarg)) {
@@ -177,6 +204,7 @@ int main(int argc, char **argv)
 				exit(1);
 			}
 			local_pc = atoi(optarg);
+			Lflag = true;
 			break;
 		case 'R':
 			if (!is_decimal_string(optarg)) {
@@ -184,6 +212,7 @@ int main(int argc, char **argv)
 				exit(1);
 			}
 			remote_pc = atoi(optarg);
+			Rflag = true;
 			break;
 		default:
 			usage();
