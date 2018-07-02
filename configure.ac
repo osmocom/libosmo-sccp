@@ -120,5 +120,7 @@ AC_OUTPUT(
     tests/ss7/Makefile
     examples/Makefile
     stp/Makefile
+    doc/Makefile
+    doc/examples/Makefile
     Doxyfile
     Makefile)
