@@ -41,13 +41,14 @@ void osmo_xua_msg_tall_ctx_init(void *ctx)
 	tall_xua = talloc_named_const(ctx, 0, "xua_msg");
 }
 
-struct xua_msg *xua_msg_alloc(void)
+struct xua_msg *_xua_msg_alloc(const char *file, int line)
 {
 	struct xua_msg *msg;
 
 	msg = talloc_zero(tall_xua, struct xua_msg);
 	if (!msg)
 		return NULL;
+	talloc_set_name(msg, "xua_msg(%s:%d)", file, line);
 
 	INIT_LLIST_HEAD(&msg->headers);
 	return msg;
