@@ -1413,7 +1413,6 @@ static void tx_coerr_from_xua(struct osmo_sccp_instance *inst,
 
 	/* sent to SCRC for transmission */
 	sccp_scrc_rx_scoc_conn_msg(inst, xua);
-	xua_msg_free(xua);
 }
 
 /* Generate a RELCO based in input arguments */
@@ -1451,7 +1450,6 @@ static void tx_relco_from_xua(struct osmo_sccp_instance *inst,
 
 	/* send to SCRC for transmission */
 	sccp_scrc_rx_scoc_conn_msg(inst, xua);
-	xua_msg_free(xua);
 }
 
 /* Generate a RLSD based in input arguments */
