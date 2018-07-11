@@ -73,7 +73,11 @@ void osmo_xua_msg_tall_ctx_init(void *ctx);
 
 #define xua_msg_alloc() _xua_msg_alloc(__FILE__, __LINE__)
 struct xua_msg *_xua_msg_alloc(const char *file, int line);
-void xua_msg_free(struct xua_msg *msg);
+#define xua_msg_free(msg) do { \
+	printf("xua_msg_free(): %s:%d: %p\n", __FILE__, __LINE__, msg); \
+	_xua_msg_free(msg); \
+}while(0)
+void _xua_msg_free(struct xua_msg *msg);
 
 int xua_msg_add_data(struct xua_msg *msg, uint16_t tag, uint16_t len, uint8_t *dat);
 

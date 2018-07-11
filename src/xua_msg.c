@@ -54,7 +54,7 @@ struct xua_msg *_xua_msg_alloc(const char *file, int line)
 	return msg;
 }
 
-void xua_msg_free(struct xua_msg *msg)
+void _xua_msg_free(struct xua_msg *msg)
 {
 	talloc_free(msg);
 }
