@@ -330,7 +330,7 @@ static int sccp_addr_to_sua(struct xua_msg *xua, uint16_t iei, const uint8_t *ad
 	if (rc < 0)
 		return rc;
 
-	LOGP(DLSUA, LOGL_DEBUG, "Parsed Addr: %s\n", osmo_sccp_addr_dump(&osa));
+	LOGP(DLSUA, LOGL_DEBUG, "IEI %u: Parsed Addr: %s\n", iei, osmo_sccp_addr_dump(&osa));
 
 	/* Then re-encode it as SUA address */
 	return xua_msg_add_sccp_addr(xua, iei, &osa);
