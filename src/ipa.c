@@ -202,8 +202,9 @@ static struct msgb *patch_sccp_with_pc(struct osmo_ss7_asp *asp, struct msgb *sc
 
 static int ipa_rx_msg_sccp(struct osmo_ss7_asp *asp, struct msgb *msg)
 {
+	int rc;
 	struct m3ua_data_hdr data_hdr;
-	struct xua_msg *xua = xua_msg_alloc();
+	struct xua_msg *xua;
 	struct osmo_ss7_as *as = find_as_for_asp(asp);
 	uint32_t opc, dpc;
 
@@ -263,7 +264,9 @@ static int ipa_rx_msg_sccp(struct osmo_ss7_asp *asp, struct msgb *msg)
 	m3ua_dh_to_xfer_param(&xua->mtp, &data_hdr);
 
 	/* Pass on as if we had received it from an M3UA ASP */
-	return m3ua_hmdc_rx_from_l2(asp->inst, xua);
+	rc = m3ua_hmdc_rx_from_l2(asp->inst, xua);
+	xua_msg_free(xua);
+	return rc;
 }
 
 /*! \brief process M3UA message received from socket
