@@ -169,7 +169,7 @@ int main(int argc, char **argv)
 	int remote_pc = DEFAULT_PC_CLIENT;
 	bool lflag = false, rflag = false, Lflag = false, Rflag = false;
 
-	while ((ch = getopt(argc, argv, "cl:r:p:L:R:")) != -1) {
+	while ((ch = getopt(argc, argv, "cl:r:L:R:")) != -1) {
 		switch (ch) {
 		case 'c':
 			client = true;
