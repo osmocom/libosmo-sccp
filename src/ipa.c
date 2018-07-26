@@ -146,9 +146,10 @@ static struct osmo_ss7_as *find_as_for_asp(struct osmo_ss7_asp *asp)
 	return NULL;
 }
 
-/* Patch a SCCP message and add point codes to Called/Calling Party (if missing) */
+/* Patch a SCCP message and add point codes to Called/Calling Party (if missing).
+ * If not missing, report back the actually present opc and dpc. */
 static struct msgb *patch_sccp_with_pc(struct osmo_ss7_asp *asp, struct msgb *sccp_msg_in,
-					uint32_t opc, uint32_t dpc)
+				       uint32_t *opc, uint32_t *dpc)
 {
 	struct osmo_sccp_addr addr;
 	struct msgb *sccp_msg_out;
@@ -169,11 +170,13 @@ static struct msgb *patch_sccp_with_pc(struct osmo_ss7_asp *asp, struct msgb *sc
 	rc = sua_addr_parse(&addr, sua, SUA_IEI_DEST_ADDR);
 	switch (rc) {
 	case 0:
-		if (addr.presence & OSMO_SCCP_ADDR_T_PC)
+		if (addr.presence & OSMO_SCCP_ADDR_T_PC) {
+			*dpc = addr.pc;
 			break;
+		}
 		/* if there's no point code in dest_addr, add one */
 		addr.presence |= OSMO_SCCP_ADDR_T_PC;
-		addr.pc = dpc;
+		addr.pc = *dpc;
 		xua_msg_free_tag(sua, SUA_IEI_DEST_ADDR);
 		xua_msg_add_sccp_addr(sua, SUA_IEI_DEST_ADDR, &addr);
 		break;
@@ -187,11 +190,13 @@ static struct msgb *patch_sccp_with_pc(struct osmo_ss7_asp *asp, struct msgb *sc
 	rc = sua_addr_parse(&addr, sua, SUA_IEI_SRC_ADDR);
 	switch (rc) {
 	case 0:
-		if (addr.presence & OSMO_SCCP_ADDR_T_PC)
+		if (addr.presence & OSMO_SCCP_ADDR_T_PC) {
+			*opc = addr.pc;
 			break;
+		}
 		/* if there's no point code in src_addr, add one */
 		addr.presence |= OSMO_SCCP_ADDR_T_PC;
-		addr.pc = opc;
+		addr.pc = *opc;
 		xua_msg_free_tag(sua, SUA_IEI_SRC_ADDR);
 		xua_msg_add_sccp_addr(sua, SUA_IEI_SRC_ADDR, &addr);
 		break;
@@ -229,7 +234,7 @@ static int ipa_rx_msg_sccp(struct osmo_ss7_asp *asp, struct msgb *msg)
 
 	/* We have received an IPA-encapsulated SCCP message, without
 	 * any MTP routing label.  Furthermore, the SCCP Called/Calling
-	 * Party are SSN-only, with no GT or PC.  This means we have no
+	 * Party possibly are SSN-only, with no GT or PC.  This means we have no
 	 * real idea where it came from, nor where it goes to.  We could
 	 * simply treat it as being for the local point code, but then
 	 * this means that we would have to implement SCCP connection
@@ -257,11 +262,14 @@ static int ipa_rx_msg_sccp(struct osmo_ss7_asp *asp, struct msgb *msg)
 		opc = as->cfg.pc_override.dpc;
 		/* Destination: PC of the routing key */
 		dpc = as->cfg.routing_key.pc;
+
+		LOGPASP(asp, DLSS7, LOGL_INFO, "Rx message: setting opc=%u dpc=%u\n",
+			opc, dpc);
 	}
 
 	/* Second, patch this into the SCCP message */
 	if (as->cfg.pc_override.sccp_mode == OSMO_SS7_PATCH_BOTH) {
-		msg = patch_sccp_with_pc(asp, msg, opc, dpc);
+		msg = patch_sccp_with_pc(asp, msg, &opc, &dpc);
 		if (!msg) {
 			LOGPASP(asp, DLSS7, LOGL_ERROR, "Unable to patch PC into SCCP message; dropping\n");
 			return -1;
