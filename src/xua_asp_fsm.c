@@ -806,7 +806,7 @@ static void ipa_asp_fsm_wait_id_resp(struct osmo_fsm_inst *fi, uint32_t event, v
 	case IPA_ASP_E_ID_RESP:
 		/* resolve the AS based on the identity provided by peer. */
 		msg = data;
-			rc = ipa_ccm_idtag_parse(&tp, msgb_l2(msg)+2, msgb_l2len(msg)-2);
+			rc = ipa_ccm_id_resp_parse(&tp, msgb_l2(msg)+1, msgb_l2len(msg)-1);
 		if (rc < 0) {
 			LOGPFSML(fi, LOGL_ERROR, "Error %d parsing ID_RESP TLV: %s\n", rc,
 				 msgb_hexdump(msg));
