@@ -91,7 +91,7 @@ const struct value_string m3ua_ntfy_stchg_names[] = {
 };
 
 const struct value_string m3ua_ntfy_other_names[] = {
-	{ M3UA_NOTIFY_I_OT_INS_RES,	"Insufficient ASP Resouces active in AS" },
+	{ M3UA_NOTIFY_I_OT_INS_RES,	"Insufficient ASP Resources active in AS" },
 	{ M3UA_NOTIFY_I_OT_ALT_ASP_ACT,	"Alternative ASP Active" },
 	{ M3UA_NOTIFY_I_OT_ASP_FAILURE,	"ASP Failure" },
 	{ 0, NULL }

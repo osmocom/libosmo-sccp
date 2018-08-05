@@ -85,7 +85,7 @@ static struct {
 static void print_help(void)
 {
 	printf("  -h --help			This text.\n");
-	printf("  -D --daemonize		Fork teh process into a background daemon\n");
+	printf("  -D --daemonize		Fork the process into a background daemon\n");
 	printf("  -c --config-file filename	The config file to use. Default: ./osmo-stp.cfg\n");
 	printf("  -V --version			Print the version of OsmoSTP\n");
 }
