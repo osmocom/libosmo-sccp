@@ -433,6 +433,7 @@ static int m3ua_rx_rkm_reg_rsp(struct osmo_ss7_asp *asp, struct xua_msg *xua)
 			continue;
 
 		handle_rkey_reg_resp(asp, inner);
+		xua_msg_free(inner);
 	}
 	return 0;
 }
@@ -485,6 +486,7 @@ static int m3ua_rx_rkm_dereg_rsp(struct osmo_ss7_asp *asp, struct xua_msg *xua)
 			continue;
 
 		handle_rkey_dereg_resp(asp, inner);
+		xua_msg_free(inner);
 	}
 	return 0;
 }
