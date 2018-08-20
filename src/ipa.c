@@ -262,11 +262,10 @@ static int ipa_rx_msg_sccp(struct osmo_ss7_asp *asp, struct msgb *msg)
 		opc = as->cfg.pc_override.dpc;
 		/* Destination: PC of the routing key */
 		dpc = as->cfg.routing_key.pc;
-
-		LOGPASP(asp, DLSS7, LOGL_INFO, "Rx message: setting opc=%u dpc=%u\n",
-			opc, dpc);
 	}
 
+	LOGPASP(asp, DLSS7, LOGL_INFO, "Rx message: opc=%u dpc=%u\n",
+		opc, dpc);
 	/* Second, patch this into the SCCP message */
 	if (as->cfg.pc_override.sccp_mode == OSMO_SS7_PATCH_BOTH) {
 		msg = patch_sccp_with_pc(asp, msg, &opc, &dpc);
@@ -275,12 +274,15 @@ static int ipa_rx_msg_sccp(struct osmo_ss7_asp *asp, struct msgb *msg)
 			return -1;
 		}
 	}
+	LOGPASP(asp, DLSS7, LOGL_INFO, "Rx message (2): opc=%u dpc=%u\n",
+		opc, dpc);
 
 	/* Third, create a MTP3/M3UA label with those point codes */
 	memset(&data_hdr, 0, sizeof(data_hdr));
 	data_hdr.si = MTP_SI_SCCP;
 	data_hdr.opc = osmo_htonl(opc);
 	data_hdr.dpc = osmo_htonl(dpc);
+	LOGPASP(asp, DLSS7, LOGL_INFO, "XXXXX %s %u %u\n", __func__, opc, dpc);
 	/* Create M3UA message in XUA structure */
 	xua = m3ua_xfer_from_data(&data_hdr, msgb_l2(msg), msgb_l2len(msg));
 	msgb_free(msg);

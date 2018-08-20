@@ -56,7 +56,7 @@
 
 #include <osmocom/sigtran/sccp_sap.h>
 #include <osmocom/sigtran/protocol/sua.h>
-#include <osmocom/sccp/sccp_types.h>
+#include <osmocom/sigtran/sccp_helpers.h>
 
 #include "xua_internal.h"
 #include "sccp_internal.h"
@@ -168,31 +168,31 @@ enum sccp_scoc_event {
 
 static const struct value_string scoc_event_names[] = {
 	/* Primitives from SCCP-User */
-	{ SCOC_E_SCU_N_CONN_REQ,	"N-CONNECT.req" },
-	{ SCOC_E_SCU_N_CONN_RESP,	"N-CONNECT.resp" },
-	{ SCOC_E_SCU_N_DISC_REQ,	"N-DISCONNECT.req" },
-	{ SCOC_E_SCU_N_DATA_REQ,	"N-DATA.req" },
-	{ SCOC_E_SCU_N_EXP_DATA_REQ,	"N-EXPEDITED_DATA.req" },
+	OSMO_VALUE_STRING( SCOC_E_SCU_N_CONN_REQ),
+	OSMO_VALUE_STRING( SCOC_E_SCU_N_CONN_RESP),
+	OSMO_VALUE_STRING( SCOC_E_SCU_N_DISC_REQ),
+	OSMO_VALUE_STRING( SCOC_E_SCU_N_DATA_REQ),
+	OSMO_VALUE_STRING( SCOC_E_SCU_N_EXP_DATA_REQ),
 
 	/* Events from RCOC (Routing for Connection Oriented) */
-	{ SCOC_E_RCOC_CONN_IND,		"RCOC-CONNECT.ind" },
-	{ SCOC_E_RCOC_ROUT_FAIL_IND,	"RCOC-ROUT_FAIL.ind" },
-	{ SCOC_E_RCOC_RLSD_IND,		"RCOC-RELEASED.ind" },
-	{ SCOC_E_RCOC_REL_COMPL_IND,	"RCOC-RELEASE_COMPLETE.ind" },
-	{ SCOC_E_RCOC_CREF_IND,		"RCOC-CONNECT_REFUSED.ind" },
-	{ SCOC_E_RCOC_CC_IND,		"RCOC-CONNECT_CONFIRM.ind" },
-	{ SCOC_E_RCOC_DT1_IND,		"RCOC-DT1.ind" },
-	{ SCOC_E_RCOC_DT2_IND,		"RCOC-DT2.ind" },
-	{ SCOC_E_RCOC_IT_IND,		"RCOC-IT.ind" },
-	{ SCOC_E_RCOC_OTHER_NPDU,	"RCOC-OTHER_NPDU.ind" },
-	{ SCOC_E_RCOC_ERROR_IND,	"RCOC-ERROR.ind" },
+	OSMO_VALUE_STRING( SCOC_E_RCOC_CONN_IND),
+	OSMO_VALUE_STRING( SCOC_E_RCOC_ROUT_FAIL_IND),
+	OSMO_VALUE_STRING( SCOC_E_RCOC_RLSD_IND),
+	OSMO_VALUE_STRING( SCOC_E_RCOC_REL_COMPL_IND),
+	OSMO_VALUE_STRING( SCOC_E_RCOC_CREF_IND),
+	OSMO_VALUE_STRING( SCOC_E_RCOC_CC_IND),
+	OSMO_VALUE_STRING( SCOC_E_RCOC_DT1_IND),
+	OSMO_VALUE_STRING( SCOC_E_RCOC_DT2_IND),
+	OSMO_VALUE_STRING( SCOC_E_RCOC_IT_IND),
+	OSMO_VALUE_STRING( SCOC_E_RCOC_OTHER_NPDU),
+	OSMO_VALUE_STRING( SCOC_E_RCOC_ERROR_IND),
 
-	{ SCOC_E_T_IAR_EXP,		"T(iar)_expired" },
-	{ SCOC_E_T_IAS_EXP,		"T(ias)_expired" },
-	{ SCOC_E_CONN_TMR_EXP,		"T(conn)_expired" },
-	{ SCOC_E_T_REL_EXP,		"T(rel)_expired" },
-	{ SCOC_E_T_INT_EXP,		"T(int)_expired" },
-	{ SCOC_E_T_REP_REL_EXP,		"T(rep_rel)_expired" },
+	OSMO_VALUE_STRING( SCOC_E_T_IAR_EXP),
+	OSMO_VALUE_STRING( SCOC_E_T_IAS_EXP),
+	OSMO_VALUE_STRING( SCOC_E_CONN_TMR_EXP),
+	OSMO_VALUE_STRING( SCOC_E_T_REL_EXP),
+	OSMO_VALUE_STRING( SCOC_E_T_INT_EXP),
+	OSMO_VALUE_STRING( SCOC_E_T_REP_REL_EXP),
 
 	{ 0, NULL }
 };
@@ -696,6 +696,8 @@ static int xua_gen_encode_and_send(struct sccp_connection *conn, uint32_t event,
 
 	/* amend this with point code information; Many CO msgs
 	 * includes neither called nor calling party address! */
+	LOGP(DLSCCP, LOGL_ERROR, "XXXXX %s conn->remote_pc %u %p %u\n",
+	     __func__, conn->remote_pc, conn, conn->conn_id);
 	xua->mtp.dpc = conn->remote_pc;
 	sccp_scrc_rx_scoc_conn_msg(conn->inst, xua);
 	xua_msg_free(xua);
@@ -820,6 +822,12 @@ static void scoc_fsm_idle(struct osmo_fsm_inst *fi, uint32_t event, void *data)
 		uconp = &prim->u.connect;
 		/* copy relevant parameters from prim to conn */
 		conn->called_addr = uconp->called_addr;
+		if (conn->called_addr.presence & OSMO_SCCP_ADDR_T_PC)
+			conn->remote_pc = conn->called_addr.pc;
+		LOGP(DLSCCP, LOGL_NOTICE,
+		     "XXXXX SCOC_E_SCU_N_CONN_REQ conn->called_addr=%s  conn->remote_pc=%u %p %u\n",
+		     osmo_sccp_addr_dump(&conn->called_addr),
+		     conn->remote_pc, conn, conn->conn_id);
 		conn->calling_addr = uconp->calling_addr;
 		conn->sccp_class = uconp->sccp_class;
 		/* generate + send CR PDU to SCRC */
@@ -862,6 +870,11 @@ static void scoc_fsm_idle(struct osmo_fsm_inst *fi, uint32_t event, void *data)
 		 * or by default by the OPC in the MTP label, [and the
 		 * MTP-SAP instance]) is associated with the incoming
 		 * connection section. */
+		LOGP(DLSCCP, LOGL_NOTICE,
+		     "XXXXX SCOC_E_RCOC_CONN_IND conn->calling_addr=%s  conn->remote_pc=%u %p %u xua->mtp.opc=%u\n",
+		     osmo_sccp_addr_dump(&conn->calling_addr),
+		     conn->remote_pc, conn, conn->conn_id, xua->mtp.opc);
+
 		if (conn->calling_addr.presence & OSMO_SCCP_ADDR_T_PC)
 			conn->remote_pc = conn->calling_addr.pc;
 		else {
