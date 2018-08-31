@@ -1,3 +1,10 @@
+libosmo-sccp (0.10.0+ow1) unstable; urgency=medium
+
+  * Release version for On-Waves
+  * From commit a0dd986f5506ee8a625e827bc029d1aa962b6f65 
+
+ -- Daniel Willmann <dwillmann@sysmocom.de>  Fri, 31 Aug 2018 17:55:57 +0200
+
 libosmo-sccp (0.10.0) unstable; urgency=medium
 
   [ Harald Welte ]
