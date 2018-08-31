@@ -408,6 +408,17 @@ int osmo_ss7_asp_send(struct osmo_ss7_asp *asp, struct msgb *msg);
 int osmo_ss7_asp_restart(struct osmo_ss7_asp *asp);
 int osmo_ss7_asp_use_default_lm(struct osmo_ss7_asp *asp, int log_level);
 
+/*! Weak function to handle payload for unknown/unsupported PPID or IPA StreamID.
+ *  This function can be overridden by application code to implement whatever handling
+ *  it wants for such additional payloads/streams.
+ *  \param[in] asp Application Server Process through which data was received
+ *  \param[in] ppid_sid SCTP PPID (in sigtran case) or IPA Stream ID
+ *  \param[in] msg Message buffer containing received data. Continues to be owned by caller!
+ *  \return 0 on success; negative on error */
+typedef int osmo_ss7_asp_rx_unknown_cb(struct osmo_ss7_asp *asp, int ppid_mux, struct msgb *msg);
+
+void osmo_ss7_register_rx_unknown_cb(osmo_ss7_asp_rx_unknown_cb *cb);
+
 #define LOGPASP(asp, subsys, level, fmt, args ...)		\
 	LOGP(subsys, level, "asp-%s: " fmt, (asp)->cfg.name, ## args)
 

@@ -33,7 +33,13 @@
 #include <string.h>
 #include <errno.h>
 
-static void *tall_xua;
+static void *tall_xua = NULL;
+
+/* Allocate the root talloc context used for xua_msg_alloc(). */
+void osmo_xua_msg_tall_ctx_init(void *ctx)
+{
+	tall_xua = talloc_named_const(ctx, 0, "xua_msg");
+}
 
 struct xua_msg *xua_msg_alloc(void)
 {

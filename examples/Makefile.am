@@ -4,8 +4,8 @@ AM_LDFLAGS=$(COVERAGE_LDFLAGS)
 
 noinst_HEADERS = internal.h
 
-noinst_PROGRAMS = m3ua_example
+noinst_PROGRAMS = sccp_demo_user
 
-m3ua_example_SOURCES = m3ua_example.c sccp_test_server.c sccp_test_vty.c
-m3ua_example_LDADD = $(top_builddir)/src/libosmo-sigtran.la \
+sccp_demo_user_SOURCES = sccp_demo_user.c sccp_test_server.c sccp_test_vty.c
+sccp_demo_user_LDADD = $(top_builddir)/src/libosmo-sigtran.la \
 		   $(LIBOSMOCORE_LIBS) $(LIBOSMOVTY_LIBS)

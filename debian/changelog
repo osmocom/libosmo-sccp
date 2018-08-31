@@ -1,3 +1,37 @@
+libosmo-sccp (0.10.0) unstable; urgency=medium
+
+  [ Harald Welte ]
+  * debian/control: match build dependency versions with configure.ac
+  * osmo_ss7: Register 5000 as default port for IPA/SCCPlite
+  * Introduce osmo_ss7_register_rx_unknown_cb() for unknown PPID/StreamID
+
+  [ Stefan Sperling ]
+  * free msgb for primitive allocated in lm_timer_cb() of lm_fsm
+  * fix infinite recursion with routing by global title
+  * fix use after free in osmo_sccp_simple_server_add_clnt()
+  * make it possible to pass parameters to m3ua_example
+  * rename m3ua_example to sccp_demo_user
+  * sccp_demo_user: use point code 23 for server and 1 for client
+  * remove unused -p option from getopt() call in sccp_demo_user
+
+  [ Pau Espin Pedrol ]
+  * tests: xua_test: Fix use of wrong buffer for dest addr
+  * tests: xua_test: Fix array len computation
+  * build: Install example cfg files
+  * debian: Package installed example doc files
+
+  [ Neels Hofmeyr ]
+  * fix memleak in ipa_rx_msg_sccp
+  * cosmetic: sccp2sua.c: log the IEI for parsed SCCP addr
+  * add osmo_xua_msg_tall_ctx_init()
+  * fix two memleaks in ipa_rx_msg_sccp()
+  * comment: explain xua_msg free in m3ua_rx_xfer()
+
+  [ Daniel Willmann ]
+  * git-version-gen: Don't check for .git directory
+
+ -- Pau Espin Pedrol <pespin@sysmocom.de>  Fri, 27 Jul 2018 18:45:39 +0200
+
 libosmo-sccp (0.9.0+ow1) UNRELEASED; urgency=medium
 
   * Release new version for On-Waves

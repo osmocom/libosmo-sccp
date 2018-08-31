@@ -69,6 +69,8 @@ struct xua_msg_event_map {
 extern const struct xua_dialect xua_dialect_sua;
 extern const struct xua_dialect xua_dialect_m3ua;
 
+void osmo_xua_msg_tall_ctx_init(void *ctx);
+
 struct xua_msg *xua_msg_alloc(void);
 void xua_msg_free(struct xua_msg *msg);
 
