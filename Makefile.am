@@ -1,15 +1,12 @@
 AUTOMAKE_OPTIONS = foreign dist-bzip2 1.6
 
 AM_CPPFLAGS = $(all_includes) -I$(top_srcdir)/include
-SUBDIRS = include src tests examples stp doc contrib
+SUBDIRS = include src tests examples stp doc
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = libosmo-sccp.pc libosmo-mtp.pc libosmo-sigtran.pc libosmo-xua.pc
 
 EXTRA_DIST = .version git-version-gen osmoappdesc.py doc/examples/osmo-stp.cfg
-
-DISTCHECK_CONFIGURE_FLAGS = \
-  --with-systemdsystemunitdir=$$dc_install_base/$(systemdsystemunitdir)
 
 @RELMAKE@
 
