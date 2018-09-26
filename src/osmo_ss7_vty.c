@@ -1019,7 +1019,7 @@ struct osmo_sccp_addr_entry {
 	struct llist_head list;
 	struct llist_head list_global;
 	struct osmo_ss7_instance *inst;
-	char name[512];
+	char name[32];
 	struct osmo_sccp_addr addr;
 };
 
