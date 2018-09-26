@@ -509,7 +509,6 @@ static void vty_dump_xua_server(struct vty *vty, struct osmo_xua_server *xs)
 		xs->cfg.local.port, VTY_NEWLINE);
 }
 
-/* List all addressbook entries */
 DEFUN(show_cs7_xua, show_cs7_xua_cmd,
       "show cs7 "XUA_VAR_STR" [<0-65534>]",
       SHOW_STR CS7_STR XUA_VAR_HELP_STR "Port Number")
