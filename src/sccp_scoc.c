@@ -65,18 +65,18 @@
 #define SCU_MSGB_SIZE	1024
 
 /* Appendix C.4 of Q.714 (all in milliseconds) */
-#define CONNECTION_TIMER	( 1 * 60 * 100)
-#define TX_INACT_TIMER		( 7 * 60 * 100)	/* RFC 3868 Ch. 8. */
-#define RX_INACT_TIMER		(15 * 60 * 100) /* RFC 3868 Ch. 8. */
-#define RELEASE_TIMER		(     10 * 100)
-#define RELEASE_REP_TIMER	(     10 * 100)
-#define INT_TIMER		( 1 * 60 * 100)
-#define GUARD_TIMER		(23 * 60 * 100)
-#define RESET_TIMER		(     10 * 100)
+#define CONNECTION_TIMER	( 1 * 60 * 1000)
+#define TX_INACT_TIMER		( 7 * 60 * 1000) /* RFC 3868 Ch. 8. */
+#define RX_INACT_TIMER		(15 * 60 * 1000) /* RFC 3868 Ch. 8. */
+#define RELEASE_TIMER		(     10 * 1000)
+#define RELEASE_REP_TIMER	(     10 * 1000)
+#define INT_TIMER		( 1 * 60 * 1000)
+#define GUARD_TIMER		(23 * 60 * 1000)
+#define RESET_TIMER		(     10 * 1000)
 
 /* convert from single value in milliseconds to comma-separated
  * "seconds, microseconds" format we use in osmocom/core/timers.h */
-#define MSEC_TO_S_US(x)		(x/100), ((x%100)*10)
+#define MSEC_TO_S_US(x)		(x/1000), ((x%1000)*1000)
 
 /***********************************************************************
  * SCCP connection table
