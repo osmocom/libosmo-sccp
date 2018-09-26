@@ -180,13 +180,13 @@ ss7_asp_vty_test(config-cs7-sccpaddr)# do show cs7 instance 0 sccp addressbook
 ss7_asp_vty_test(config-cs7-sccpaddr)# exit
 
 ss7_asp_vty_test(config-cs7)# sccp-address foobarfoobarfoobarfoobarfoobarfoobar
-Error: SCCP address name to long: 'foobarfoobarfoobarfoobarfoobarfoobar'
+Error: SCCP address name too long: 'foobarfoobarfoobarfoobarfoobarfoobar'
 % Command incomplete.
 
 ss7_asp_vty_test(config-cs7)# exit
 ss7_asp_vty_test(config)# cs7 instance 1
 ss7_asp_vty_test(config-cs7)# sccp-address foo
-Error: SCCP address name already used in ss7 instance 0: 'foo'
+Error: SCCP address name already used in cs7 instance 0: 'foo'
 % Command incomplete.
 ss7_asp_vty_test(config-cs7)# sccp-address bar
 ss7_asp_vty_test(config-cs7-sccpaddr)# point-code 1.2.3

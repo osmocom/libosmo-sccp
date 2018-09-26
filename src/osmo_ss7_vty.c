@@ -1289,7 +1289,7 @@ DEFUN(cs7_sccpaddr, cs7_sccpaddr_cmd,
 	const char *name = argv[0];
 
 	if (strlen(name) >= sizeof(entry->name)) {
-		vty_out(vty, "Error: SCCP address name to long: '%s'%s",
+		vty_out(vty, "Error: SCCP address name too long: '%s'%s",
 			name, VTY_NEWLINE);
 		return CMD_ERR_INCOMPLETE;
 	}
@@ -1299,7 +1299,7 @@ DEFUN(cs7_sccpaddr, cs7_sccpaddr_cmd,
 	entry = addr_entry_by_name_global(name);
 	if (entry != NULL) {
 		vty_out(vty,
-			"Error: SCCP address name already used in ss7 instance %u: '%s'%s",
+			"Error: SCCP address name already used in cs7 instance %u: '%s'%s",
 			entry->inst->cfg.id, entry->name, VTY_NEWLINE);
 		return CMD_ERR_INCOMPLETE;
 	}
