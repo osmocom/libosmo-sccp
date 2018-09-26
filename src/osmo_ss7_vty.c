@@ -666,7 +666,8 @@ DEFUN(show_cs7_asp, show_cs7_asp_cmd,
 
 	llist_for_each_entry(asp, &inst->asp_list, list) {
 		vty_out(vty, "%-12s  %-12s  %-13s  %-4s  %-8u %-15s %-10s%s",
-			asp->cfg.name, "?", osmo_fsm_inst_state_name(asp->fi),
+			asp->cfg.name, "?",
+			asp->fi? osmo_fsm_inst_state_name(asp->fi) : "uninitialized",
 			get_value_string(osmo_ss7_asp_protocol_vals, asp->cfg.proto),
 			asp->cfg.remote.port, asp->cfg.remote.host, "", VTY_NEWLINE);
 	}
