@@ -39,6 +39,7 @@
 
 #include "xua_internal.h"
 #include <osmocom/sigtran/sccp_sap.h>
+#include "sccp_internal.h"
 
 #define XUA_VAR_STR	"(sua|m3ua|ipa)"
 
@@ -1164,8 +1165,9 @@ static void write_sccp_addressbook(struct vty *vty,
 
 /* List all addressbook entries */
 DEFUN(cs7_show_sccpaddr, cs7_show_sccpaddr_cmd,
-      "show cs7 instance <0-15> sccp-addressbook",
-      SHOW_STR CS7_STR INST_STR INST_STR "List all SCCP addressbook entries\n")
+      "show cs7 instance <0-15> sccp addressbook",
+      SHOW_STR CS7_STR INST_STR INST_STR SCCP_STR
+      "List all SCCP addressbook entries\n")
 {
 	struct osmo_ss7_instance *inst;
 	struct osmo_sccp_addr_entry *entry;
@@ -1727,7 +1729,7 @@ int osmo_ss7_is_config_node(struct vty *vty, int node)
 static void vty_init_addr(void)
 {
 	install_node(&sccpaddr_node, NULL);
-	install_element(L_CS7_NODE, &cs7_show_sccpaddr_cmd);
+	install_element_ve(&cs7_show_sccpaddr_cmd);
 	install_element(L_CS7_NODE, &cs7_sccpaddr_cmd);
 	install_element(L_CS7_NODE, &cs7_sccpaddr_del_cmd);
 	install_element(L_CS7_SCCPADDR_NODE, &cs7_sccpaddr_pc_del_cmd);

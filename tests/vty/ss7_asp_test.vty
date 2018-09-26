@@ -4,6 +4,7 @@ ss7_asp_vty_test> list
   show cs7 (sua|m3ua|ipa) [<0-65534>]
   show cs7 instance <0-15> asp
   show cs7 instance <0-15> as (active|all|m3ua|sua)
+  show cs7 instance <0-15> sccp addressbook
   show cs7 instance <0-15> sccp users
   show cs7 instance <0-15> sccp ssn <0-65535>
   show cs7 instance <0-15> sccp connections
@@ -16,6 +17,7 @@ ss7_asp_vty_test# list
   show cs7 (sua|m3ua|ipa) [<0-65534>]
   show cs7 instance <0-15> asp
   show cs7 instance <0-15> as (active|all|m3ua|sua)
+  show cs7 instance <0-15> sccp addressbook
   show cs7 instance <0-15> sccp users
   show cs7 instance <0-15> sccp ssn <0-65535>
   show cs7 instance <0-15> sccp connections
@@ -51,6 +53,7 @@ ss7_asp_vty_test# show cs7 instance 0 as ?
   sua     Display all SUA ASs
 
 ss7_asp_vty_test# show cs7 instance 0 sccp ?
+  addressbook  List all SCCP addressbook entries
   users        Show List of SCCP Users registered
   ssn          Show List of SCCP Users registered
   connections  Show List of SCCP Users registered
@@ -74,7 +77,6 @@ ss7_asp_vty_test(config-cs7)# list
   no asp NAME
   as NAME (sua|m3ua|ipa)
   no as NAME
-  show cs7 instance <0-15> sccp-addressbook
   sccp-address NAME
   no sccp-address NAME
 
@@ -176,7 +178,11 @@ ss7_asp_vty_test(config-cs7-sccpaddr)# ?
 ss7_asp_vty_test(config-cs7-sccpaddr)# point-code 1.2.3
 
 ss7_asp_vty_test(config-cs7-sccpaddr)# do show cs7 instance 0 sccp addressbook
-% Unknown command.
+
+Name         RI: PC:       SSN:       GT:
+------------ --- --------- ---------- --------------------------------------- 
+foo          PC  1.2.3     (none)     (none)
+
 ss7_asp_vty_test(config-cs7-sccpaddr)# exit
 
 ss7_asp_vty_test(config-cs7)# sccp-address foobarfoobarfoobarfoobarfoobarfoobar
