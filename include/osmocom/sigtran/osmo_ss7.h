@@ -111,6 +111,8 @@ int osmo_ss7_instance_set_pc_fmt(struct osmo_ss7_instance *inst,
 int osmo_ss7_instance_bind(struct osmo_ss7_instance *inst);
 int osmo_ss7_bind_all_instances();
 
+struct osmo_sccp_instance *osmo_ss7_ensure_sccp(struct osmo_ss7_instance *inst);
+
 /***********************************************************************
  * MTP Users (Users of MTP, such as SCCP or ISUP)
  ***********************************************************************/

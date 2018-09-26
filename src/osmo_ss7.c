@@ -460,6 +460,18 @@ int osmo_ss7_bind_all_instances()
 	return rc;
 }
 
+/*! Allocate an SCCP instance, if not present yet.
+ * \returns inst->sccp. */
+struct osmo_sccp_instance *osmo_ss7_ensure_sccp(struct osmo_ss7_instance *inst)
+{
+	if (inst->sccp)
+		return inst->sccp;
+
+	LOGSS7(inst, LOGL_NOTICE, "Creating SCCP instance\n");
+	inst->sccp = osmo_sccp_instance_create(inst, NULL);
+	return inst->sccp;
+}
+
 /***********************************************************************
  * MTP Users (Users of MTP, such as SCCP or ISUP)
  ***********************************************************************/
@@ -1169,8 +1181,8 @@ osmo_ss7_asp_find_or_create(struct osmo_ss7_instance *inst, const char *name,
 		llist_add_tail(&asp->list, &inst->asp_list);
 
 		/* The SUA code internally needs SCCP to work */
-		if (proto == OSMO_SS7_ASP_PROT_SUA && !inst->sccp)
-			inst->sccp = osmo_sccp_instance_create(inst, NULL);
+		if (proto == OSMO_SS7_ASP_PROT_SUA)
+			osmo_ss7_ensure_sccp(inst);
 
 	}
 	return asp;
@@ -1817,8 +1829,8 @@ osmo_ss7_xua_server_create(struct osmo_ss7_instance *inst, enum osmo_ss7_asp_pro
 	llist_add_tail(&oxs->list, &inst->xua_servers);
 
 	/* The SUA code internally needs SCCP to work */
-	if (proto == OSMO_SS7_ASP_PROT_SUA && !inst->sccp)
-		inst->sccp = osmo_sccp_instance_create(inst, NULL);
+	if (proto == OSMO_SS7_ASP_PROT_SUA)
+		osmo_ss7_ensure_sccp(inst);
 
 	return oxs;
 }

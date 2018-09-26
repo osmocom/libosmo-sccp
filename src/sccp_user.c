@@ -480,9 +480,7 @@ osmo_sccp_simple_client_on_ss7_id(void *ctx, uint32_t ss7_id, const char *name,
 	LOGP(DLSCCP, LOGL_NOTICE, "%s: Using ASP instance %s\n", name,
 	     asp->cfg.name);
 
-	/* Allocate SCCP instance */
-	LOGP(DLSCCP, LOGL_NOTICE, "%s: Creating SCCP instance\n", name);
-	ss7->sccp = osmo_sccp_instance_create(ss7, NULL);
+	osmo_ss7_ensure_sccp(ss7);
 	if (!ss7->sccp)
 		goto out_asp;
 
@@ -562,7 +560,7 @@ osmo_sccp_simple_server_on_ss7_id(void *ctx, uint32_t ss7_id, uint32_t pc,
 		goto out_xs;
 
 	/* Allocate SCCP stack */
-	ss7->sccp = osmo_sccp_instance_create(ss7, NULL);
+	osmo_ss7_ensure_sccp(ss7);
 	if (!ss7->sccp)
 		goto out_xs;
 
