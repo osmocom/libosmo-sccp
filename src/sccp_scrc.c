@@ -25,7 +25,7 @@
 #include <osmocom/core/logging.h>
 #include <osmocom/core/msgb.h>
 
-#include <sccp/sccp_types.h>
+#include <osmocom/sccp/sccp_types.h>
 #include <osmocom/sigtran/osmo_ss7.h>
 #include <osmocom/sigtran/sccp_sap.h>
 #include <osmocom/sigtran/sccp_helpers.h>

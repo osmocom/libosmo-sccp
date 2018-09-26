@@ -27,7 +27,7 @@
 #include <string.h>
 #include <errno.h>
 
-#include <sccp/sccp.h>
+#include <osmocom/sccp/sccp.h>
 #include <osmocom/core/linuxlist.h>
 #include <osmocom/core/logging.h>
 #include <osmocom/sigtran/sccp_sap.h>

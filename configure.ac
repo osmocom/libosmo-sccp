@@ -136,9 +136,9 @@ AC_OUTPUT(
     libosmo-sccp.pc
     libosmo-mtp.pc
     libosmo-xua.pc
-    include/sccp/Makefile
-    include/mtp/Makefile
     include/osmocom/Makefile
+    include/osmocom/sccp/Makefile
+    include/osmocom/mtp/Makefile
     include/osmocom/sigtran/Makefile
     include/Makefile
     src/Makefile

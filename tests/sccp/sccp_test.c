@@ -31,7 +31,7 @@
 #include <osmocom/core/msgb.h>
 #include <osmocom/core/utils.h>
 
-#include <sccp/sccp.h>
+#include <osmocom/sccp/sccp.h>
 
 #define MIN(x, y) ((x) < (y) ? (x) : (y))
 

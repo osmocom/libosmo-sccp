@@ -1,5 +1,5 @@
 /* MTP Layer3 parsing tests */
-#include <mtp/mtp_level3.h>
+#include <osmocom/mtp/mtp_level3.h>
 
 #include <arpa/inet.h>
 

@@ -56,7 +56,7 @@
 
 #include <osmocom/sigtran/sccp_sap.h>
 #include <osmocom/sigtran/protocol/sua.h>
-#include <sccp/sccp_types.h>
+#include <osmocom/sccp/sccp_types.h>
 
 #include "xua_internal.h"
 #include "sccp_internal.h"

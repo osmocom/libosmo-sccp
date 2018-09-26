@@ -31,7 +31,7 @@
 #include <osmocom/core/logging.h>
 #include <osmocom/gsm/tlv.h>
 
-#include <sccp/sccp.h>
+#include <osmocom/sccp/sccp.h>
 
 // Unassigned debug area
 static int DSCCP = 0;

@@ -1,1 +1,1 @@
-SUBDIRS = sccp mtp osmocom
+SUBDIRS = osmocom

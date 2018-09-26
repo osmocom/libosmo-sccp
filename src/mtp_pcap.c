@@ -22,7 +22,7 @@
  *
  */
 
-#include <mtp/mtp_pcap.h>
+#include <osmocom/mtp/mtp_pcap.h>
 
 #include <sys/time.h>
 
