@@ -8,6 +8,7 @@ ss7_asp_vty_test> list
   show cs7 instance <0-15> sccp users
   show cs7 instance <0-15> sccp ssn <0-65535>
   show cs7 instance <0-15> sccp connections
+  show cs7 instance <0-15> sccp timers
 ... !show cs7
 
 ss7_asp_vty_test> enable
@@ -21,6 +22,7 @@ ss7_asp_vty_test# list
   show cs7 instance <0-15> sccp users
   show cs7 instance <0-15> sccp ssn <0-65535>
   show cs7 instance <0-15> sccp connections
+  show cs7 instance <0-15> sccp timers
 ... !show cs7
 
 ss7_asp_vty_test# show ?
@@ -57,6 +59,7 @@ ss7_asp_vty_test# show cs7 instance 0 sccp ?
   users        Show List of SCCP Users registered
   ssn          Find an SCCP User registered for the given SSN
   connections  Show List of active SCCP connections
+  timers       Show List of SCCP timers
 
 ss7_asp_vty_test# show cs7 instance 0 sccp ssn ?
   <0-65535>  Subsystem Number (SSN)
@@ -79,6 +82,7 @@ ss7_asp_vty_test(config-cs7)# list
   no as NAME
   sccp-address NAME
   no sccp-address NAME
+  sccp-timer (conn_est|ias|iar|rel|repeat_rel|int|guard|reset|reassembly) <1-999999>
 
 ss7_asp_vty_test(config-cs7)# ?
 ...
@@ -90,6 +94,7 @@ ss7_asp_vty_test(config-cs7)# ?
   no                 Negate a command or set its defaults
   as                 Configure an Application Server
   sccp-address       Create/Modify an SCCP addressbook entry
+  sccp-timer         Configure SCCP timer values, see ITU-T Q.714
 
 ss7_asp_vty_test(config-cs7)# description ?
   TEXT  Text until the end of the line
@@ -354,3 +359,57 @@ ss7_asp_vty_test(config-cs7)# do show cs7 instance 0 as all
 AS Name      State        Context    Dpc           Si   Opc           Ssn Min   Max
 ------------ ------------ ---------- ------------- ---- ------------- --- ----- -----
 my-ass       AS_DOWN      0          3.2.1                                          
+
+
+ss7_asp_vty_test(config-cs7)# do show cs7 instance 0 sccp timers
+SS7 instance 0 has no SCCP initialized
+
+ss7_asp_vty_test(config-cs7)# show running-config
+... !sccp-timer
+
+ss7_asp_vty_test(config-cs7)# sccp-timer ias 5
+ss7_asp_vty_test(config-cs7)# do show cs7 instance 0 sccp timers
+sccp-timer conn_est 60
+sccp-timer ias 5
+sccp-timer iar 900
+sccp-timer rel 10
+sccp-timer repeat_rel 10
+sccp-timer int 60
+sccp-timer guard 1380
+sccp-timer reset 10
+sccp-timer reassembly 10
+ss7_asp_vty_test(config-cs7)# show running-config
+... !sccp-timer
+ sccp-timer ias 5
+... !sccp-timer
+
+ss7_asp_vty_test(config-cs7)# sccp-timer ias 420
+ss7_asp_vty_test(config-cs7)# do show cs7 instance 0 sccp timers
+sccp-timer conn_est 60
+sccp-timer ias 420
+sccp-timer iar 900
+sccp-timer rel 10
+sccp-timer repeat_rel 10
+sccp-timer int 60
+sccp-timer guard 1380
+sccp-timer reset 10
+sccp-timer reassembly 10
+ss7_asp_vty_test(config-cs7)# show running-config
+... !sccp-timer
+
+ss7_asp_vty_test(config-cs7)# sccp-timer?
+  sccp-timer  Configure SCCP timer values, see ITU-T Q.714
+
+ss7_asp_vty_test(config-cs7)# sccp-timer ?
+  conn_est    Waiting for connection confirm message, 1 to 2 minutes (default: 60)
+  ias         Send keep-alive: on an idle connection, delay before sending an Idle Timer message, 5 to 10 minutes (default: 420)
+  iar         Receive keep-alive: on an idle connection, delay until considering a connection as stale, 11 to 21 minutes (default: 900)
+  rel         Waiting for release complete message, 10 to 20 seconds (default: 10)
+  repeat_rel  Waiting for release complete message; or to repeat sending released message after the initial expiry, 10 to 20 seconds (default: 10)
+  int         Waiting for release complete message; or to release connection resources, freeze the LRN and alert a maintenance function after the initial expiry, extending to 1 minute (default: 60)
+  guard       Waiting to resume normal procedure for temporary connection sections during the restart procedure, 23 to 25 minutes (default: 1380)
+  reset       Waiting to release temporary connection section or alert maintenance function after reset request message is sent, 10 to 20 seconds (default: 10)
+  reassembly  Waiting to receive all the segments of the remaining segments, single segmented message after receiving the first segment, 10 to 20 seconds (default: 10)
+
+ss7_asp_vty_test(config-cs7)# sccp-timer conn_est ?
+  <1-999999>  Timer value, in seconds

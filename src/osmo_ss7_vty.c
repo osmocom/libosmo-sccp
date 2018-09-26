@@ -41,6 +41,8 @@
 #include <osmocom/sigtran/sccp_sap.h>
 #include "sccp_internal.h"
 
+#include "sccp_internal.h"
+
 #define XUA_VAR_STR	"(sua|m3ua|ipa)"
 
 #define XUA_VAR_HELP_STR		\
@@ -1658,6 +1660,9 @@ static void write_one_cs7(struct vty *vty, struct osmo_ss7_instance *inst)
 
 	/* Append SCCP Addressbook */
 	write_sccp_addressbook(vty, inst);
+
+	if (inst->sccp)
+		osmo_sccp_vty_write_cs7_node(vty, " ", inst->sccp);
 }
 
 

@@ -396,13 +396,6 @@ osmo_sccp_simple_client_on_ss7_id(void *ctx, uint32_t ss7_id, const char *name,
 	LOGP(DLSCCP, LOGL_NOTICE, "%s: Using SS7 instance %u, pc:%s\n", name,
 	     ss7->cfg.id, osmo_ss7_pointcode_print(ss7, ss7->cfg.primary_pc));
 
-	/* There must not be an existing SCCP istance, regarless if the simple
-	 * client has created the SS7 instance or if it was already present.
-	 * An already existing SCCP instance would be an indication that this
-	 * function has been called twice with the same SS7 instance, which
-	 * must not be the case! */
-	OSMO_ASSERT(ss7->sccp == NULL);
-
 	/* Check if there is already an application server that matches
 	 * the protocol we intend to use. If not, we will create one. */
 	as = osmo_ss7_as_find_by_proto(ss7, prot);

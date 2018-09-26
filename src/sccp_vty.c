@@ -141,9 +141,125 @@ DEFUN(show_sccp_connections, show_sccp_connections_cmd,
 	return CMD_SUCCESS;
 }
 
+/* sccp-timer <name> <1-999999>
+ * (cmdstr and doc are dynamically generated from osmo_sccp_timer_names.) */
+DEFUN(sccp_timer, sccp_timer_cmd,
+      NULL, NULL)
+{
+	struct osmo_ss7_instance *ss7 = vty->index;
+	enum osmo_sccp_timer timer = get_string_value(osmo_sccp_timer_names, argv[0]);
+	struct osmo_sccp_timer_val set_val = { .s = atoi(argv[1]) };
+
+	if (timer < 0 || timer >= OSMO_SCCP_TIMERS_COUNT) {
+		vty_out(vty, "%% Invalid timer: %s%s", argv[0], VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	osmo_ss7_ensure_sccp(ss7);
+	if (!ss7->sccp) {
+		vty_out(vty, "%% Error: cannot instantiate SCCP instance%s", VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	ss7->sccp->timers[timer] = set_val;
+	return CMD_SUCCESS;
+}
+
+static const char *osmo_sccp_timer_val_name(const struct osmo_sccp_timer_val *val)
+{
+	static char buf[16];
+
+	snprintf(buf, sizeof(buf), "%u", val->s);
+	return buf;
+}
+
+static void gen_sccp_timer_cmd_strs(struct cmd_element *cmd)
+{
+	int i;
+	char *cmd_str = NULL;
+	char *doc_str = NULL;
+
+	OSMO_ASSERT(cmd->string == NULL);
+	OSMO_ASSERT(cmd->doc == NULL);
+
+	osmo_talloc_asprintf(tall_vty_ctx, cmd_str, "sccp-timer (");
+	osmo_talloc_asprintf(tall_vty_ctx, doc_str,
+			     "Configure SCCP timer values, see ITU-T Q.714\n");
+
+	for (i = 0; osmo_sccp_timer_names[i].str; i++) {
+		const struct osmo_sccp_timer_val *def;
+		enum osmo_sccp_timer timer;
+
+		timer = osmo_sccp_timer_names[i].value;
+		def = &osmo_sccp_timer_defaults[timer];
+		OSMO_ASSERT(timer >= 0 && timer < OSMO_SCCP_TIMERS_COUNT);
+
+		osmo_talloc_asprintf(tall_vty_ctx, cmd_str, "%s%s",
+				     i ? "|" : "",
+				     osmo_sccp_timer_name(timer));
+		osmo_talloc_asprintf(tall_vty_ctx, doc_str, "%s (default: %s)\n",
+				     osmo_sccp_timer_description(timer),
+				     osmo_sccp_timer_val_name(def));
+	}
+
+	osmo_talloc_asprintf(tall_vty_ctx, cmd_str, ") <1-999999>");
+	osmo_talloc_asprintf(tall_vty_ctx, doc_str,
+			     "Timer value, in seconds\n");
+
+	cmd->string = cmd_str;
+	cmd->doc = doc_str;
+}
+
+static void write_sccp_timers(struct vty *vty, const char *indent,
+			      struct osmo_sccp_instance *inst, bool default_if_unset)
+{
+	int i;
+
+	for (i = 0; i < ARRAY_SIZE(inst->timers); i++) {
+		const struct osmo_sccp_timer_val *val = osmo_sccp_timer_get(inst, i, default_if_unset);
+		if (!val)
+			continue;
+		vty_out(vty, "%ssccp-timer %s %s%s", indent, osmo_sccp_timer_name(i),
+			osmo_sccp_timer_val_name(val), VTY_NEWLINE);
+	}
+}
+
+void osmo_sccp_vty_write_cs7_node(struct vty *vty, const char *indent, struct osmo_sccp_instance *inst)
+{
+	write_sccp_timers(vty, indent, inst, false);
+}
+
+DEFUN(show_sccp_timers, show_sccp_timers_cmd,
+	"show cs7 instance <0-15> sccp timers",
+	SHOW_STR CS7_STR INST_STR INST_STR
+	"Signaling Connection Control Part\n"
+	"Show List of SCCP timers\n")
+{
+	int id = atoi(argv[0]);
+	struct osmo_ss7_instance *ss7;
+
+	ss7 = osmo_ss7_instance_find(id);
+	if (!ss7) {
+		vty_out(vty, "No SS7 instance %d found%s", id, VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	if (!ss7->sccp) {
+		vty_out(vty, "SS7 instance %d has no SCCP initialized%s", id, VTY_NEWLINE);
+		return CMD_SUCCESS;
+	}
+
+	write_sccp_timers(vty, "", ss7->sccp, true);
+	return CMD_SUCCESS;
+}
+
 void osmo_sccp_vty_init(void)
 {
 	install_element_ve(&show_sccp_users_cmd);
 	install_element_ve(&show_sccp_user_ssn_cmd);
 	install_element_ve(&show_sccp_connections_cmd);
+
+	install_element_ve(&show_sccp_timers_cmd);
+	gen_sccp_timer_cmd_strs(&sccp_timer_cmd);
+	install_element(L_CS7_NODE, &sccp_timer_cmd);
 }

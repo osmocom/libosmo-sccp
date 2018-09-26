@@ -64,20 +64,6 @@
 #define S(x)	(1 << (x))
 #define SCU_MSGB_SIZE	1024
 
-/* Appendix C.4 of Q.714 (all in milliseconds) */
-#define CONNECTION_TIMER	( 1 * 60 * 1000)
-#define TX_INACT_TIMER		( 7 * 60 * 1000) /* RFC 3868 Ch. 8. */
-#define RX_INACT_TIMER		(15 * 60 * 1000) /* RFC 3868 Ch. 8. */
-#define RELEASE_TIMER		(     10 * 1000)
-#define RELEASE_REP_TIMER	(     10 * 1000)
-#define INT_TIMER		( 1 * 60 * 1000)
-#define GUARD_TIMER		(23 * 60 * 1000)
-#define RESET_TIMER		(     10 * 1000)
-
-/* convert from single value in milliseconds to comma-separated
- * "seconds, microseconds" format we use in osmocom/core/timers.h */
-#define MSEC_TO_S_US(x)		(x/1000), ((x%1000)*1000)
-
 /***********************************************************************
  * SCCP connection table
  ***********************************************************************/
@@ -235,6 +221,109 @@ static const struct osmo_prim_event_map scu_scoc_event_map[] = {
  * Timer Handling
  ***********************************************************************/
 
+/* Appendix C.4 of ITU-T Q.714 */
+const struct value_string osmo_sccp_timer_names[] = {
+	{ OSMO_SCCP_TIMER_CONN_EST, "conn_est" },
+	{ OSMO_SCCP_TIMER_IAS, "ias" },
+	{ OSMO_SCCP_TIMER_IAR, "iar" },
+	{ OSMO_SCCP_TIMER_REL, "rel" },
+	{ OSMO_SCCP_TIMER_REPEAT_REL, "repeat_rel" },
+	{ OSMO_SCCP_TIMER_INT, "int" },
+	{ OSMO_SCCP_TIMER_GUARD, "guard" },
+	{ OSMO_SCCP_TIMER_RESET, "reset" },
+	{ OSMO_SCCP_TIMER_REASSEMBLY, "reassembly" },
+	{}
+};
+
+/* Mostly pasted from Appendix C.4 of ITU-T Q.714 (05/2001) -- some of their descriptions are quite
+ * unintelligible out of context, for which we have our own description here. */
+const struct value_string osmo_sccp_timer_descriptions[] = {
+	{ OSMO_SCCP_TIMER_CONN_EST,
+	  "Waiting for connection confirm message, 1 to 2 minutes" },
+	{ OSMO_SCCP_TIMER_IAS,
+	  "Send keep-alive: on an idle connection, delay before sending an Idle Timer message,"
+	  " 5 to 10 minutes" },
+	{ OSMO_SCCP_TIMER_IAR,
+	  "Receive keep-alive: on an idle connection, delay until considering a connection as stale,"
+	  " 11 to 21 minutes" },
+	{ OSMO_SCCP_TIMER_REL,
+	  "Waiting for release complete message, 10 to 20 seconds" },
+	{ OSMO_SCCP_TIMER_REPEAT_REL,
+	  "Waiting for release complete message; or to repeat sending released message after the initial"
+	  " expiry, 10 to 20 seconds" },
+	{ OSMO_SCCP_TIMER_INT,
+	  "Waiting for release complete message; or to release connection resources, freeze the LRN and"
+	  " alert a maintenance function after the initial expiry, extending to 1 minute" },
+	{ OSMO_SCCP_TIMER_GUARD,
+	  "Waiting to resume normal procedure for temporary connection sections during the restart"
+	  " procedure, 23 to 25 minutes" },
+	{ OSMO_SCCP_TIMER_RESET,
+	  "Waiting to release temporary connection section or alert maintenance function after reset"
+	  " request message is sent, 10 to 20 seconds" },
+	{ OSMO_SCCP_TIMER_REASSEMBLY,
+	  "Waiting to receive all the segments of the remaining segments, single segmented message after"
+	  " receiving the first segment, 10 to 20 seconds" },
+	{}
+};
+
+/* Appendix C.4 of ITU-T Q.714 */
+const struct osmo_sccp_timer_val osmo_sccp_timer_defaults[] = {
+	[OSMO_SCCP_TIMER_CONN_EST]	= { .s =  1 * 60, },
+	[OSMO_SCCP_TIMER_IAS]		= { .s =  7 * 60, }, /* RFC 3868 Ch. 8. */
+	[OSMO_SCCP_TIMER_IAR]		= { .s = 15 * 60, }, /* RFC 3868 Ch. 8. */
+	[OSMO_SCCP_TIMER_REL]		= { .s =      10, },
+	[OSMO_SCCP_TIMER_REPEAT_REL]	= { .s =      10, },
+	[OSMO_SCCP_TIMER_INT]		= { .s =  1 * 60, },
+	[OSMO_SCCP_TIMER_GUARD]		= { .s = 23 * 60, },
+	[OSMO_SCCP_TIMER_RESET]		= { .s =      10, },
+	[OSMO_SCCP_TIMER_REASSEMBLY]	= { .s =      10, },
+};
+
+osmo_static_assert(ARRAY_SIZE(osmo_sccp_timer_defaults) == OSMO_SCCP_TIMERS_COUNT,
+		   assert_osmo_sccp_timers_count);
+
+/* Look up an SCCP timer value as configured in the osmo_ss7_instance.
+ * If no user defined value is set, return the global default from osmo_sccp_timer_defaults instead.
+ * However, if default_if_unset is passed false, return NULL in case there is no user defined setting, or
+ * in case it is identical to the global default. */
+const struct osmo_sccp_timer_val *osmo_sccp_timer_get(const struct osmo_sccp_instance *inst,
+						      enum osmo_sccp_timer timer,
+						      bool default_if_unset)
+{
+	const struct osmo_sccp_timer_val *val;
+	const struct osmo_sccp_timer_val *def;
+
+	OSMO_ASSERT(timer >= 0
+		    && timer < ARRAY_SIZE(inst->timers)
+		    && timer < ARRAY_SIZE(osmo_sccp_timer_defaults));
+
+	val = &inst->timers[timer];
+	def = &osmo_sccp_timer_defaults[timer];
+
+	/* Assert that all timer definitions have a sane global default */
+	OSMO_ASSERT(def->s || def->us);
+
+	if (val->s || val->us) {
+		if (!default_if_unset && val->s == def->s && val->us == def->us)
+			return NULL;
+		return val;
+	}
+
+	if (!default_if_unset)
+		return NULL;
+
+	/* If unset, use the global default. */
+	return def;
+}
+
+static void sccp_timer_schedule(const struct sccp_connection *conn,
+				struct osmo_timer_list *timer,
+				enum osmo_sccp_timer timer_name)
+{
+	const struct osmo_sccp_timer_val *val = osmo_sccp_timer_get(conn->inst, timer_name, true);
+	osmo_timer_schedule(timer, val->s, val->us);
+}
+
 /* T(ias) has expired, send a COIT message to the peer */
 static void tx_inact_tmr_cb(void *data)
 {
@@ -280,13 +369,13 @@ static void conn_tmr_cb(void *data)
 /* Re-start the Tx inactivity timer */
 static void conn_restart_tx_inact_timer(struct sccp_connection *conn)
 {
-	osmo_timer_schedule(&conn->t_ias, MSEC_TO_S_US(TX_INACT_TIMER));
+	sccp_timer_schedule(conn, &conn->t_ias, OSMO_SCCP_TIMER_IAS);
 }
 
 /* Re-start the Rx inactivity timer */
 static void conn_restart_rx_inact_timer(struct sccp_connection *conn)
 {
-	osmo_timer_schedule(&conn->t_iar, MSEC_TO_S_US(RX_INACT_TIMER));
+	sccp_timer_schedule(conn, &conn->t_iar, OSMO_SCCP_TIMER_IAR);
 }
 
 /* Re-start both Rx and Tx inactivity timers */
@@ -306,19 +395,19 @@ static void conn_stop_inact_timers(struct sccp_connection *conn)
 /* Start release timer T(rel) */
 static void conn_start_rel_timer(struct sccp_connection *conn)
 {
-	osmo_timer_schedule(&conn->t_rel, MSEC_TO_S_US(RELEASE_TIMER));
+	sccp_timer_schedule(conn, &conn->t_rel, OSMO_SCCP_TIMER_REL);
 }
 
 /* Start repeat release timer T(rep_rel) */
 static void conn_start_rep_rel_timer(struct sccp_connection *conn)
 {
-	osmo_timer_schedule(&conn->t_rep_rel, MSEC_TO_S_US(RELEASE_REP_TIMER));
+	sccp_timer_schedule(conn, &conn->t_rep_rel, OSMO_SCCP_TIMER_REPEAT_REL);
 }
 
 /* Start interval timer T(int) */
 static void conn_start_int_timer(struct sccp_connection *conn)
 {
-	osmo_timer_schedule(&conn->t_int, MSEC_TO_S_US(INT_TIMER));
+	sccp_timer_schedule(conn, &conn->t_int, OSMO_SCCP_TIMER_INT);
 }
 
 /* Stop all release related timers: T(rel), T(int) and T(rep_rel) */
@@ -332,7 +421,7 @@ static void conn_stop_release_timers(struct sccp_connection *conn)
 /* Start connect timer T(conn) */
 static void conn_start_connect_timer(struct sccp_connection *conn)
 {
-	osmo_timer_schedule(&conn->t_conn, MSEC_TO_S_US(CONNECTION_TIMER));
+	sccp_timer_schedule(conn, &conn->t_conn, OSMO_SCCP_TIMER_CONN_EST);
 }
 
 /* Stop connect timer T(conn) */
