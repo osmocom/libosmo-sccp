@@ -142,19 +142,32 @@ DEFUN(show_sccp_connections, show_sccp_connections_cmd,
 }
 
 /* sccp-timer <name> <1-999999>
- * (cmdstr and doc are dynamically generated from osmo_sccp_timer_names.) */
+ * (cmdstr and doc are dynamically generated from osmo_sccp_timer_names.)
+ * The VTY API does not allow passing optional choice args like [(a|b|c)], so there is a separate command
+ * for adding optional unit indicators. */
 DEFUN(sccp_timer, sccp_timer_cmd,
       NULL, NULL)
 {
 	struct osmo_ss7_instance *ss7 = vty->index;
 	enum osmo_sccp_timer timer = get_string_value(osmo_sccp_timer_names, argv[0]);
-	struct osmo_sccp_timer_val set_val = { .s = atoi(argv[1]) };
+	struct osmo_sccp_timer_val set_val = {};
+	int val = atoi(argv[1]);
+	const char *unit = argc > 2? argv[2] : "s";
 
 	if (timer < 0 || timer >= OSMO_SCCP_TIMERS_COUNT) {
 		vty_out(vty, "%% Invalid timer: %s%s", argv[0], VTY_NEWLINE);
 		return CMD_WARNING;
 	}
 
+	if (!strcmp(unit, "m"))
+		set_val.s = val * 60;
+	else if (!strcmp(unit, "s"))
+		set_val.s = val;
+	else if (!strcmp(unit, "ms")) {
+		set_val.s = val / 1000;
+		set_val.us = (val % 1000) * 1000;
+	}
+	
 	osmo_ss7_ensure_sccp(ss7);
 	if (!ss7->sccp) {
 		vty_out(vty, "%% Error: cannot instantiate SCCP instance%s", VTY_NEWLINE);
@@ -165,15 +178,25 @@ DEFUN(sccp_timer, sccp_timer_cmd,
 	return CMD_SUCCESS;
 }
 
+/* sccp-timer <name> <1-999999> (m|s|ms)
+ * (cmdstr and doc are dynamically generated from osmo_sccp_timer_names.) */
+ALIAS(sccp_timer, sccp_timer_unit_cmd, NULL, NULL)
+
 static const char *osmo_sccp_timer_val_name(const struct osmo_sccp_timer_val *val)
 {
 	static char buf[16];
 
-	snprintf(buf, sizeof(buf), "%u", val->s);
+	if (val->us) {
+		uint32_t ms = val->us / 1000 + val->s * 1000;
+		snprintf(buf, sizeof(buf), "%u ms", ms);
+	} else if (val->s % 60)
+		snprintf(buf, sizeof(buf), "%u", val->s);
+	else
+		snprintf(buf, sizeof(buf), "%u m", val->s / 60);
 	return buf;
 }
 
-static void gen_sccp_timer_cmd_strs(struct cmd_element *cmd)
+static void gen_sccp_timer_cmd_strs(struct cmd_element *cmd, bool with_units)
 {
 	int i;
 	char *cmd_str = NULL;
@@ -200,11 +223,21 @@ static void gen_sccp_timer_cmd_strs(struct cmd_element *cmd)
 		osmo_talloc_asprintf(tall_vty_ctx, doc_str, "%s (default: %s)\n",
 				     osmo_sccp_timer_description(timer),
 				     osmo_sccp_timer_val_name(def));
+
+
 	}
 
 	osmo_talloc_asprintf(tall_vty_ctx, cmd_str, ") <1-999999>");
 	osmo_talloc_asprintf(tall_vty_ctx, doc_str,
-			     "Timer value, in seconds\n");
+			     "Timer value, in seconds unless a different unit keyword follows\n");
+
+	if (with_units) {
+		osmo_talloc_asprintf(tall_vty_ctx, cmd_str, " (m|s|ms)");
+		osmo_talloc_asprintf(tall_vty_ctx, doc_str,
+				     "Timer value unit: supply value in minutes instead of seconds\n"
+				     "Timer value unit: supply value in seconds, which is also the default unit\n"
+				     "Timer value unit: supply value in milliseconds instead of seconds\n");
+	}
 
 	cmd->string = cmd_str;
 	cmd->doc = doc_str;
@@ -260,6 +293,8 @@ void osmo_sccp_vty_init(void)
 	install_element_ve(&show_sccp_connections_cmd);
 
 	install_element_ve(&show_sccp_timers_cmd);
-	gen_sccp_timer_cmd_strs(&sccp_timer_cmd);
+	gen_sccp_timer_cmd_strs(&sccp_timer_cmd, false);
+	gen_sccp_timer_cmd_strs(&sccp_timer_unit_cmd, true);
 	install_element(L_CS7_NODE, &sccp_timer_cmd);
+	install_element(L_CS7_NODE, &sccp_timer_unit_cmd);
 }

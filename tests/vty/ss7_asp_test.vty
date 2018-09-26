@@ -83,6 +83,7 @@ ss7_asp_vty_test(config-cs7)# list
   sccp-address NAME
   no sccp-address NAME
   sccp-timer (conn_est|ias|iar|rel|repeat_rel|int|guard|reset|reassembly) <1-999999>
+  sccp-timer (conn_est|ias|iar|rel|repeat_rel|int|guard|reset|reassembly) <1-999999> (m|s|ms)
 
 ss7_asp_vty_test(config-cs7)# ?
 ...
@@ -371,31 +372,31 @@ SS7 instance 0 has no SCCP initialized
 ss7_asp_vty_test(config-cs7)# show running-config
 ... !sccp-timer
 
-ss7_asp_vty_test(config-cs7)# sccp-timer ias 5
+ss7_asp_vty_test(config-cs7)# sccp-timer ias 5 ms
 ss7_asp_vty_test(config-cs7)# do show cs7 instance 0 sccp timers
-sccp-timer conn_est 60
-sccp-timer ias 5
-sccp-timer iar 900
+sccp-timer conn_est 1 m
+sccp-timer ias 5 ms
+sccp-timer iar 15 m
 sccp-timer rel 10
 sccp-timer repeat_rel 10
-sccp-timer int 60
-sccp-timer guard 1380
+sccp-timer int 1 m
+sccp-timer guard 23 m
 sccp-timer reset 10
 sccp-timer reassembly 10
 ss7_asp_vty_test(config-cs7)# show running-config
 ... !sccp-timer
- sccp-timer ias 5
+ sccp-timer ias 5 ms
 ... !sccp-timer
 
-ss7_asp_vty_test(config-cs7)# sccp-timer ias 420
+ss7_asp_vty_test(config-cs7)# sccp-timer ias 7 m
 ss7_asp_vty_test(config-cs7)# do show cs7 instance 0 sccp timers
-sccp-timer conn_est 60
-sccp-timer ias 420
-sccp-timer iar 900
+sccp-timer conn_est 1 m
+sccp-timer ias 7 m
+sccp-timer iar 15 m
 sccp-timer rel 10
 sccp-timer repeat_rel 10
-sccp-timer int 60
-sccp-timer guard 1380
+sccp-timer int 1 m
+sccp-timer guard 23 m
 sccp-timer reset 10
 sccp-timer reassembly 10
 ss7_asp_vty_test(config-cs7)# show running-config
@@ -405,15 +406,63 @@ ss7_asp_vty_test(config-cs7)# sccp-timer?
   sccp-timer  Configure SCCP timer values, see ITU-T Q.714
 
 ss7_asp_vty_test(config-cs7)# sccp-timer ?
-  conn_est    Waiting for connection confirm message, 1 to 2 minutes (default: 60)
-  ias         Send keep-alive: on an idle connection, delay before sending an Idle Timer message, 5 to 10 minutes (default: 420)
-  iar         Receive keep-alive: on an idle connection, delay until considering a connection as stale, 11 to 21 minutes (default: 900)
+  conn_est    Waiting for connection confirm message, 1 to 2 minutes (default: 1 m)
+  ias         Send keep-alive: on an idle connection, delay before sending an Idle Timer message, 5 to 10 minutes (default: 7 m)
+  iar         Receive keep-alive: on an idle connection, delay until considering a connection as stale, 11 to 21 minutes (default: 15 m)
   rel         Waiting for release complete message, 10 to 20 seconds (default: 10)
   repeat_rel  Waiting for release complete message; or to repeat sending released message after the initial expiry, 10 to 20 seconds (default: 10)
-  int         Waiting for release complete message; or to release connection resources, freeze the LRN and alert a maintenance function after the initial expiry, extending to 1 minute (default: 60)
-  guard       Waiting to resume normal procedure for temporary connection sections during the restart procedure, 23 to 25 minutes (default: 1380)
+  int         Waiting for release complete message; or to release connection resources, freeze the LRN and alert a maintenance function after the initial expiry, extending to 1 minute (default: 1 m)
+  guard       Waiting to resume normal procedure for temporary connection sections during the restart procedure, 23 to 25 minutes (default: 23 m)
   reset       Waiting to release temporary connection section or alert maintenance function after reset request message is sent, 10 to 20 seconds (default: 10)
   reassembly  Waiting to receive all the segments of the remaining segments, single segmented message after receiving the first segment, 10 to 20 seconds (default: 10)
 
 ss7_asp_vty_test(config-cs7)# sccp-timer conn_est ?
-  <1-999999>  Timer value, in seconds
+  <1-999999>  Timer value, in seconds unless a different unit keyword follows
+
+ss7_asp_vty_test(config-cs7)# sccp-timer conn_est 1 ?
+  m     Timer value unit: supply value in minutes instead of seconds
+  s     Timer value unit: supply value in seconds, which is also the default unit
+  ms    Timer value unit: supply value in milliseconds instead of seconds
+  <cr>  
+
+ss7_asp_vty_test(config-cs7)# sccp-timer iar 1 ms
+ss7_asp_vty_test(config-cs7)# do show cs7 instance 0 sccp timers
+...
+sccp-timer iar 1 ms
+...
+
+ss7_asp_vty_test(config-cs7)# sccp-timer iar 1000 ms
+ss7_asp_vty_test(config-cs7)# do show cs7 instance 0 sccp timers
+...
+sccp-timer iar 1
+...
+
+ss7_asp_vty_test(config-cs7)# sccp-timer iar 60000 ms
+ss7_asp_vty_test(config-cs7)# do show cs7 instance 0 sccp timers
+...
+sccp-timer iar 1 m
+...
+
+ss7_asp_vty_test(config-cs7)# sccp-timer iar 60500 ms
+ss7_asp_vty_test(config-cs7)# do show cs7 instance 0 sccp timers
+...
+sccp-timer iar 60500 ms
+...
+
+ss7_asp_vty_test(config-cs7)# sccp-timer iar 65000 ms
+ss7_asp_vty_test(config-cs7)# do show cs7 instance 0 sccp timers
+...
+sccp-timer iar 65
+...
+
+ss7_asp_vty_test(config-cs7)# sccp-timer iar 65
+ss7_asp_vty_test(config-cs7)# do show cs7 instance 0 sccp timers
+...
+sccp-timer iar 65
+...
+
+ss7_asp_vty_test(config-cs7)# sccp-timer iar 180
+ss7_asp_vty_test(config-cs7)# do show cs7 instance 0 sccp timers
+...
+sccp-timer iar 3 m
+...
