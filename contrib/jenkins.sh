@@ -36,9 +36,10 @@ echo
 set -x
 
 autoreconf --install --force
-./configure --enable-sanitize --enable-werror
+./configure --enable-sanitize --enable-werror --enable-external-tests
 $MAKE $PARALLEL_MAKE
-$MAKE distcheck \
+DISTCHECK_CONFIGURE_FLAGS="--enable-external-tests" \
+  $MAKE distcheck \
   || cat-testlogs.sh
 
 osmo-clean-workspace.sh

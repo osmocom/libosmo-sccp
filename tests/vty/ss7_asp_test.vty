@@ -1,0 +1,350 @@
+ss7_asp_vty_test> list
+... !show cs7
+  show cs7 instance <0-15> users
+  show cs7 (sua|m3ua|ipa) [<0-65534>]
+  show cs7 instance <0-15> asp
+  show cs7 instance <0-15> as (active|all|m3ua|sua)
+  show cs7 instance <0-15> sccp users
+  show cs7 instance <0-15> sccp ssn <0-65535>
+  show cs7 instance <0-15> sccp connections
+... !show cs7
+
+ss7_asp_vty_test> enable
+ss7_asp_vty_test# list
+... !show cs7
+  show cs7 instance <0-15> users
+  show cs7 (sua|m3ua|ipa) [<0-65534>]
+  show cs7 instance <0-15> asp
+  show cs7 instance <0-15> as (active|all|m3ua|sua)
+  show cs7 instance <0-15> sccp users
+  show cs7 instance <0-15> sccp ssn <0-65535>
+  show cs7 instance <0-15> sccp connections
+... !show cs7
+
+ss7_asp_vty_test# show ?
+...
+  cs7             ITU-T Signaling System 7
+...
+
+ss7_asp_vty_test# show cs7 ?
+  instance  An instance of the SS7 stack
+  sua       SCCP User Adaptation
+  m3ua      MTP3 User Adaptation
+  ipa       IPA Multiplex (SCCP Lite)
+
+ss7_asp_vty_test# show cs7 m3ua ?
+  [<0-65534>]  Port Number
+
+ss7_asp_vty_test# show cs7 instance ?
+  <0-15>  An instance of the SS7 stack
+
+ss7_asp_vty_test# show cs7 instance 0 ?
+  users  User Table
+  asp    Application Server Process (ASP)
+  as     Application Server (AS)
+  sccp   Signaling Connection Control Part
+
+ss7_asp_vty_test# show cs7 instance 0 as ?
+  active  Display all active ASs
+  all     Display all ASs (default)
+  m3ua    Display all m3ua ASs
+  sua     Display all SUA ASs
+
+ss7_asp_vty_test# show cs7 instance 0 sccp ?
+  users        Show List of SCCP Users registered
+  ssn          Show List of SCCP Users registered
+  connections  Show List of SCCP Users registered
+
+ss7_asp_vty_test# show cs7 instance 0 sccp ssn ?
+  <0-65535>
+
+ss7_asp_vty_test# configure terminal
+ss7_asp_vty_test(config)# cs7 instance 0
+
+ss7_asp_vty_test(config-cs7)# list
+...
+  description .TEXT
+  network-indicator (international | national | reserved | spare)
+  point-code POINT_CODE
+  point-code format <1-24> [<1-23>] [<1-22>]
+  point-code format default
+  point-code delimiter (default|dash)
+  xua rkm routing-key-allocation (static-only|dynamic-permitted)
+  asp NAME <0-65535> <0-65535> (sua|m3ua|ipa)
+  no asp NAME
+  as NAME (sua|m3ua|ipa)
+  no as NAME
+  show cs7 instance <0-15> sccp-addressbook
+  sccp-address NAME
+  no sccp-address NAME
+
+ss7_asp_vty_test(config-cs7)# ?
+...
+  description        Save human-readable description of the object
+  network-indicator  Configure the Network Indicator
+  point-code         Configure the local Point Code
+  xua                SIGTRAN xxxUA related
+  asp                Configure Application Server Process
+  no                 Negate a command or set its defaults
+  as                 Configure an Application Server
+  sccp-address       Create/Modify an SCCP addressbook entry
+
+ss7_asp_vty_test(config-cs7)# description ?
+  TEXT  Text until the end of the line
+
+ss7_asp_vty_test(config-cs7)# network-indicator ?
+  international  International Network
+  national       National Network
+  reserved       Reserved Network
+  spare          Spare Network
+
+ss7_asp_vty_test(config-cs7)# point-code ?
+  POINT_CODE  Point Code
+  format      Configure Point Code Format
+  delimiter   Configure Point Code Delimiter
+
+ss7_asp_vty_test(config-cs7)# point-code format ?
+  <1-24>   Length of first PC component
+  default  Default Point Code Format (3.8.3)
+ss7_asp_vty_test(config-cs7)# point-code format 1 ?
+  [<1-23>]  Length of second PC component
+ss7_asp_vty_test(config-cs7)# point-code format 1 1 ?
+  [<1-22>]  Length of third PC component
+
+ss7_asp_vty_test(config-cs7)# point-code delimiter ?
+  default  Use dot as delimiter
+  dash     User dash as delimiter
+
+ss7_asp_vty_test(config-cs7)# xua ?
+  rkm  Routing Key Management
+ss7_asp_vty_test(config-cs7)# xua rkm ?
+  routing-key-allocation  Routing Key Management Allocation Policy
+ss7_asp_vty_test(config-cs7)# xua rkm routing-key-allocation ?
+  static-only        Only static (pre-confgured) Routing Keys permitted
+  dynamic-permitted  Dynamically allocate Routing Keys for what ASPs request
+
+ss7_asp_vty_test(config-cs7)# asp ?
+  NAME  Name of ASP
+ss7_asp_vty_test(config-cs7)# asp foo ?
+  <0-65535>  Remote SCTP port number
+ss7_asp_vty_test(config-cs7)# asp foo 0 ?
+  <0-65535>  Local SCTP port number
+ss7_asp_vty_test(config-cs7)# asp foo 0 0 ?
+  sua   SCCP User Adaptation
+  m3ua  MTP3 User Adaptation
+  ipa   IPA Multiplex (SCCP Lite)
+
+ss7_asp_vty_test(config-cs7)# as ?
+  NAME  Name of the Application Server
+ss7_asp_vty_test(config-cs7)# as foo ?
+  sua   SCCP User Adaptation
+  m3ua  MTP3 User Adaptation
+  ipa   IPA Multiplex (SCCP Lite)
+
+ss7_asp_vty_test(config-cs7)# sccp-address ?
+  NAME  Name of the SCCP Address
+
+ss7_asp_vty_test(config-cs7)# no ?
+  asp           Disable Application Server Process
+  as            Disable Application Server
+  sccp-address  Delete an SCCP addressbook entry
+ss7_asp_vty_test(config-cs7)# no asp ?
+  NAME  Name of ASP
+ss7_asp_vty_test(config-cs7)# no as ?
+  NAME  Name of AS
+ss7_asp_vty_test(config-cs7)# no sccp-address ?
+  NAME  Name of the SCCP Address
+
+ss7_asp_vty_test(config-cs7)# sccp-address foo
+ss7_asp_vty_test(config-cs7-sccpaddr)# list
+...
+  no point-code
+  no subsystem-number
+  no global-title
+  routing-indicator (GT|PC|IP)
+  point-code POINT_CODE
+  subsystem-number <0-4294967295>
+  global-title
+ss7_asp_vty_test(config-cs7-sccpaddr)# ?
+...
+  no                 Negate a command or set its defaults
+  routing-indicator  Add Routing Indicator
+  point-code         Add point-code Number
+  subsystem-number   Add Subsystem Number
+  global-title       Add/Modify Global Title
+
+ss7_asp_vty_test(config-cs7-sccpaddr)# point-code 1.2.3
+
+ss7_asp_vty_test(config-cs7-sccpaddr)# do show cs7 instance 0 sccp addressbook
+% Unknown command.
+ss7_asp_vty_test(config-cs7-sccpaddr)# exit
+
+ss7_asp_vty_test(config-cs7)# sccp-address foobarfoobarfoobarfoobarfoobarfoobar
+Error: SCCP address name to long: 'foobarfoobarfoobarfoobarfoobarfoobar'
+% Command incomplete.
+
+ss7_asp_vty_test(config-cs7)# exit
+ss7_asp_vty_test(config)# cs7 instance 1
+ss7_asp_vty_test(config-cs7)# sccp-address foo
+Error: SCCP address name already used in ss7 instance 0: 'foo'
+% Command incomplete.
+ss7_asp_vty_test(config-cs7)# sccp-address bar
+ss7_asp_vty_test(config-cs7-sccpaddr)# point-code 1.2.3
+ss7_asp_vty_test(config-cs7-sccpaddr)# exit
+ss7_asp_vty_test(config-cs7)# exit
+ss7_asp_vty_test(config)# no cs7 instance 1
+% Unknown command.
+
+ss7_asp_vty_test(config)# cs7 instance 0
+
+ss7_asp_vty_test(config-cs7)# asp my-asp 12345 54321 m3ua
+ss7_asp_vty_test(config-cs7-asp)# list
+...
+  description .TEXT
+  remote-ip A.B.C.D
+  local-ip A.B.C.D
+  qos-class <0-255>
+  block
+  shutdown
+
+ss7_asp_vty_test(config-cs7-asp)# ?
+...
+  description  Save human-readable description of the object
+  remote-ip    Specify Remote IP Address of ASP
+  local-ip     Specify Local IP Address from which to contact ASP
+  qos-class    Specify QoS Class of ASP
+  block        Allows a SCTP Association with ASP, but doesn't let it become active
+  shutdown     Terminates SCTP association; New associations will be rejected
+
+ss7_asp_vty_test(config-cs7-asp)# remote-ip 127.0.0.200
+ss7_asp_vty_test(config-cs7-asp)# local-ip 127.0.0.100
+ss7_asp_vty_test(config-cs7-asp)# do show cs7 instance 0 asp
+                                                          Effect Primary
+ASP Name      AS Name       State          Type  Rmt Port Remote IP Addr  SCTP
+------------  ------------  -------------  ----  -------- --------------- ----------
+my-asp        ?             uninitialized  m3ua  12345    127.0.0.200               
+ss7_asp_vty_test(config-cs7-asp)# exit
+
+ss7_asp_vty_test(config-cs7)# as my-ass m3ua
+ss7_asp_vty_test(config-cs7-as)# list
+...
+  description .TEXT
+  asp NAME
+  no asp NAME
+  traffic-mode (broadcast | loadshare | roundrobin | override)
+  recovery-timeout <1-2000>
+  qos-class <0-255>
+  routing-key RCONTEXT DPC
+  routing-key RCONTEXT DPC si (aal2|bicc|b-isup|h248|isup|sat-isup|sccp|tup)
+  routing-key RCONTEXT DPC ssn SSN
+  routing-key RCONTEXT DPC si (aal2|bicc|b-isup|h248|isup|sat-isup|sccp|tup) ssn SSN
+  point-code override dpc PC
+
+ss7_asp_vty_test(config-cs7-as)# ?
+...
+  description       Save human-readable description of the object
+  asp               Specify that a given ASP is part of this AS
+  no                Negate a command or set its defaults
+  traffic-mode      Specifies traffic mode of operation of the ASP within the AS
+  recovery-timeout  Specifies the recovery timeout value in milliseconds
+  qos-class         Specity QoS Class of AS
+  routing-key       Define a routing key
+  point-code        Point Code Specific Features
+
+ss7_asp_vty_test(config-cs7-as)# no ?
+  asp  Specify ASP to be removed from this AS
+
+ss7_asp_vty_test(config-cs7-as)# do show cs7 instance 0 as all
+                          Routing    Routing Key                          Cic   Cic
+AS Name      State        Context    Dpc           Si   Opc           Ssn Min   Max
+------------ ------------ ---------- ------------- ---- ------------- --- ----- -----
+my-ass       AS_DOWN      0          0.0.0                                          
+
+ss7_asp_vty_test(config-cs7-as)# do show cs7 instance 0 as active
+                          Routing    Routing Key                          Cic   Cic
+AS Name      State        Context    Dpc           Si   Opc           Ssn Min   Max
+------------ ------------ ---------- ------------- ---- ------------- --- ----- -----
+my-ass       AS_DOWN      0          0.0.0                                          
+
+ss7_asp_vty_test(config-cs7-as)# do show cs7 instance 0 as sua
+                          Routing    Routing Key                          Cic   Cic
+AS Name      State        Context    Dpc           Si   Opc           Ssn Min   Max
+------------ ------------ ---------- ------------- ---- ------------- --- ----- -----
+
+ss7_asp_vty_test(config-cs7-as)# do show cs7 instance 0 as m3ua
+                          Routing    Routing Key                          Cic   Cic
+AS Name      State        Context    Dpc           Si   Opc           Ssn Min   Max
+------------ ------------ ---------- ------------- ---- ------------- --- ----- -----
+my-ass       AS_DOWN      0          0.0.0                                          
+
+ss7_asp_vty_test(config-cs7-as)# asp my-asp
+ss7_asp_vty_test(config-cs7-as)# routing-key 0 3.2.1
+
+ss7_asp_vty_test(config-cs7-as)# do show cs7 instance 0 asp
+                                                          Effect Primary
+ASP Name      AS Name       State          Type  Rmt Port Remote IP Addr  SCTP
+------------  ------------  -------------  ----  -------- --------------- ----------
+my-asp        ?             ASP_DOWN       m3ua  12345    127.0.0.200               
+
+ss7_asp_vty_test(config-cs7-as)# exit
+ss7_asp_vty_test(config-cs7)# do show cs7 instance 0 asp
+                                                          Effect Primary
+ASP Name      AS Name       State          Type  Rmt Port Remote IP Addr  SCTP
+------------  ------------  -------------  ----  -------- --------------- ----------
+my-asp        ?             ASP_DOWN       m3ua  12345    127.0.0.200               
+
+ss7_asp_vty_test(config-cs7)# exit
+
+
+ss7_asp_vty_test(config)# do show cs7 instance 0 asp
+                                                          Effect Primary
+ASP Name      AS Name       State          Type  Rmt Port Remote IP Addr  SCTP
+------------  ------------  -------------  ----  -------- --------------- ----------
+my-asp        ?             ASP_DOWN       m3ua  12345    127.0.0.200               
+
+ss7_asp_vty_test(config)# do show cs7 instance 0 as all
+                          Routing    Routing Key                          Cic   Cic
+AS Name      State        Context    Dpc           Si   Opc           Ssn Min   Max
+------------ ------------ ---------- ------------- ---- ------------- --- ----- -----
+my-ass       AS_DOWN      0          3.2.1                                          
+
+
+
+ss7_asp_vty_test(config)# show running-config
+...
+cs7 instance 1
+ sccp-address bar
+  routing-indicator PC
+  point-code 1.2.3
+cs7 instance 0
+ asp my-asp 12345 54321 m3ua
+  local-ip 127.0.0.100
+  remote-ip 127.0.0.200
+ as my-ass m3ua
+  asp my-asp
+  routing-key 0 3.2.1
+ sccp-address foo
+  routing-indicator PC
+  point-code 1.2.3
+end
+
+ss7_asp_vty_test(config)# do show cs7 instance 0 users
+
+ss7_asp_vty_test(config)# do show cs7 m3ua
+
+ss7_asp_vty_test(config)# cs7 instance 0
+ss7_asp_vty_test(config-cs7)# no asp unknown-asp
+No ASP named 'unknown-asp' found
+
+ss7_asp_vty_test(config-cs7)# no asp my-asp
+
+ss7_asp_vty_test(config-cs7)# do show cs7 instance 0 asp
+                                                          Effect Primary
+ASP Name      AS Name       State          Type  Rmt Port Remote IP Addr  SCTP
+------------  ------------  -------------  ----  -------- --------------- ----------
+
+ss7_asp_vty_test(config-cs7)# do show cs7 instance 0 as all
+                          Routing    Routing Key                          Cic   Cic
+AS Name      State        Context    Dpc           Si   Opc           Ssn Min   Max
+------------ ------------ ---------- ------------- ---- ------------- --- ----- -----
+my-ass       AS_DOWN      0          3.2.1                                          
