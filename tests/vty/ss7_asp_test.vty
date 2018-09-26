@@ -42,7 +42,7 @@ ss7_asp_vty_test# show cs7 instance 0 ?
   users  User Table
   asp    Application Server Process (ASP)
   as     Application Server (AS)
-  sccp   Signaling Connection Control Part
+  sccp   Signalling Connection Control Part
 
 ss7_asp_vty_test# show cs7 instance 0 as ?
   active  Display all active ASs

@@ -5,6 +5,8 @@
 #include <osmocom/sigtran/sccp_sap.h>
 #include <osmocom/sigtran/osmo_ss7.h>
 
+#define SCCP_STR "Signalling Connection Control Part\n"
+
 /* an instance of the SCCP stack */
 struct osmo_sccp_instance {
 	/* entry in global list of ss7 instances */

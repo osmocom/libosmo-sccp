@@ -54,8 +54,7 @@ static void show_user(struct vty *vty, struct osmo_sccp_user *user)
 
 DEFUN(show_sccp_users, show_sccp_users_cmd,
 	"show cs7 instance <0-15> sccp users",
-	SHOW_STR CS7_STR INST_STR INST_STR
-	"Signaling Connection Control Part\n"
+	SHOW_STR CS7_STR INST_STR INST_STR SCCP_STR
 	"Show List of SCCP Users registered\n")
 {
 	int id = atoi(argv[0]);
@@ -83,8 +82,7 @@ DEFUN(show_sccp_users, show_sccp_users_cmd,
 
 DEFUN(show_sccp_user_ssn, show_sccp_user_ssn_cmd,
 	"show cs7 instance <0-15> sccp ssn <0-65535>",
-	SHOW_STR CS7_STR INST_STR INST_STR
-	"Signaling Connection Control Part\n"
+	SHOW_STR CS7_STR INST_STR INST_STR SCCP_STR
 	"Show List of SCCP Users registered\n")
 {
 	int id = atoi(argv[0]);
@@ -118,8 +116,7 @@ DEFUN(show_sccp_user_ssn, show_sccp_user_ssn_cmd,
 
 DEFUN(show_sccp_connections, show_sccp_connections_cmd,
 	"show cs7 instance <0-15> sccp connections",
-	SHOW_STR CS7_STR INST_STR INST_STR
-	"Signaling Connection Control Part\n"
+	SHOW_STR CS7_STR INST_STR INST_STR SCCP_STR
 	"Show List of SCCP Users registered\n")
 {
 	int id = atoi(argv[0]);
