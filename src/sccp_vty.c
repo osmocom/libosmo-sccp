@@ -83,7 +83,8 @@ DEFUN(show_sccp_users, show_sccp_users_cmd,
 DEFUN(show_sccp_user_ssn, show_sccp_user_ssn_cmd,
 	"show cs7 instance <0-15> sccp ssn <0-65535>",
 	SHOW_STR CS7_STR INST_STR INST_STR SCCP_STR
-	"Show List of SCCP Users registered\n")
+	"Find an SCCP User registered for the given SSN\n"
+	"Subsystem Number (SSN)\n")
 {
 	int id = atoi(argv[0]);
 	int ssn = atoi(argv[1]);
@@ -117,7 +118,7 @@ DEFUN(show_sccp_user_ssn, show_sccp_user_ssn_cmd,
 DEFUN(show_sccp_connections, show_sccp_connections_cmd,
 	"show cs7 instance <0-15> sccp connections",
 	SHOW_STR CS7_STR INST_STR INST_STR SCCP_STR
-	"Show List of SCCP Users registered\n")
+	"Show List of active SCCP connections\n")
 {
 	int id = atoi(argv[0]);
 	struct osmo_ss7_instance *inst;

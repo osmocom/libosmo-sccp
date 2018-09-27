@@ -55,11 +55,11 @@ ss7_asp_vty_test# show cs7 instance 0 as ?
 ss7_asp_vty_test# show cs7 instance 0 sccp ?
   addressbook  List all SCCP addressbook entries
   users        Show List of SCCP Users registered
-  ssn          Show List of SCCP Users registered
-  connections  Show List of SCCP Users registered
+  ssn          Find an SCCP User registered for the given SSN
+  connections  Show List of active SCCP connections
 
 ss7_asp_vty_test# show cs7 instance 0 sccp ssn ?
-  <0-65535>
+  <0-65535>  Subsystem Number (SSN)
 
 ss7_asp_vty_test# configure terminal
 ss7_asp_vty_test(config)# cs7 instance 0
