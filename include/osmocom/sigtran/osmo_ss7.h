@@ -298,6 +298,9 @@ struct osmo_ss7_as {
 	/*! Were we dynamically allocated by RKM? */
 	bool rkm_dyn_allocated;
 
+	/*! Were we allocated by "simple client" support? */
+	bool simple_client_allocated;
+
 	struct {
 		char *name;
 		char *description;
@@ -379,6 +382,9 @@ struct osmo_ss7_asp {
 
 	/*! Were we dynamically allocated */
 	bool dyn_allocated;
+
+	/*! Were we allocated by "simple client" support? */
+	bool simple_client_allocated;
 
 	/*! Pending message for non-blocking IPA read */
 	struct msgb *pending_msg;

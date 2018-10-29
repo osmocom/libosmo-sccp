@@ -679,9 +679,8 @@ DEFUN(show_cs7_asp, show_cs7_asp_cmd,
 
 static void write_one_asp(struct vty *vty, struct osmo_ss7_asp *asp)
 {
-	/* skip any dynamically created ASPs (auto-created at connect
-	 * time) */
-	if (asp->dyn_allocated)
+	/* skip any dynamically created ASPs (e.g. auto-created at connect time) */
+	if (asp->dyn_allocated || asp->simple_client_allocated)
 		return;
 
 	vty_out(vty, " asp %s %u %u %s%s",
@@ -939,7 +938,7 @@ static void write_one_as(struct vty *vty, struct osmo_ss7_as *as)
 	unsigned int i;
 
 	/* skip any dynamically allocated AS definitions */
-	if (as->rkm_dyn_allocated)
+	if (as->rkm_dyn_allocated || as->simple_client_allocated)
 		return;
 
 	vty_out(vty, " as %s %s%s", as->cfg.name,

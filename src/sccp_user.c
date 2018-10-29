@@ -409,6 +409,7 @@ osmo_sccp_simple_client_on_ss7_id(void *ctx, uint32_t ss7_id, const char *name,
 			goto out_ss7;
 		as_created = true;
 		as->cfg.routing_key.pc = ss7->cfg.primary_pc;
+		as->simple_client_allocated = true;
 	}
 	LOGP(DLSCCP, LOGL_NOTICE, "%s: Using AS instance %s\n", name,
 	     as->cfg.name);
@@ -457,6 +458,7 @@ osmo_sccp_simple_client_on_ss7_id(void *ctx, uint32_t ss7_id, const char *name,
 				asp->cfg.remote.host =
 				    talloc_strdup(asp, default_remote_ip);
 			}
+			asp->simple_client_allocated = true;
 		} else
 			talloc_free(asp_name);
 
