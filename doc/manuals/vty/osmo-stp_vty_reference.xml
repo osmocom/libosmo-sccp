@@ -321,6 +321,47 @@
         <param name='route' doc='Routing Table' />
       </params>
     </command>
+    <command id='show cs7 instance &lt;0-15&gt; sccp users'>
+      <params>
+        <param name='show' doc='Show running system information' />
+        <param name='cs7' doc='ITU-T Signaling System 7' />
+        <param name='instance' doc='An instance of the SS7 stack' />
+        <param name='&lt;0-15&gt;' doc='An instance of the SS7 stack' />
+        <param name='sccp' doc='Signalling Connection Control Part' />
+        <param name='users' doc='Show List of SCCP Users registered' />
+      </params>
+    </command>
+    <command id='show cs7 instance &lt;0-15&gt; sccp ssn &lt;0-65535&gt;'>
+      <params>
+        <param name='show' doc='Show running system information' />
+        <param name='cs7' doc='ITU-T Signaling System 7' />
+        <param name='instance' doc='An instance of the SS7 stack' />
+        <param name='&lt;0-15&gt;' doc='An instance of the SS7 stack' />
+        <param name='sccp' doc='Signalling Connection Control Part' />
+        <param name='ssn' doc='Find an SCCP User registered for the given SSN' />
+        <param name='&lt;0-65535&gt;' doc='Subsystem Number (SSN)' />
+      </params>
+    </command>
+    <command id='show cs7 instance &lt;0-15&gt; sccp connections'>
+      <params>
+        <param name='show' doc='Show running system information' />
+        <param name='cs7' doc='ITU-T Signaling System 7' />
+        <param name='instance' doc='An instance of the SS7 stack' />
+        <param name='&lt;0-15&gt;' doc='An instance of the SS7 stack' />
+        <param name='sccp' doc='Signalling Connection Control Part' />
+        <param name='connections' doc='Show List of active SCCP connections' />
+      </params>
+    </command>
+    <command id='show cs7 instance &lt;0-15&gt; sccp timers'>
+      <params>
+        <param name='show' doc='Show running system information' />
+        <param name='cs7' doc='ITU-T Signaling System 7' />
+        <param name='instance' doc='An instance of the SS7 stack' />
+        <param name='&lt;0-15&gt;' doc='An instance of the SS7 stack' />
+        <param name='sccp' doc='Signaling Connection Control Part' />
+        <param name='timers' doc='Show List of SCCP timers' />
+      </params>
+    </command>
     <command id='show fsm NAME'>
       <params>
         <param name='show' doc='Show running system information' />
@@ -649,6 +690,47 @@
         <param name='instance' doc='An instance of the SS7 stack' />
         <param name='&lt;0-15&gt;' doc='An instance of the SS7 stack' />
         <param name='route' doc='Routing Table' />
+      </params>
+    </command>
+    <command id='show cs7 instance &lt;0-15&gt; sccp users'>
+      <params>
+        <param name='show' doc='Show running system information' />
+        <param name='cs7' doc='ITU-T Signaling System 7' />
+        <param name='instance' doc='An instance of the SS7 stack' />
+        <param name='&lt;0-15&gt;' doc='An instance of the SS7 stack' />
+        <param name='sccp' doc='Signalling Connection Control Part' />
+        <param name='users' doc='Show List of SCCP Users registered' />
+      </params>
+    </command>
+    <command id='show cs7 instance &lt;0-15&gt; sccp ssn &lt;0-65535&gt;'>
+      <params>
+        <param name='show' doc='Show running system information' />
+        <param name='cs7' doc='ITU-T Signaling System 7' />
+        <param name='instance' doc='An instance of the SS7 stack' />
+        <param name='&lt;0-15&gt;' doc='An instance of the SS7 stack' />
+        <param name='sccp' doc='Signalling Connection Control Part' />
+        <param name='ssn' doc='Find an SCCP User registered for the given SSN' />
+        <param name='&lt;0-65535&gt;' doc='Subsystem Number (SSN)' />
+      </params>
+    </command>
+    <command id='show cs7 instance &lt;0-15&gt; sccp connections'>
+      <params>
+        <param name='show' doc='Show running system information' />
+        <param name='cs7' doc='ITU-T Signaling System 7' />
+        <param name='instance' doc='An instance of the SS7 stack' />
+        <param name='&lt;0-15&gt;' doc='An instance of the SS7 stack' />
+        <param name='sccp' doc='Signalling Connection Control Part' />
+        <param name='connections' doc='Show List of active SCCP connections' />
+      </params>
+    </command>
+    <command id='show cs7 instance &lt;0-15&gt; sccp timers'>
+      <params>
+        <param name='show' doc='Show running system information' />
+        <param name='cs7' doc='ITU-T Signaling System 7' />
+        <param name='instance' doc='An instance of the SS7 stack' />
+        <param name='&lt;0-15&gt;' doc='An instance of the SS7 stack' />
+        <param name='sccp' doc='Signaling Connection Control Part' />
+        <param name='timers' doc='Show List of SCCP timers' />
       </params>
     </command>
     <command id='show fsm NAME'>
@@ -1067,7 +1149,8 @@
         <param name='&lt;1-24&gt;' doc='Length of first PC component' />
         <param name='[&lt;1-23&gt;]' doc='Length of second PC component' />
         <param name='[&lt;1-22&gt;]' doc='Length of third PC component' />
-      </params>    </command>
+      </params>
+    </command>
     <command id='point-code format default'>
       <params>
         <param name='point-code' doc='Point Code' />
@@ -1162,6 +1245,21 @@
         <param name='m3ua' doc='MTP3 User Adaptation' />
         <param name='ipa' doc='IPA Multiplex (SCCP Lite)' />
         <param name='&lt;0-65534&gt;' doc='SCTP Port number' />
+      </params>
+    </command>
+    <command id='sccp-timer (conn_est|ias|iar|rel|repeat_rel|int|guard|reset|reassembly) &lt;1-999999&gt;'>
+      <params>
+        <param name='sccp-timer' doc='Configure SCCP timer values, see ITU-T Q.714' />
+        <param name='conn_est' doc='Waiting for connection confirm message, 1 to 2 minutes (default: 60)' />
+        <param name='ias' doc='Send keep-alive: on an idle connection, delay before sending an Idle Timer message, 5 to 10 minutes (default: 420)' />
+        <param name='iar' doc='Receive keep-alive: on an idle connection, delay until considering a connection as stale, 11 to 21 minutes (default: 900)' />
+        <param name='rel' doc='Waiting for release complete message, 10 to 20 seconds (default: 10)' />
+        <param name='repeat_rel' doc='Waiting for release complete message; or to repeat sending released message after the initial expiry, 10 to 20 seconds (default: 10)' />
+        <param name='int' doc='Waiting for release complete message; or to release connection resources, freeze the LRN and alert a maintenance function after the initial expiry, extending to 1 minute (default: 60)' />
+        <param name='guard' doc='Waiting to resume normal procedure for temporary connection sections during the restart procedure, 23 to 25 minutes (default: 1380)' />
+        <param name='reset' doc='Waiting to release temporary connection section or alert maintenance function after reset request message is sent, 10 to 20 seconds (default: 10)' />
+        <param name='reassembly' doc='Waiting to receive all the segments of the remaining segments, single segmented message after receiving the first segment, 10 to 20 seconds (default: 10)' />
+        <param name='&lt;1-999999&gt;' doc='Timer value, in seconds' />
       </params>
     </command>
   </node>
