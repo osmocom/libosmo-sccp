@@ -85,12 +85,6 @@
         <param name='length' doc='Set number of lines on a screen' />
       </params>
     </command>
-    <command id='echo .MESSAGE'>
-      <params>
-        <param name='echo' doc='Echo a message back to the vty' />
-        <param name='.MESSAGE' doc='The message to echo' />
-      </params>
-    </command>
     <command id='who'>
       <params>
         <param name='who' doc='Display who is on vty' />
@@ -175,7 +169,7 @@
         <param name='1' doc='Prefix each log message with the log level name' />
       </params>
     </command>
-    <command id='logging print file (0|1|basename)'>
+    <command id='logging print file (0|1|basename) [last]'>
       <params>
         <param name='logging' doc='Configure logging' />
         <param name='print' doc='Log output settings' />
@@ -183,6 +177,7 @@
         <param name='0' doc='Don&apos;t prefix each log message' />
         <param name='1' doc='Prefix each log message with the source file and line' />
         <param name='basename' doc='Prefix each log message with the source file&apos;s basename (strip leading paths) and line' />
+        <param name='[last]' doc='Log source file info at the end of a log line. If omitted, log source file info just before the log text.' />
       </params>
     </command>
     <command id='logging set-log-mask MASK'>
@@ -192,20 +187,10 @@
         <param name='MASK' doc='List of logging categories to log, e.g. &apos;abc:mno:xyz&apos;. Available log categories depend on the specific application, refer to the &apos;logging level&apos; command. Optionally add individual log levels like &apos;abc,1:mno,3:xyz,5&apos;, where the level numbers are LOGL_DEBUG=1 LOGL_INFO=3 LOGL_NOTICE=5 LOGL_ERROR=7 LOGL_FATAL=8' />
       </params>
     </command>
-    <command id='logging set log mask MASK'>
-      <params>
-        <param name='logging' doc='Configure logging' />
-        <param name='set' doc='Decide which categories to output.' />
-        <param name='log' doc='Log commands' />
-        <param name='mask' doc='Mask commands' />
-        <param name='MASK' doc='&apos;set log mask&apos; is deprecated, please refer to the docs of &apos;set-log-mask&apos; instead' />
-      </params>
-    </command>
-    <command id='logging level (all|lglobal|llapd|linp|lmux|lmi|lmib|lsms|lctrl|lgtp|lstats|lgsup|loap|lss7|lsccp|lsua|lm3ua|lmgcp|ljibuf) (everything|debug|info|notice|error|fatal)'>
+    <command id='logging level (lglobal|llapd|linp|lmux|lmi|lmib|lsms|lctrl|lgtp|lstats|lgsup|loap|lss7|lsccp|lsua|lm3ua|lmgcp|ljibuf) (debug|info|notice|error|fatal)'>
       <params>
         <param name='logging' doc='Configure logging' />
         <param name='level' doc='Set the log level for a specified category' />
-        <param name='all' doc='Global setting for all subsystems' />
         <param name='lglobal' doc='Library-internal global log family' />
         <param name='llapd' doc='LAPD in libosmogsm' />
         <param name='linp' doc='A-bis Intput Subsystem' />
@@ -224,12 +209,43 @@
         <param name='lm3ua' doc='libosmo-sigtran MTP3 User Adaptation' />
         <param name='lmgcp' doc='libosmo-mgcp Media Gateway Control Protocol' />
         <param name='ljibuf' doc='libosmo-netif Jitter Buffer' />
-        <param name='everything' doc='Don&apos;t use. It doesn&apos;t log anything' />
         <param name='debug' doc='Log debug messages and higher levels' />
         <param name='info' doc='Log informational messages and higher levels' />
         <param name='notice' doc='Log noticeable messages and higher levels' />
         <param name='error' doc='Log error messages and higher levels' />
         <param name='fatal' doc='Log only fatal messages' />
+      </params>
+    </command>
+    <command id='logging level set-all (debug|info|notice|error|fatal)'>
+      <params>
+        <param name='logging' doc='Configure logging' />
+        <param name='level' doc='Set the log level for a specified category' />
+        <param name='set-all' doc='Once-off set all categories to the given log level. There is no single command to take back these changes -- each category is set to the given level, period.' />
+        <param name='debug' doc='Log debug messages and higher levels' />
+        <param name='info' doc='Log informational messages and higher levels' />
+        <param name='notice' doc='Log noticeable messages and higher levels' />
+        <param name='error' doc='Log error messages and higher levels' />
+        <param name='fatal' doc='Log only fatal messages' />
+      </params>
+    </command>
+    <command id='logging level force-all (debug|info|notice|error|fatal)'>
+      <params>
+        <param name='logging' doc='Configure logging' />
+        <param name='level' doc='Set the log level for a specified category' />
+        <param name='force-all' doc='Globally force all logging categories to a specific level. This is released by the &apos;no logging level force-all&apos; command. Note: any &apos;logging level &lt;category&gt; &lt;level&gt;&apos; commands will have no visible effect after this, until the forced level is released.' />
+        <param name='debug' doc='Log debug messages and higher levels' />
+        <param name='info' doc='Log informational messages and higher levels' />
+        <param name='notice' doc='Log noticeable messages and higher levels' />
+        <param name='error' doc='Log error messages and higher levels' />
+        <param name='fatal' doc='Log only fatal messages' />
+      </params>
+    </command>
+    <command id='no logging level force-all'>
+      <params>
+        <param name='no' doc='Negate a command or set its defaults' />
+        <param name='logging' doc='Configure logging' />
+        <param name='level' doc='Set the log level for a specified category' />
+        <param name='force-all' doc='Release any globally forced log level set with &apos;logging level force-all &lt;level&gt;&apos;' />
       </params>
     </command>
     <command id='show logging vty'>
@@ -284,6 +300,16 @@
         <param name='all' doc='Display all ASs (default)' />
         <param name='m3ua' doc='Display all m3ua ASs' />
         <param name='sua' doc='Display all SUA ASs' />
+      </params>
+    </command>
+    <command id='show cs7 instance &lt;0-15&gt; sccp addressbook'>
+      <params>
+        <param name='show' doc='Show running system information' />
+        <param name='cs7' doc='ITU-T Signaling System 7' />
+        <param name='instance' doc='An instance of the SS7 stack' />
+        <param name='&lt;0-15&gt;' doc='An instance of the SS7 stack' />
+        <param name='sccp' doc='Signalling Connection Control Part' />
+        <param name='addressbook' doc='List all SCCP addressbook entries' />
       </params>
     </command>
     <command id='show cs7 instance &lt;0-15&gt; route'>
@@ -376,12 +402,6 @@
         <param name='length' doc='Set number of lines on a screen' />
       </params>
     </command>
-    <command id='echo .MESSAGE'>
-      <params>
-        <param name='echo' doc='Echo a message back to the vty' />
-        <param name='.MESSAGE' doc='The message to echo' />
-      </params>
-    </command>
     <command id='who'>
       <params>
         <param name='who' doc='Display who is on vty' />
@@ -446,7 +466,8 @@
     <command id='logging print extended-timestamp (0|1)'>
       <params>
         <param name='logging' doc='Configure logging' />
-        <param name='print' doc='Log output settings' />        <param name='extended-timestamp' doc='Configure log message timestamping' />
+        <param name='print' doc='Log output settings' />
+        <param name='extended-timestamp' doc='Configure log message timestamping' />
         <param name='0' doc='Don&apos;t prefix each log message' />
         <param name='1' doc='Prefix each log message with current timestamp with YYYYMMDDhhmmssnnn' />
       </params>
@@ -478,7 +499,7 @@
         <param name='1' doc='Prefix each log message with the log level name' />
       </params>
     </command>
-    <command id='logging print file (0|1|basename)'>
+    <command id='logging print file (0|1|basename) [last]'>
       <params>
         <param name='logging' doc='Configure logging' />
         <param name='print' doc='Log output settings' />
@@ -486,6 +507,7 @@
         <param name='0' doc='Don&apos;t prefix each log message' />
         <param name='1' doc='Prefix each log message with the source file and line' />
         <param name='basename' doc='Prefix each log message with the source file&apos;s basename (strip leading paths) and line' />
+        <param name='[last]' doc='Log source file info at the end of a log line. If omitted, log source file info just before the log text.' />
       </params>
     </command>
     <command id='logging set-log-mask MASK'>
@@ -495,20 +517,10 @@
         <param name='MASK' doc='List of logging categories to log, e.g. &apos;abc:mno:xyz&apos;. Available log categories depend on the specific application, refer to the &apos;logging level&apos; command. Optionally add individual log levels like &apos;abc,1:mno,3:xyz,5&apos;, where the level numbers are LOGL_DEBUG=1 LOGL_INFO=3 LOGL_NOTICE=5 LOGL_ERROR=7 LOGL_FATAL=8' />
       </params>
     </command>
-    <command id='logging set log mask MASK'>
-      <params>
-        <param name='logging' doc='Configure logging' />
-        <param name='set' doc='Decide which categories to output.' />
-        <param name='log' doc='Log commands' />
-        <param name='mask' doc='Mask commands' />
-        <param name='MASK' doc='&apos;set log mask&apos; is deprecated, please refer to the docs of &apos;set-log-mask&apos; instead' />
-      </params>
-    </command>
-    <command id='logging level (all|lglobal|llapd|linp|lmux|lmi|lmib|lsms|lctrl|lgtp|lstats|lgsup|loap|lss7|lsccp|lsua|lm3ua|lmgcp|ljibuf) (everything|debug|info|notice|error|fatal)'>
+    <command id='logging level (lglobal|llapd|linp|lmux|lmi|lmib|lsms|lctrl|lgtp|lstats|lgsup|loap|lss7|lsccp|lsua|lm3ua|lmgcp|ljibuf) (debug|info|notice|error|fatal)'>
       <params>
         <param name='logging' doc='Configure logging' />
         <param name='level' doc='Set the log level for a specified category' />
-        <param name='all' doc='Global setting for all subsystems' />
         <param name='lglobal' doc='Library-internal global log family' />
         <param name='llapd' doc='LAPD in libosmogsm' />
         <param name='linp' doc='A-bis Intput Subsystem' />
@@ -527,12 +539,43 @@
         <param name='lm3ua' doc='libosmo-sigtran MTP3 User Adaptation' />
         <param name='lmgcp' doc='libosmo-mgcp Media Gateway Control Protocol' />
         <param name='ljibuf' doc='libosmo-netif Jitter Buffer' />
-        <param name='everything' doc='Don&apos;t use. It doesn&apos;t log anything' />
         <param name='debug' doc='Log debug messages and higher levels' />
         <param name='info' doc='Log informational messages and higher levels' />
         <param name='notice' doc='Log noticeable messages and higher levels' />
         <param name='error' doc='Log error messages and higher levels' />
         <param name='fatal' doc='Log only fatal messages' />
+      </params>
+    </command>
+    <command id='logging level set-all (debug|info|notice|error|fatal)'>
+      <params>
+        <param name='logging' doc='Configure logging' />
+        <param name='level' doc='Set the log level for a specified category' />
+        <param name='set-all' doc='Once-off set all categories to the given log level. There is no single command to take back these changes -- each category is set to the given level, period.' />
+        <param name='debug' doc='Log debug messages and higher levels' />
+        <param name='info' doc='Log informational messages and higher levels' />
+        <param name='notice' doc='Log noticeable messages and higher levels' />
+        <param name='error' doc='Log error messages and higher levels' />
+        <param name='fatal' doc='Log only fatal messages' />
+      </params>
+    </command>
+    <command id='logging level force-all (debug|info|notice|error|fatal)'>
+      <params>
+        <param name='logging' doc='Configure logging' />
+        <param name='level' doc='Set the log level for a specified category' />
+        <param name='force-all' doc='Globally force all logging categories to a specific level. This is released by the &apos;no logging level force-all&apos; command. Note: any &apos;logging level &lt;category&gt; &lt;level&gt;&apos; commands will have no visible effect after this, until the forced level is released.' />
+        <param name='debug' doc='Log debug messages and higher levels' />
+        <param name='info' doc='Log informational messages and higher levels' />
+        <param name='notice' doc='Log noticeable messages and higher levels' />
+        <param name='error' doc='Log error messages and higher levels' />
+        <param name='fatal' doc='Log only fatal messages' />
+      </params>
+    </command>
+    <command id='no logging level force-all'>
+      <params>
+        <param name='no' doc='Negate a command or set its defaults' />
+        <param name='logging' doc='Configure logging' />
+        <param name='level' doc='Set the log level for a specified category' />
+        <param name='force-all' doc='Release any globally forced log level set with &apos;logging level force-all &lt;level&gt;&apos;' />
       </params>
     </command>
     <command id='show logging vty'>
@@ -587,6 +630,16 @@
         <param name='all' doc='Display all ASs (default)' />
         <param name='m3ua' doc='Display all m3ua ASs' />
         <param name='sua' doc='Display all SUA ASs' />
+      </params>
+    </command>
+    <command id='show cs7 instance &lt;0-15&gt; sccp addressbook'>
+      <params>
+        <param name='show' doc='Show running system information' />
+        <param name='cs7' doc='ITU-T Signaling System 7' />
+        <param name='instance' doc='An instance of the SS7 stack' />
+        <param name='&lt;0-15&gt;' doc='An instance of the SS7 stack' />
+        <param name='sccp' doc='Signalling Connection Control Part' />
+        <param name='addressbook' doc='List all SCCP addressbook entries' />
       </params>
     </command>
     <command id='show cs7 instance &lt;0-15&gt; route'>
@@ -891,7 +944,7 @@
         <param name='1' doc='Prefix each log message with the log level name' />
       </params>
     </command>
-    <command id='logging print file (0|1|basename)'>
+    <command id='logging print file (0|1|basename) [last]'>
       <params>
         <param name='logging' doc='Configure logging' />
         <param name='print' doc='Log output settings' />
@@ -899,13 +952,13 @@
         <param name='0' doc='Don&apos;t prefix each log message' />
         <param name='1' doc='Prefix each log message with the source file and line' />
         <param name='basename' doc='Prefix each log message with the source file&apos;s basename (strip leading paths) and line' />
+        <param name='[last]' doc='Log source file info at the end of a log line. If omitted, log source file info just before the log text.' />
       </params>
     </command>
-    <command id='logging level (all|lglobal|llapd|linp|lmux|lmi|lmib|lsms|lctrl|lgtp|lstats|lgsup|loap|lss7|lsccp|lsua|lm3ua|lmgcp|ljibuf) (everything|debug|info|notice|error|fatal)'>
+    <command id='logging level (lglobal|llapd|linp|lmux|lmi|lmib|lsms|lctrl|lgtp|lstats|lgsup|loap|lss7|lsccp|lsua|lm3ua|lmgcp|ljibuf) (debug|info|notice|error|fatal)'>
       <params>
         <param name='logging' doc='Configure logging' />
         <param name='level' doc='Set the log level for a specified category' />
-        <param name='all' doc='Global setting for all subsystems' />
         <param name='lglobal' doc='Library-internal global log family' />
         <param name='llapd' doc='LAPD in libosmogsm' />
         <param name='linp' doc='A-bis Intput Subsystem' />
@@ -924,12 +977,43 @@
         <param name='lm3ua' doc='libosmo-sigtran MTP3 User Adaptation' />
         <param name='lmgcp' doc='libosmo-mgcp Media Gateway Control Protocol' />
         <param name='ljibuf' doc='libosmo-netif Jitter Buffer' />
-        <param name='everything' doc='Don&apos;t use. It doesn&apos;t log anything' />
         <param name='debug' doc='Log debug messages and higher levels' />
         <param name='info' doc='Log informational messages and higher levels' />
         <param name='notice' doc='Log noticeable messages and higher levels' />
         <param name='error' doc='Log error messages and higher levels' />
         <param name='fatal' doc='Log only fatal messages' />
+      </params>
+    </command>
+    <command id='logging level set-all (debug|info|notice|error|fatal)'>
+      <params>
+        <param name='logging' doc='Configure logging' />
+        <param name='level' doc='Set the log level for a specified category' />
+        <param name='set-all' doc='Once-off set all categories to the given log level. There is no single command to take back these changes -- each category is set to the given level, period.' />
+        <param name='debug' doc='Log debug messages and higher levels' />
+        <param name='info' doc='Log informational messages and higher levels' />
+        <param name='notice' doc='Log noticeable messages and higher levels' />
+        <param name='error' doc='Log error messages and higher levels' />
+        <param name='fatal' doc='Log only fatal messages' />
+      </params>
+    </command>
+    <command id='logging level force-all (debug|info|notice|error|fatal)'>
+      <params>
+        <param name='logging' doc='Configure logging' />
+        <param name='level' doc='Set the log level for a specified category' />
+        <param name='force-all' doc='Globally force all logging categories to a specific level. This is released by the &apos;no logging level force-all&apos; command. Note: any &apos;logging level &lt;category&gt; &lt;level&gt;&apos; commands will have no visible effect after this, until the forced level is released.' />
+        <param name='debug' doc='Log debug messages and higher levels' />
+        <param name='info' doc='Log informational messages and higher levels' />
+        <param name='notice' doc='Log noticeable messages and higher levels' />
+        <param name='error' doc='Log error messages and higher levels' />
+        <param name='fatal' doc='Log only fatal messages' />
+      </params>
+    </command>
+    <command id='no logging level force-all'>
+      <params>
+        <param name='no' doc='Negate a command or set its defaults' />
+        <param name='logging' doc='Configure logging' />
+        <param name='level' doc='Set the log level for a specified category' />
+        <param name='force-all' doc='Release any globally forced log level set with &apos;logging level force-all &lt;level&gt;&apos;' />
       </params>
     </command>
   </node>
@@ -983,8 +1067,7 @@
         <param name='&lt;1-24&gt;' doc='Length of first PC component' />
         <param name='[&lt;1-23&gt;]' doc='Length of second PC component' />
         <param name='[&lt;1-22&gt;]' doc='Length of third PC component' />
-      </params>
-    </command>
+      </params>    </command>
     <command id='point-code format default'>
       <params>
         <param name='point-code' doc='Point Code' />
@@ -1041,15 +1124,6 @@
         <param name='no' doc='Negate a command or set its defaults' />
         <param name='as' doc='Disable Application Server' />
         <param name='NAME' doc='Name of AS' />
-      </params>
-    </command>
-    <command id='show cs7 instance &lt;0-15&gt; sccp-addressbook'>
-      <params>
-        <param name='show' doc='Show running system information' />
-        <param name='cs7' doc='ITU-T Signaling System 7' />
-        <param name='instance' doc='An instance of the SS7 stack' />
-        <param name='&lt;0-15&gt;' doc='An instance of the SS7 stack' />
-        <param name='sccp-addressbook' doc='List all SCCP addressbook entries' />
       </params>
     </command>
     <command id='sccp-address NAME'>
@@ -1310,7 +1384,8 @@
       <params>
         <param name='point-code' doc='Add point-code Number' />
         <param name='POINT_CODE' doc='PC' />
-      </params>    </command>
+      </params>
+    </command>
     <command id='subsystem-number &lt;0-4294967295&gt;'>
       <params>
         <param name='subsystem-number' doc='Add Subsystem Number' />
