@@ -179,7 +179,7 @@ static unsigned int num_pc_comp_exp(const struct osmo_ss7_pc_fmt *pc_fmt)
 }
 
 /* get the total width (in bits) of the point-codes in this ss7_instance */
-static unsigned int get_pc_width(const struct osmo_ss7_pc_fmt *pc_fmt)
+uint8_t osmo_ss7_pc_width(const struct osmo_ss7_pc_fmt *pc_fmt)
 {
 	return pc_fmt->component_len[0] + pc_fmt->component_len[1] + pc_fmt->component_len[2];
 }
@@ -189,7 +189,7 @@ static unsigned int get_pc_width(const struct osmo_ss7_pc_fmt *pc_fmt)
 static unsigned int get_pc_comp_shift(const struct osmo_ss7_pc_fmt *pc_fmt,
 					unsigned int comp_num)
 {
-	uint32_t pc_width = get_pc_width(pc_fmt);
+	uint32_t pc_width = osmo_ss7_pc_width(pc_fmt);
 	switch (comp_num) {
 	case 0:
 		return pc_width - pc_fmt->component_len[0];
@@ -287,7 +287,7 @@ const char *osmo_ss7_pointcode_print2(const struct osmo_ss7_instance *inst, uint
 
 int osmo_ss7_pointcode_parse_mask_or_len(struct osmo_ss7_instance *inst, const char *in)
 {
-	unsigned int width = get_pc_width(inst ? &inst->cfg.pc_fmt : &default_pc_fmt);
+	unsigned int width = osmo_ss7_pc_width(inst ? &inst->cfg.pc_fmt : &default_pc_fmt);
 
 	if (in[0] == '/') {
 		/* parse mask by length */

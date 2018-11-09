@@ -113,6 +113,8 @@ int osmo_ss7_bind_all_instances();
 
 struct osmo_sccp_instance *osmo_ss7_ensure_sccp(struct osmo_ss7_instance *inst);
 
+uint8_t osmo_ss7_pc_width(const struct osmo_ss7_pc_fmt *pc_fmt);
+
 /***********************************************************************
  * MTP Users (Users of MTP, such as SCCP or ISUP)
  ***********************************************************************/
