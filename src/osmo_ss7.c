@@ -198,7 +198,8 @@ static unsigned int get_pc_comp_shift(const struct osmo_ss7_pc_fmt *pc_fmt,
 	case 2:
 		return 0;
 	default:
-		return -EINVAL;
+		/* Invalid number of components */
+		OSMO_ASSERT(false);
 	}
 }
 
