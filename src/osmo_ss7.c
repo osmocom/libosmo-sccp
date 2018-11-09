@@ -1424,9 +1424,11 @@ static int xua_srv_conn_cb(struct osmo_stream_srv *conn)
 		__func__, rc, flags);
 	if (rc < 0) {
 		osmo_stream_srv_destroy(conn);
+		rc = -EBADF;
 		goto out;
 	} else if (rc == 0) {
 		osmo_stream_srv_destroy(conn);
+		rc = -EBADF;
 		goto out;
 	} else {
 		msgb_put(msg, rc);
@@ -1440,16 +1442,18 @@ static int xua_srv_conn_cb(struct osmo_stream_srv *conn)
 		switch (notif->sn_header.sn_type) {
 		case SCTP_SHUTDOWN_EVENT:
 			osmo_stream_srv_destroy(conn);
+			rc = -EBADF;
 			break;
 		case SCTP_ASSOC_CHANGE:
 			if (notif->sn_assoc_change.sac_state == SCTP_RESTART)
 				xua_asp_send_xlm_prim_simple(asp, OSMO_XLM_PRIM_M_SCTP_RESTART,
 							     PRIM_OP_INDICATION);
+			rc = 0;
 			break;
 		default:
+			rc = 0;
 			break;
 		}
-		rc = 0;
 		goto out;
 	}
 
