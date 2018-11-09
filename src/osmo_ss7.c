@@ -23,7 +23,7 @@
 #include <string.h>
 #include <errno.h>
 #include <unistd.h>
-
+#include <inttypes.h>
 #include <netdb.h>
 #include <netinet/in.h>
 #include <netinet/sctp.h>
@@ -1828,6 +1828,9 @@ osmo_ss7_xua_server_create(struct osmo_ss7_instance *inst, enum osmo_ss7_asp_pro
 	osmo_stream_srv_link_set_addr(oxs->server, oxs->cfg.local.host);
 	osmo_stream_srv_link_set_port(oxs->server, oxs->cfg.local.port);
 	osmo_stream_srv_link_set_proto(oxs->server, asp_proto_to_ip_proto(proto));
+
+	LOGP(DLSS7, LOGL_INFO, "Created %s server on %s:%" PRIu16 "\n",
+		get_value_string(osmo_ss7_asp_protocol_vals, proto), local_host, local_port);
 
 	oxs->inst = inst;
 	llist_add_tail(&oxs->list, &inst->xua_servers);
