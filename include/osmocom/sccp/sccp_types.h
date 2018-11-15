@@ -106,11 +106,8 @@ struct sccp_called_party_address {
 			routing_indicator    : 1,
 			reserved	     : 1;
 #elif OSMO_IS_BIG_ENDIAN
-	uint8_t	reserved	     : 1,
-			routing_indicator    : 1,
-			global_title_indicator : 4,
-			ssn_indicator	     : 1,
-			point_code_indicator : 1;
+/* auto-generated from the little endian part above (libosmocore/contrib/struct_endianess.py) */
+	uint8_t	reserved:1, routing_indicator:1, global_title_indicator:4, ssn_indicator:1, point_code_indicator:1;
 #endif
 	uint8_t	data[0];
 } __attribute__((packed));
@@ -124,8 +121,8 @@ struct sccp_signalling_point_code {
 	uint8_t	msb : 6,
 			reserved : 2;
 #elif OSMO_IS_BIG_ENDIAN
-	uint8_t	reserved : 2,
-			msb : 6;
+/* auto-generated from the little endian part above (libosmocore/contrib/struct_endianess.py) */
+	uint8_t	reserved:2, msb:6;
 #endif
 } __attribute__((packed));
 
@@ -166,8 +163,8 @@ struct sccp_global_title {
 	uint8_t	nature_of_addr_ind : 7,
 			odd_even : 1;
 #elif OSMO_IS_BIG_ENDIAN
-	uint8_t	odd_even : 1,
-			nature_of_addr_ind : 7;
+/* auto-generated from the little endian part above (libosmocore/contrib/struct_endianess.py) */
+	uint8_t	odd_even:1, nature_of_addr_ind:7;
 #endif
 	uint8_t	data[0];
 } __attribute__((packed));
