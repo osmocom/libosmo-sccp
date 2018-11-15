@@ -131,9 +131,8 @@ struct mtp_level_3_hdr {
 		 spare : 2,
 		 ni : 2;
 #elif OSMO_IS_BIG_ENDIAN
-	uint8_t ni : 2,
-		 spare : 2,
-		 ser_ind : 4;
+/* auto-generated from the little endian part above (libosmocore/contrib/struct_endianess.py) */
+	uint8_t ni:2, spare:2, ser_ind:4;
 #endif
 	uint32_t addr;
 	uint8_t data[0];
@@ -144,8 +143,8 @@ struct mtp_level_3_cmn {
 	uint8_t h0 : 4,
 		 h1 : 4;
 #elif OSMO_IS_BIG_ENDIAN
-	uint8_t h1 : 4,
-		 h0 : 4;
+/* auto-generated from the little endian part above (libosmocore/contrib/struct_endianess.py) */
+	uint8_t h1:4, h0:4;
 #endif
 } __attribute__((packed));
 
@@ -155,8 +154,8 @@ struct mtp_level_3_mng {
 	uint8_t spare : 4,
 		 length : 4;
 #elif OSMO_IS_BIG_ENDIAN
-	uint8_t length : 4,
-		 spare : 4;
+/* auto-generated from the little endian part above (libosmocore/contrib/struct_endianess.py) */
+	uint8_t length:4, spare:4;
 #endif
 	uint8_t data[0];
 } __attribute__((packed));
@@ -175,8 +174,8 @@ struct sccp_con_ctrl_prt_mgt {
 	uint8_t mul_ind : 2,
 		 spare : 6;
 #elif OSMO_IS_BIG_ENDIAN
-	uint8_t spare : 6,
-		 mul_ind : 2;
+/* auto-generated from the little endian part above (libosmocore/contrib/struct_endianess.py) */
+	uint8_t spare:6, mul_ind:2;
 #endif
 } __attribute__((packed));
 
