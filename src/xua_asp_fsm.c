@@ -916,6 +916,29 @@ static void ipa_asp_fsm_wait_id_ack(struct osmo_fsm_inst *fi, uint32_t event, vo
 	}
 }
 
+static void ipa_asp_fsm_del_route(struct ipa_asp_fsm_priv *iafp)
+{
+	struct osmo_ss7_asp *asp = iafp->asp;
+	struct osmo_ss7_instance *inst = asp->inst;
+	struct osmo_ss7_as *as = osmo_ss7_as_find_by_rctx(inst, 0);
+	struct osmo_ss7_route *rt;
+
+	OSMO_ASSERT(as);
+
+	/* find the route which we have created if we ever reached ipa_asp_fsm_wait_id_ack2 */
+	rt = osmo_ss7_route_find_dpc_mask(inst->rtable_system, as->cfg.routing_key.pc, 0xffffff);
+	/* no route found, bail out */
+	if (!rt)
+		return;
+	/* route points to different AS, bail out */
+	if (rt->dest.as != as)
+		return;
+
+	osmo_ss7_route_destroy(rt);
+	/* FIXME: Why don't we also delete this timer if we return early above?
+	 * FIXME: Where is this timer even scheduled? */
+	osmo_timer_del(&iafp->pong_timer);
+}
 
 /* Server + Client: We're actively transmitting user data */
 static void ipa_asp_fsm_active(struct osmo_fsm_inst *fi, uint32_t event, void *data)
@@ -923,7 +946,8 @@ static void ipa_asp_fsm_active(struct osmo_fsm_inst *fi, uint32_t event, void *d
 	switch (event) {
 	case XUA_ASP_E_M_ASP_DOWN_REQ:
 	case XUA_ASP_E_M_ASP_INACTIVE_REQ:
-		/* FIXME: kill ASP and (wait for) re-connect */
+		ipa_asp_fsm_del_route(fi->priv);
+		osmo_fsm_inst_state_chg(fi, IPA_ASP_S_DOWN, 0, 0);
 		break;
 	}
 }
@@ -1025,8 +1049,7 @@ static const struct osmo_fsm_state ipa_asp_states[] = {
 	[IPA_ASP_S_ACTIVE] = {
 		.in_event_mask = S(XUA_ASP_E_M_ASP_DOWN_REQ) |
 				 S(XUA_ASP_E_M_ASP_INACTIVE_REQ),
-		.out_state_mask = S(XUA_ASP_S_INACTIVE) |
-				  S(XUA_ASP_S_DOWN),
+		.out_state_mask = S(IPA_ASP_S_DOWN),
 		.name = "ASP_ACTIVE",
 		.action = ipa_asp_fsm_active,
 		.onenter = ipa_asp_fsm_active_onenter,
@@ -1035,25 +1058,7 @@ static const struct osmo_fsm_state ipa_asp_states[] = {
 
 static void ipa_asp_fsm_cleanup(struct osmo_fsm_inst *fi, enum osmo_fsm_term_cause cause)
 {
-	struct ipa_asp_fsm_priv *iafp = fi->priv;
-	struct osmo_ss7_asp *asp = iafp->asp;
-	struct osmo_ss7_instance *inst = asp->inst;
-	struct osmo_ss7_as *as = osmo_ss7_as_find_by_rctx(inst, 0);
-	struct osmo_ss7_route *rt;
-
-	OSMO_ASSERT(as);
-
-	/* find the route which we have created if we ever reached ipa_asp_fsm_wait_id_ack2 */
-	rt = osmo_ss7_route_find_dpc_mask(inst->rtable_system, as->cfg.routing_key.pc, 0xffffff);
-	/* no route found, bail out */
-	if (!rt)
-		return;
-	/* route points to different AS, bail out */
-	if (rt->dest.as != as)
-		return;
-
-	osmo_ss7_route_destroy(rt);
-	osmo_timer_del(&iafp->pong_timer);
+	ipa_asp_fsm_del_route(fi->priv);
 }
 
 struct osmo_fsm ipa_asp_fsm = {
