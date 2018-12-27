@@ -6,6 +6,7 @@ Type=simple
 Restart=always
 ExecStart=/usr/bin/osmo-stp -c /etc/osmocom/osmo-stp.cfg
 RestartSec=2
+ExecStopPost=/usr/local/bin/save_log_tail osmo-stp
 
 [Install]
 WantedBy=multi-user.target
