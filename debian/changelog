@@ -1,3 +1,61 @@
+libosmo-sccp (1.0.0) unstable; urgency=medium
+
+  [ Harald Welte ]
+  * Migrate from ipa_ccm_idtag_parse() to ipa_ccm_id_resp_parse()
+  * debian/rules: Don't overwrite .tarball-version
+  * Revert "Install systemd services with autotools"
+  * osmo-stp.cfg: Ensure example config is well-formed
+  * First step towards an OsmoSTP manual
+  * STP: Update vty reference XML file
+  * vty-ref: Update URI of docbook 5.0 schema
+
+  [ Pau Espin Pedrol ]
+  * sscp_scrc: Fix memleak of xua_msg when handing it to scrc_rx_mtp_xfer_ind_xua
+  * xua_rkm: Fix xua_msg memleank in handle_rkey_reg_resp
+  * Install systemd services with autotools
+  * Install systemd services with autotools
+  * debian/rules: Remove duplicated override_dh_auto_test section
+  * Install sample cfg file to /etc/osmocom
+  * debian: Document why enable-static is used in dh_auto_configure
+
+  [ Neels Hofmeyr ]
+  * ipa_asp_fsm: init: expect IPA ID ACK, not GET
+  * cosmetic: sccp_scoc.c: fix timers definition units
+  * drop inaccurate comment from osmo_ss7_vty.c
+  * vty: fix 'show asp' from within 'asp' node
+  * allow less characters for SCCP address book entries
+  * add tests/vty: VTY UI transcript testing
+  * sccp_vty: define SCCP_STR once
+  * vty: tweak two printed strings
+  * vty: install 'show cs7' for sccp addrs on _ve nodes
+  * cosmetic: allocate ss7->sccp in one common function
+  * sccp_vty: fix doc strings for show ... ssn,connections
+  * make SCCP timers configurable
+  * build: move include/{mtp,sccp} to include/osmocom/
+  * osmo-stp: add SCCP related VTY commands
+  * Importing history from osmo-gsm-manuals.git
+  * OsmoSTP: update VTY reference
+  * stp: update vty reference
+  * stp: update vty reference with added SCCP commands
+
+  [ Stefan Sperling ]
+  * skip simple-client default as/asp when saving VTY config
+  * return error code from xua_srv_conn_cb() if conn is freed
+  * fix ipa_asp_fsm down state transition
+
+  [ Max ]
+  * Make pointcode width function public
+  * Log ip:port for created SS7 server
+  * SS7: safeguard against wrong number of pointcode component
+
+  [ Oliver Smith ]
+  * build manuals moved here from osmo-gsm-manuals.git
+  * Fix DISTCHECK_CONFIGURE_FLAGS override
+  * contrib/jenkins.sh: build and publish manuals
+  * contrib: fix makedistcheck with disabled systemd
+
+ -- Harald Welte <laforge@gnumonks.org>  Sun, 20 Jan 2019 11:33:22 +0100
+
 libosmo-sccp (0.10.0) unstable; urgency=medium
 
   [ Harald Welte ]

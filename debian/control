@@ -33,7 +33,7 @@ Description: Development files for libsccp, libmtp and libxua
  .
  This package contains the development files for the library.
 
-Package: libosmo-sigtran0
+Package: libosmo-sigtran3
 Section: libs
 Architecture: any
 Multi-Arch: same
@@ -52,7 +52,7 @@ Package: libosmo-sigtran-dbg
 Architecture: any
 Section: debug
 Multi-Arch: same
-Depends: libosmo-sigtran0 (= ${binary:Version}),
+Depends: libosmo-sigtran3 (= ${binary:Version}),
          ${misc:Depends}
 Description: Documentation for the Osmocom SIGTRAN library
   libosmo-sigtran is a shared library containing SS7/SIGTRAN related functionality,
@@ -67,7 +67,7 @@ Package: libosmo-sigtran-doc
 Architecture: all
 Section: doc
 Depends: ${misc:Depends},
-         libosmo-sigtran0 (= ${binary:Version}),
+         libosmo-sigtran3 (= ${binary:Version}),
          libjs-jquery
 Description: Documentation for the Osmocom SIGTRAN library
   libosmo-sigtran is a shared library containing SS7/SIGTRAN related functionality,
@@ -82,7 +82,7 @@ Architecture: any
 Multi-Arch: same
 Section: libdevel
 Depends: ${misc:Depends},
-         libosmo-sigtran0 (= ${binary:Version}),
+         libosmo-sigtran3 (= ${binary:Version}),
          libosmocore-dev,
          libosmo-netif-dev
 Description: Development headers for the Osmocom SIGTRAN library
@@ -97,7 +97,7 @@ Package: osmo-stp
 Architecture: any
 Multi-Arch: same
 Section: net
-Depends: libosmo-sigtran0,
+Depends: libosmo-sigtran3,
          ${shlibs:Depends},
          ${misc:Depends}
 Description: Osmocom SIGTRAN STP (Signaling Transfer Point)
