@@ -1027,7 +1027,7 @@ static int _sccp_handle_connection_request(struct msgb *msgb, void *ctx)
 /* Handle the release confirmed */
 static int _sccp_handle_connection_release_complete(struct msgb *msgb)
 {
-	struct sccp_parse_result result;
+	struct sccp_parse_result result = {};
 	struct sccp_connection *conn;
 
 	if (_sccp_parse_connection_release_complete(msgb, &result) != 0)
