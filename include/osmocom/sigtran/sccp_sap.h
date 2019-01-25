@@ -276,5 +276,8 @@ void osmo_sccp_local_addr_by_instance(struct osmo_sccp_addr *dest_addr,
 				      uint32_t ssn);
 
 bool osmo_sccp_check_addr(struct osmo_sccp_addr *addr, uint32_t presence);
+int osmo_sccp_addr_cmp(const struct osmo_sccp_addr *a, const struct osmo_sccp_addr *b, uint32_t presence_criteria);
+int osmo_sccp_addr_ri_cmp(const struct osmo_sccp_addr *a, const struct osmo_sccp_addr *b);
+int osmo_sccp_gt_cmp(const struct osmo_sccp_gt *a, const struct osmo_sccp_gt *b);
 
 const char *osmo_sccp_user_name(struct osmo_sccp_user *scu);

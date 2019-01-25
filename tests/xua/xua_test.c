@@ -569,6 +569,32 @@ static void test_rkm(void)
 	talloc_free(xua);
 }
 
+void test_sccp_addr_cmp()
+{
+	int ai;
+	int bi;
+	int rc;
+
+	printf("\n%s()\n", __func__);
+
+	for (ai = 0; ai < ARRAY_SIZE(enc_cases); ai++) {
+		for (bi = 0; bi < ARRAY_SIZE(enc_cases); bi++) {
+			struct osmo_sccp_addr a = enc_cases[ai].addr_in;
+			struct osmo_sccp_addr b = enc_cases[bi].addr_in;
+
+			rc = osmo_sccp_addr_cmp(&a, &b, a.presence);
+			rc = OSMO_MIN(1, OSMO_MAX(-1, rc));
+			printf(" [%2d] vs. [%2d]: %2d = osmo_sccp_addr_cmp( %s ,", ai, bi, rc, osmo_sccp_addr_dump(&a));
+			printf(" %s, 0x%x )\n", osmo_sccp_addr_dump(&b), a.presence);
+
+			rc = osmo_sccp_addr_ri_cmp(&a, &b);
+			rc = OSMO_MIN(1, OSMO_MAX(-1, rc));
+			printf("                %2d = osmo_sccp_addr_ri_cmp( %s ,", rc, osmo_sccp_addr_dump(&a));
+			printf(" %s )\n", osmo_sccp_addr_dump(&b));
+		}
+	}
+};
+
 
 static const struct log_info_cat default_categories[] = {
 	[0] = {
@@ -598,6 +624,7 @@ int main(int argc, char **argv)
 	test_sccp2sua();
 	test_rkm();
 	test_sccp_addr_encdec();
+	test_sccp_addr_cmp();
 
 	printf("All tests passed.\n");
 	return 0;

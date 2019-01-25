@@ -293,6 +293,124 @@ bool osmo_sccp_check_addr(struct osmo_sccp_addr *addr, uint32_t presence)
 	return true;
 }
 
+/*! Compare two SCCP Global Titles.
+ * \param[in] a  left side.
+ * \param[in] b  right side.
+ * \return -1 if a < b, 1 if a > b, and 0 if a == b.
+ */
+int osmo_sccp_gt_cmp(const struct osmo_sccp_gt *a, const struct osmo_sccp_gt *b)
+{
+	if (a == b)
+		return 0;
+	if (!a)
+		return -1;
+	if (!b)
+		return 1;
+	return memcmp(a, b, sizeof(*a));
+}
+
+/*! Compare two SCCP addresses by given presence criteria.
+ * Any OSMO_SCCP_ADDR_T_* type not set in presence_criteria is ignored.
+ * In case all bits are set in presence_criteria, the comparison is in the order of:
+ * OSMO_SCCP_ADDR_T_GT, OSMO_SCCP_ADDR_T_PC, OSMO_SCCP_ADDR_T_IPv4, OSMO_SCCP_ADDR_T_IPv6, OSMO_SCCP_ADDR_T_SSN.
+ * The SCCP addresses' Routing Indicator is not compared, see osmo_sccp_addr_ri_cmp().
+ * \param[in] a  left side.
+ * \param[in] b  right side.
+ * \param[in] presence_criteria  A bitmask of OSMO_SCCP_ADDR_T_* values, or 0xffffffff to compare all parts, except the
+ *                               routing indicator.
+ * \return -1 if a < b, 1 if a > b, and 0 if all checked values match.
+ */
+int osmo_sccp_addr_cmp(const struct osmo_sccp_addr *a, const struct osmo_sccp_addr *b, uint32_t presence_criteria)
+{
+	int rc;
+	if (a == b)
+		return 0;
+	if (!a)
+		return -1;
+	if (!b)
+		return 1;
+
+	if (presence_criteria & OSMO_SCCP_ADDR_T_GT) {
+		if ((a->presence & OSMO_SCCP_ADDR_T_GT) != (b->presence & OSMO_SCCP_ADDR_T_GT))
+			return (b->presence & OSMO_SCCP_ADDR_T_GT) ? -1 : 1;
+		rc = osmo_sccp_gt_cmp(&a->gt, &b->gt);
+		if (rc)
+			return rc;
+	}
+
+	if (presence_criteria & OSMO_SCCP_ADDR_T_PC) {
+		if ((a->presence & OSMO_SCCP_ADDR_T_PC) != (b->presence & OSMO_SCCP_ADDR_T_PC))
+			return (b->presence & OSMO_SCCP_ADDR_T_PC) ? -1 : 1;
+
+		if ((a->presence & OSMO_SCCP_ADDR_T_PC)
+		    && a->pc != b->pc)
+			return (a->pc < b->pc)? -1 : 1;
+	}
+
+	if (presence_criteria & OSMO_SCCP_ADDR_T_IPv4) {
+		if ((a->presence & OSMO_SCCP_ADDR_T_IPv4) != (b->presence & OSMO_SCCP_ADDR_T_IPv4))
+			return (b->presence & OSMO_SCCP_ADDR_T_IPv4) ? -1 : 1;
+		rc = memcmp(&a->ip.v4, &b->ip.v4, sizeof(a->ip.v4));
+		if (rc)
+			return rc;
+	}
+
+	if (presence_criteria & OSMO_SCCP_ADDR_T_IPv6) {
+		if ((a->presence & OSMO_SCCP_ADDR_T_IPv6) != (b->presence & OSMO_SCCP_ADDR_T_IPv6))
+			return (b->presence & OSMO_SCCP_ADDR_T_IPv6) ? -1 : 1;
+		rc = memcmp(&a->ip.v6, &b->ip.v6, sizeof(a->ip.v6));
+		if (rc)
+			return rc;
+	}
+
+	if (presence_criteria & OSMO_SCCP_ADDR_T_SSN) {
+		if ((a->presence & OSMO_SCCP_ADDR_T_SSN) != (b->presence & OSMO_SCCP_ADDR_T_SSN))
+			return (b->presence & OSMO_SCCP_ADDR_T_SSN) ? -1 : 1;
+		if (a->ssn != b->ssn)
+			return (a->ssn < b->ssn) ? -1 : 1;
+	}
+
+	return 0;
+}
+
+/*! Compare the routing information of two SCCP addresses.
+ * Compare the ri of a and b, and, if equal, return osmo_sccp_addr_cmp() with presence criteria selected according to
+ * ri.
+ * \param[in] a  left side.
+ * \param[in] b  right side.
+ * \return -1 if a < b, 1 if a > b, and 0 if a == b.
+ */
+int osmo_sccp_addr_ri_cmp(const struct osmo_sccp_addr *a, const struct osmo_sccp_addr *b)
+{
+	uint32_t presence_criteria;
+	if (a == b)
+		return 0;
+	if (!a)
+		return -1;
+	if (!b)
+		return 1;
+	if (a->ri != b->ri)
+		return (a->ri < b->ri) ? -1 : 1;
+	switch (a->ri) {
+	case OSMO_SCCP_RI_NONE:
+		return 0;
+	case OSMO_SCCP_RI_GT:
+		presence_criteria = OSMO_SCCP_ADDR_T_GT;
+		break;
+	case OSMO_SCCP_RI_SSN_PC:
+		presence_criteria = OSMO_SCCP_ADDR_T_SSN | OSMO_SCCP_ADDR_T_PC;
+		break;
+	case OSMO_SCCP_RI_SSN_IP:
+		/* Pick IPv4 or v6 depending on what a->presence indicates. */
+		presence_criteria = OSMO_SCCP_ADDR_T_SSN | (a->presence & (OSMO_SCCP_ADDR_T_IPv4 | OSMO_SCCP_ADDR_T_IPv6));
+		break;
+	default:
+		return 0;
+	}
+
+	return osmo_sccp_addr_cmp(a, b, presence_criteria);
+}
+
 /*! Compose a human readable string to describe the SCCP user's connection.
  * The output follows ['<scu.name>':]<local-sccp-addr>, e.g.  "'OsmoHNBW':RI=SSN_PC,PC=0.23.5,SSN=RANAP",
  * or just "RI=SSN_PC,PC=0.23.5,SSN=RANAP" if no scu->name is set.
