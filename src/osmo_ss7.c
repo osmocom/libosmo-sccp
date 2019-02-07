@@ -1261,12 +1261,13 @@ int osmo_ss7_asp_restart(struct osmo_ss7_asp *asp)
 		else
 			osmo_stream_cli_set_read_cb(asp->client, xua_cli_read_cb);
 		osmo_stream_cli_set_data(asp->client, asp);
-		rc = osmo_stream_cli_open2(asp->client, 1);
+		rc = osmo_stream_cli_open(asp->client);
 		if (rc < 0) {
 			LOGSS7(asp->inst, LOGL_ERROR, "Unable to open stream"
 				" client for ASP %s\n", asp->cfg.name);
-			/* we don't return error in here because osmo_stream_cli_open2()
-			   will continue to retry to connect so the error is transient  */
+			/* we don't return error in here because osmo_stream_cli_open()
+			   will continue to retry (due to timeout being explicitly set with
+			   osmo_stream_cli_set_reconnect_timeout() above) to connect so the error is transient */
 		}
 		/* TODO: make this configurable and not implicit */
 		role = XUA_ASPFSM_ROLE_ASP;
