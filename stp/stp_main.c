@@ -25,6 +25,7 @@
 #include <getopt.h>
 #include <signal.h>
 
+#include <osmocom/core/stats.h>
 #include <osmocom/core/select.h>
 #include <osmocom/core/signal.h>
 #include <osmocom/core/talloc.h>
@@ -33,6 +34,7 @@
 #include <osmocom/core/application.h>
 #include <osmocom/core/fsm.h>
 #include <osmocom/vty/vty.h>
+#include <osmocom/vty/stats.h>
 #include <osmocom/vty/command.h>
 #include <osmocom/vty/ports.h>
 #include <osmocom/vty/telnet_interface.h>
@@ -163,6 +165,7 @@ int main(int argc, char **argv)
 	tall_stp_ctx = talloc_named_const(NULL, 1, "osmo-stp");
 	msgb_talloc_ctx_init(tall_stp_ctx, 0);
 	osmo_init_logging2(tall_stp_ctx, &log_info);
+	osmo_stats_init(tall_stp_ctx);
 	vty_init(&vty_info);
 
 	handle_options(argc, argv);
@@ -173,6 +176,7 @@ int main(int argc, char **argv)
 	osmo_ss7_init();
 	osmo_fsm_log_addr(false);
 	logging_vty_add_cmds(&log_info);
+	osmo_stats_vty_add_cmds();
 	osmo_ss7_vty_init_sg(tall_stp_ctx);
 	osmo_sccp_vty_init();
 	osmo_fsm_vty_add_cmds();
