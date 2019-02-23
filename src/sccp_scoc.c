@@ -1700,7 +1700,7 @@ int osmo_sccp_user_sap_down(struct osmo_sccp_user *scu, struct osmo_prim_hdr *op
 	int rc = 0;
 	int event;
 
-	LOGP(DLSCCP, LOGL_DEBUG, "Received SCCP User Primitive %s)\n",
+	LOGP(DLSCCP, LOGL_DEBUG, "Received SCCP User Primitive (%s)\n",
 		osmo_scu_prim_name(&prim->oph));
 
 	switch (OSMO_PRIM_HDR(&prim->oph)) {
