@@ -263,6 +263,7 @@ osmo_sccp_user_bind(struct osmo_sccp_instance *inst, const char *name,
 		    osmo_prim_cb prim_cb, uint16_t ssn);
 
 int osmo_sccp_user_sap_down(struct osmo_sccp_user *scu, struct osmo_prim_hdr *oph);
+int osmo_sccp_user_sap_down_nofree(struct osmo_sccp_user *scu, struct osmo_prim_hdr *oph);
 
 struct osmo_ss7_instance *
 osmo_sccp_addr_by_name(struct osmo_sccp_addr *dest_addr,

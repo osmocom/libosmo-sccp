@@ -116,6 +116,7 @@ int sccp_user_prim_up(struct osmo_sccp_user *scut, struct osmo_scu_prim *prim);
 
 /* SCU -> SCLC */
 int sccp_sclc_user_sap_down(struct osmo_sccp_user *scu, struct osmo_prim_hdr *oph);
+int sccp_sclc_user_sap_down_nofree(struct osmo_sccp_user *scu, struct osmo_prim_hdr *oph);
 
 struct msgb *sccp_msgb_alloc(const char *name);
 

@@ -1694,15 +1694,15 @@ static uint32_t scu_prim_conn_id(const struct osmo_scu_prim *prim)
 	}
 }
 
-/*! \brief Main entrance function for primitives from SCCP User
+/*! Main entrance function for primitives from SCCP User.
+ * The caller is required to free oph->msg, otherwise the same as osmo_sccp_user_sap_down().
  *  \param[in] scu SCCP User sending us the primitive
  *  \param[in] oph Osmocom primitive sent by the user
  *  \returns 0 on success; negative on error */
-int osmo_sccp_user_sap_down(struct osmo_sccp_user *scu, struct osmo_prim_hdr *oph)
+int osmo_sccp_user_sap_down_nofree(struct osmo_sccp_user *scu, struct osmo_prim_hdr *oph)
 {
 	struct osmo_scu_prim *prim = (struct osmo_scu_prim *) oph;
 	struct osmo_sccp_instance *inst = scu->inst;
-	struct msgb *msg = prim->oph.msg;
 	struct sccp_connection *conn;
 	int rc = 0;
 	int event;
@@ -1714,7 +1714,7 @@ int osmo_sccp_user_sap_down(struct osmo_sccp_user *scu, struct osmo_prim_hdr *op
 	case OSMO_PRIM(OSMO_SCU_PRIM_N_UNITDATA, PRIM_OP_REQUEST):
 	/* other CL primitives? */
 		/* Connectionless by-passes this altogether */
-		return sccp_sclc_user_sap_down(scu, oph);
+		return sccp_sclc_user_sap_down_nofree(scu, oph);
 	case OSMO_PRIM(OSMO_SCU_PRIM_N_CONNECT, PRIM_OP_REQUEST):
 		/* Allocate new connection structure */
 		conn = conn_create_id(scu, prim->u.connect.conn_id);
@@ -1722,7 +1722,7 @@ int osmo_sccp_user_sap_down(struct osmo_sccp_user *scu, struct osmo_prim_hdr *op
 			/* FIXME: inform SCCP user with proper reply */
 			LOGP(DLSCCP, LOGL_ERROR, "Cannot create conn-id for primitive %s\n",
 			     osmo_scu_prim_name(&prim->oph));
-			goto out;
+			return rc;
 		}
 		break;
 	case OSMO_PRIM(OSMO_SCU_PRIM_N_CONNECT, PRIM_OP_RESPONSE):
@@ -1735,25 +1735,33 @@ int osmo_sccp_user_sap_down(struct osmo_sccp_user *scu, struct osmo_prim_hdr *op
 			/* FIXME: inform SCCP user with proper reply */
 			LOGP(DLSCCP, LOGL_ERROR, "Received unknown conn-id %u for primitive %s\n",
 			     scu_prim_conn_id(prim), osmo_scu_prim_name(&prim->oph));
-			goto out;
+			return rc;
 		}
 		break;
 	default:
 		LOGP(DLSCCP, LOGL_ERROR, "Received unknown primitive %s\n",
 			osmo_scu_prim_name(&prim->oph));
-		rc = -1;
-		goto out;
+		return -1;
 	}
 
 	/* Map from primitive to event */
 	event = osmo_event_for_prim(oph, scu_scoc_event_map);
 
 	/* Dispatch event into connection */
-	rc = osmo_fsm_inst_dispatch(conn->fi, event, prim);
-out:
-	/* the SAP is supposed to consume the primitive/msgb */
-	msgb_free(msg);
+	return osmo_fsm_inst_dispatch(conn->fi, event, prim);
+}
 
+/*! Main entrance function for primitives from SCCP User.
+ * Implies a msgb_free(oph->msg), otherwise the same as osmo_sccp_user_sap().
+ *  \param[in] scu SCCP User sending us the primitive
+ *  \param[in] oph Osmocom primitive sent by the user
+ *  \returns 0 on success; negative on error */
+int osmo_sccp_user_sap_down(struct osmo_sccp_user *scu, struct osmo_prim_hdr *oph)
+{
+	struct osmo_scu_prim *prim = (struct osmo_scu_prim *) oph;
+	struct msgb *msg = prim->oph.msg;
+	int rc = osmo_sccp_user_sap_down_nofree(scu, oph);
+	msgb_free(msg);
 	return rc;
 }
 

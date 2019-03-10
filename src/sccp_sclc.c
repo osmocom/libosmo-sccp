@@ -115,15 +115,14 @@ static int xua_gen_encode_and_send(struct osmo_sccp_user *scu, uint32_t event,
 	return rc;
 }
 
-/*! \brief Main entrance function for primitives from SCCP User
+/*! Main entrance function for primitives from SCCP User.
+ * The caller is required to free oph->msg, otherwise the same as sccp_sclc_user_sap_down().
  *  \param[in] scu SCCP User who is sending the primitive
  *  \param[on] oph Osmocom primitive header of the primitive
  *  \returns 0 on success; negtive in case of error */
-int sccp_sclc_user_sap_down(struct osmo_sccp_user *scu, struct osmo_prim_hdr *oph)
+int sccp_sclc_user_sap_down_nofree(struct osmo_sccp_user *scu, struct osmo_prim_hdr *oph)
 {
 	struct osmo_scu_prim *prim = (struct osmo_scu_prim *) oph;
-	struct msgb *msg = prim->oph.msg;
-	int rc = 0;
 
 	/* we get called from osmo_sccp_user_sap_down() which already
 	 * has debug-logged the primitive */
@@ -131,20 +130,26 @@ int sccp_sclc_user_sap_down(struct osmo_sccp_user *scu, struct osmo_prim_hdr *op
 	switch (OSMO_PRIM_HDR(&prim->oph)) {
 	case OSMO_PRIM(OSMO_SCU_PRIM_N_UNITDATA, PRIM_OP_REQUEST):
 		/* Connectionless by-passes this altogether */
-		rc = xua_gen_encode_and_send(scu, -1, prim, SUA_CL_CLDT);
-		goto out;
+		return xua_gen_encode_and_send(scu, -1, prim, SUA_CL_CLDT);
 	default:
 		LOGP(DLSCCP, LOGL_ERROR, "Received unknown SCCP User "
 		     "primitive %s from user\n",
 		     osmo_scu_prim_name(&prim->oph));
-		rc = -1;
-		goto out;
+		return -1;
 	}
+}
 
-out:
-	/* the SAP is supposed to consume the primitive/msgb */
+/*! Main entrance function for primitives from SCCP User.
+ * Implies a msgb_free(oph->msg), otherwise the same as sccp_sclc_user_sap_down_nofree().
+ *  \param[in] scu SCCP User who is sending the primitive
+ *  \param[on] oph Osmocom primitive header of the primitive
+ *  \returns 0 on success; negtive in case of error */
+int sccp_sclc_user_sap_down(struct osmo_sccp_user *scu, struct osmo_prim_hdr *oph)
+{
+	struct osmo_scu_prim *prim = (struct osmo_scu_prim *) oph;
+	struct msgb *msg = prim->oph.msg;
+	int rc = sccp_sclc_user_sap_down_nofree(scu, oph);
 	msgb_free(msg);
-
 	return rc;
 }
 
