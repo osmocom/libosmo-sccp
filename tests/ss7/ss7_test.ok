@@ -24,4 +24,7 @@ mask /16 => 16776960 (0xffff00) 255-255-0
 mask /24 => 16777215 (0xffffff) 255-255-255
 Testing SS7 user
 Testing SS7 routing
+route with full mask: 0.1.4/14
+route with partial mask: 0.1.0/11
+route with non-consecutive mask: 0.1.0/7.255.1
 Testing SS7 linkset/link

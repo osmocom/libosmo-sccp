@@ -238,6 +238,7 @@ struct osmo_ss7_route *
 osmo_ss7_route_create(struct osmo_ss7_route_table *rtbl, uint32_t dpc,
 			uint32_t mask, const char *linkset_name);
 void osmo_ss7_route_destroy(struct osmo_ss7_route *rt);
+const char *osmo_ss7_route_print(const struct osmo_ss7_route *rt);
 const char *osmo_ss7_route_name(struct osmo_ss7_route *rt, bool list_asps);
 
 

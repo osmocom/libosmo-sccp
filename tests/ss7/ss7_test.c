@@ -162,12 +162,14 @@ static void test_route(void)
 	/* route with full mask */
 	OSMO_ASSERT(osmo_ss7_route_find_dpc(rtbl, 12) == NULL);
 	rt = osmo_ss7_route_create(rtbl, 12, 0xffff, "a");
+	printf("route with full mask: %s\n", osmo_ss7_route_print(rt));
 	OSMO_ASSERT(rt);
 	OSMO_ASSERT(osmo_ss7_route_find_dpc(rtbl, 12) == rt);
 	osmo_ss7_route_destroy(rt);
 
 	/* route with partial mask */
 	rt = osmo_ss7_route_create(rtbl, 8, 0xfff8, "a");
+	printf("route with partial mask: %s\n", osmo_ss7_route_print(rt));
 	OSMO_ASSERT(osmo_ss7_route_find_dpc(rtbl, 8) == rt);
 	OSMO_ASSERT(osmo_ss7_route_find_dpc(rtbl, 9) == rt);
 	OSMO_ASSERT(osmo_ss7_route_find_dpc(rtbl, 12) == rt);
@@ -187,6 +189,10 @@ static void test_route(void)
 
 	osmo_ss7_route_destroy(rtdef);
 	osmo_ss7_route_destroy(rt12);
+	osmo_ss7_route_destroy(rt);
+
+	rt = osmo_ss7_route_create(rtbl, 8, 0xfff9, "a");
+	printf("route with non-consecutive mask: %s\n", osmo_ss7_route_print(rt));
 	osmo_ss7_route_destroy(rt);
 
 	osmo_ss7_linkset_destroy(lset_a);

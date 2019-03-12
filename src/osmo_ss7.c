@@ -838,6 +838,48 @@ void osmo_ss7_route_destroy(struct osmo_ss7_route *rt)
 	talloc_free(rt);
 }
 
+/* count number of consecutive leading (MSB) bits that are '1' */
+static unsigned int count_leading_one_bits(uint32_t inp, unsigned int nbits)
+{
+	unsigned int i;
+
+	for (i = 0; i < nbits; i++) {
+		if (!(inp & (1 << (nbits-1-i))))
+			return i;
+	}
+	return i;
+}
+
+/* determine the mask length in number of bits; negative if non-consecutive mask */
+static int u32_masklen(uint32_t mask, unsigned int nbits)
+{
+	unsigned int i;
+	unsigned int leading_one_bits = count_leading_one_bits(mask, nbits);
+
+	/* are there any bits set after the initial bits? */
+	for (i = leading_one_bits; i < nbits; i++) {
+		if (mask & (1 << (nbits-1-i)))
+			return -1; /* not a simple prefix mask */
+	}
+	return leading_one_bits;
+}
+
+const char *osmo_ss7_route_print(const struct osmo_ss7_route *rt)
+{
+	const struct osmo_ss7_instance *inst = rt->rtable->inst;
+	unsigned int pc_width = osmo_ss7_pc_width(&inst->cfg.pc_fmt);
+	static char buf[64];
+	int rc = u32_masklen(rt->cfg.mask, pc_width);
+
+	if (rc < 0)
+		snprintf(buf, sizeof(buf), "%s/%s", osmo_ss7_pointcode_print(inst, rt->cfg.pc),
+			 osmo_ss7_pointcode_print2(inst, rt->cfg.mask));
+	else
+		snprintf(buf, sizeof(buf), "%s/%u", osmo_ss7_pointcode_print(inst, rt->cfg.pc), rc);
+	return buf;
+}
+
+
 /***********************************************************************
  * SS7 Application Server
  ***********************************************************************/
