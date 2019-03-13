@@ -362,7 +362,7 @@ static void write_one_rtable(struct vty *vty, struct osmo_ss7_route_table *rtabl
 	llist_for_each_entry(rt, &rtable->routes, list) {
 		vty_out(vty, "  update route %s %s linkset %s",
 			osmo_ss7_pointcode_print(rtable->inst, rt->cfg.pc),
-			osmo_ss7_pointcode_print(rtable->inst, rt->cfg.mask),
+			osmo_ss7_pointcode_print2(rtable->inst, rt->cfg.mask),
 			rt->cfg.linkset_name);
 		if (rt->cfg.priority)
 			vty_out(vty, " priority %u", rt->cfg.priority);
