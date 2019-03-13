@@ -214,7 +214,7 @@ static int handle_rkey_reg(struct osmo_ss7_asp *asp, struct xua_msg *inner,
 	if (as) {
 		LOGPASP(asp, DLSS7, LOGL_NOTICE, "RKM: Found existing AS for RCTX %u\n", rctx);
 		if (as->cfg.routing_key.pc != dpc) {
-			LOGPASP(asp, DLSS7, LOGL_NOTICE, "RKM: DPC doesn't match (%u != %u)\n",
+			LOGPASP(asp, DLSS7, LOGL_ERROR, "RKM: DPC doesn't match, rejecting AS (%u != %u)\n",
 				as->cfg.routing_key.pc, dpc);
 			msgb_append_reg_res(resp, rk_id, M3UA_RKM_REG_ERR_INVAL_RKEY, 0);
 			return -1;
@@ -250,6 +250,8 @@ static int handle_rkey_reg(struct osmo_ss7_asp *asp, struct xua_msg *inner,
 		if (*nas_idx >= max_nas_idx) {
 			osmo_ss7_route_destroy(rt);
 			osmo_ss7_as_destroy(as);
+			LOGPASP(asp, DLSS7, LOGL_ERROR, "RKM: not enough room for newly assigned AS (max %u AS)\n",
+				max_nas_idx+1);
 			msgb_append_reg_res(resp, rk_id, M3UA_RKM_REG_ERR_INSUFF_RESRC, 0);
 			return -1;
 		}
