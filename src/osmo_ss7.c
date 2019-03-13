@@ -1691,9 +1691,15 @@ static int xua_accept_cb(struct osmo_stream_srv_link *link, int fd)
 			asp = osmo_ss7_asp_find_or_create(oxs->inst, namebuf, 0, 0,
 							  oxs->cfg.proto);
 			if (asp) {
+				char hostbuf[INET6_ADDRSTRLEN];
+				char portbuf[16];
+
+				osmo_sock_get_ip_and_port(fd, hostbuf, sizeof(hostbuf), portbuf, sizeof(portbuf), false);
 				LOGP(DLSS7, LOGL_INFO, "%s: created dynamicASP %s\n",
 					sock_name, asp->cfg.name);
 				asp->cfg.is_server = true;
+				asp->cfg.remote.port = atoi(portbuf);
+				asp->cfg.remote.host = talloc_strdup(asp, hostbuf);
 				asp->dyn_allocated = true;
 				asp->server = srv;
 				osmo_ss7_asp_restart(asp);
