@@ -83,7 +83,15 @@ struct sccp_connection {
 	/* local/remote addresses and identiies */
 	struct osmo_sccp_addr calling_addr;
 	struct osmo_sccp_addr called_addr;
+	/* SCCP connection identifier. Only relevant across the SCCP User SAP,
+	 * i.e. between the local application using the SCCP stack provided by
+	 * libosmo-sccp.  Never transmitted over the wire! */
 	uint32_t conn_id;
+	/* SCCP Remote Connection Reference.  Allocated by the remote
+	 * SCCP stack to uniquely identify a SCCP connection on its end.
+	 * We don't interpret it, but simply cache it here so we can use
+	 * it whever sending data to the peer. Only relevant over the
+	 * wire, not to be used across the SCCP user SAP */
 	uint32_t remote_ref;
 
 	uint32_t importance;
