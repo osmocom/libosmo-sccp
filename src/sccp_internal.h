@@ -78,6 +78,9 @@ struct osmo_sccp_user {
 
 	/* Application Server FSM Instance */
 	struct osmo_fsm_inst *as_fi;
+
+	/* next local reference to allocate */
+	uint32_t next_local_ref;
 };
 
 extern int DSCCP;
