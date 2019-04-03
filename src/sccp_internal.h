@@ -47,7 +47,7 @@ struct osmo_sccp_instance {
 	struct llist_head users;
 	/* routing context to be used in all outbound messages */
 	uint32_t route_ctx;
-	/* next local reference to allocate */
+	/* next connection ID to allocate */
 	uint32_t next_id;
 	struct osmo_ss7_instance *ss7;
 	void *priv;

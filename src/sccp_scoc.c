@@ -458,7 +458,7 @@ static struct sccp_connection *conn_find_by_id(struct osmo_sccp_instance *inst, 
 
 #define INIT_TIMER(x, fn, priv)		do { (x)->cb = fn; (x)->data = priv; } while (0)
 
-/* allocate + init a SCCP Connection with given ID (local reference) */
+/* allocate + init a SCCP Connection with given ID */
 static struct sccp_connection *conn_create_id(struct osmo_sccp_instance *inst,
 					      uint32_t conn_id)
 {
@@ -480,7 +480,7 @@ static struct sccp_connection *conn_create_id(struct osmo_sccp_instance *inst,
 	/* this might change at runtime, as it is not a constant :/ */
 	sccp_scoc_fsm.log_subsys = DLSCCP;
 
-	/* we simply use the local reference as FSM instance name */
+	/* we simply use the connection ID as FSM instance name */
 	snprintf(name, sizeof(name), "%u", conn->conn_id);
 	conn->fi = osmo_fsm_inst_alloc(&sccp_scoc_fsm, conn, conn,
 					LOGL_DEBUG, name);
@@ -493,7 +493,7 @@ static struct sccp_connection *conn_create_id(struct osmo_sccp_instance *inst,
 	return conn;
 }
 
-/* Search for next free connection ID (local reference) and allocate conn */
+/* Search for next free connection ID and allocate conn */
 static struct sccp_connection *conn_create(struct osmo_sccp_instance *inst)
 {
 	uint32_t conn_id;
