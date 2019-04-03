@@ -1329,6 +1329,31 @@ static struct xua_msg *gen_coref_without_conn(struct osmo_sccp_instance *inst,
 	return xua;
 }
 
+/* Find a SCCP user for given SUA message (based on SUA_IEI_DEST_ADDR */
+static struct osmo_sccp_user *sccp_find_user(struct osmo_sccp_instance *inst,
+					     struct xua_msg *xua)
+{
+	int rc;
+	struct osmo_sccp_addr called_addr;
+
+	rc = sua_addr_parse(&called_addr, xua, SUA_IEI_DEST_ADDR);
+	if (rc < 0) {
+		LOGP(DLSCCP, LOGL_ERROR, "Cannot find SCCP User for XUA "
+			"Message %s without valid DEST_ADDR\n",
+			xua_hdr_dump(xua, &xua_dialect_sua));
+		return NULL;
+	}
+
+	if (!(called_addr.presence & OSMO_SCCP_ADDR_T_SSN)) {
+		LOGP(DLSCCP, LOGL_ERROR, "Cannot resolve SCCP User for "
+			"XUA Message %s without SSN in CalledAddr\n",
+			xua_hdr_dump(xua, &xua_dialect_sua));
+		return NULL;
+	}
+
+	return sccp_user_find(inst, called_addr.ssn, called_addr.pc);
+}
+
 /*! \brief SCOC: Receive SCRC Routing Failure
  *  \param[in] inst SCCP Instance on which we operate
  *  \param[in] xua SUA message that was failed to route
@@ -1353,31 +1378,6 @@ void sccp_scoc_rx_scrc_rout_fail(struct osmo_sccp_instance *inst,
 		sccp_scrc_rx_scoc_conn_msg(inst, cref);
 		xua_msg_free(cref);
 	}
-}
-
-/* Find a SCCP user for given SUA message (based on SUA_IEI_DEST_ADDR */
-static struct osmo_sccp_user *sccp_find_user(struct osmo_sccp_instance *inst,
-					     struct xua_msg *xua)
-{
-	int rc;
-	struct osmo_sccp_addr called_addr;
-
-	rc = sua_addr_parse(&called_addr, xua, SUA_IEI_DEST_ADDR);
-	if (rc < 0) {
-		LOGP(DLSCCP, LOGL_ERROR, "Cannot find SCCP User for XUA "
-			"Message %s without valid DEST_ADDR\n",
-			xua_hdr_dump(xua, &xua_dialect_sua));
-		return NULL;
-	}
-
-	if (!(called_addr.presence & OSMO_SCCP_ADDR_T_SSN)) {
-		LOGP(DLSCCP, LOGL_ERROR, "Cannot resolve SCCP User for "
-			"XUA Message %s without SSN in CalledAddr\n",
-			xua_hdr_dump(xua, &xua_dialect_sua));
-		return NULL;
-	}
-
-	return sccp_user_find(inst, called_addr.ssn, called_addr.pc);
 }
 
 /* Generate a COERR based in input arguments */
