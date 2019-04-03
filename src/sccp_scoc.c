@@ -459,16 +459,16 @@ static struct sccp_connection *conn_find_by_id(struct osmo_sccp_instance *inst, 
 #define INIT_TIMER(x, fn, priv)		do { (x)->cb = fn; (x)->data = priv; } while (0)
 
 /* allocate + init a SCCP Connection with given ID */
-static struct sccp_connection *conn_create_id(struct osmo_sccp_instance *inst,
-					      uint32_t conn_id)
+static struct sccp_connection *conn_create_id(struct osmo_sccp_user *user, uint32_t conn_id)
 {
-	struct sccp_connection *conn = talloc_zero(inst, struct sccp_connection);
+	struct sccp_connection *conn = talloc_zero(user->inst, struct sccp_connection);
 	char name[16];
 
 	conn->conn_id = conn_id;
-	conn->inst = inst;
+	conn->inst = user->inst;
+	conn->user = user;
 
-	llist_add_tail(&conn->list, &inst->connections);
+	llist_add_tail(&conn->list, &user->inst->connections);
 
 	INIT_TIMER(&conn->t_conn, conn_tmr_cb, conn);
 	INIT_TIMER(&conn->t_ias, tx_inact_tmr_cb, conn);
@@ -494,15 +494,15 @@ static struct sccp_connection *conn_create_id(struct osmo_sccp_instance *inst,
 }
 
 /* Search for next free connection ID and allocate conn */
-static struct sccp_connection *conn_create(struct osmo_sccp_instance *inst)
+static struct sccp_connection *conn_create(struct osmo_sccp_user *user)
 {
 	uint32_t conn_id;
 
 	do {
-		conn_id = inst->next_id++;
-	} while (conn_find_by_id(inst, conn_id));
+		conn_id = user->inst->next_id++;
+	} while (conn_find_by_id(user->inst, conn_id));
 
-	return conn_create_id(inst, conn_id);
+	return conn_create_id(user, conn_id);
 }
 
 /* destroy a SCCP connection state, releasing all timers, terminating
@@ -1623,8 +1623,7 @@ void sccp_scoc_rx_from_scrc(struct osmo_sccp_instance *inst,
 			return;
 		}
 		/* Allocate new connection */
-		conn = conn_create(inst);
-		conn->user = scu;
+		conn = conn_create(scu);
 		conn->incoming = true;
 	} else {
 		uint32_t conn_id;
@@ -1718,14 +1717,13 @@ int osmo_sccp_user_sap_down(struct osmo_sccp_user *scu, struct osmo_prim_hdr *op
 		return sccp_sclc_user_sap_down(scu, oph);
 	case OSMO_PRIM(OSMO_SCU_PRIM_N_CONNECT, PRIM_OP_REQUEST):
 		/* Allocate new connection structure */
-		conn = conn_create_id(inst, prim->u.connect.conn_id);
+		conn = conn_create_id(scu, prim->u.connect.conn_id);
 		if (!conn) {
 			/* FIXME: inform SCCP user with proper reply */
 			LOGP(DLSCCP, LOGL_ERROR, "Cannot create conn-id for primitive %s\n",
 			     osmo_scu_prim_name(&prim->oph));
 			goto out;
 		}
-		conn->user = scu;
 		break;
 	case OSMO_PRIM(OSMO_SCU_PRIM_N_CONNECT, PRIM_OP_RESPONSE):
 	case OSMO_PRIM(OSMO_SCU_PRIM_N_DATA, PRIM_OP_REQUEST):
