@@ -467,6 +467,18 @@ int _sccp_parse_udt(struct msgb *msgb, struct sccp_parse_result *result)
 	return _sccp_parse_unitdata(msgb, result, &offsets);
 }
 
+int _sccp_parse_udts(struct msgb *msgb, struct sccp_parse_result *result)
+{
+	static const struct udt_offsets offsets = {
+		.header_size = sizeof(struct sccp_data_unitdata_service),
+		.called_offset = offsetof(struct sccp_data_unitdata_service, variable_called),
+		.calling_offset = offsetof(struct sccp_data_unitdata_service, variable_calling),
+		.data_offset = offsetof(struct sccp_data_unitdata_service, variable_data),
+	};
+
+	return _sccp_parse_unitdata(msgb, result, &offsets);
+}
+
 static int _sccp_parse_xudt(struct msgb *msgb, struct sccp_parse_result *result)
 {
 	static const struct udt_offsets offsets = {
@@ -474,6 +486,18 @@ static int _sccp_parse_xudt(struct msgb *msgb, struct sccp_parse_result *result)
 		.called_offset = offsetof(struct sccp_data_ext_unitdata, variable_called),
 		.calling_offset = offsetof(struct sccp_data_ext_unitdata, variable_calling),
 		.data_offset = offsetof(struct sccp_data_ext_unitdata, variable_data),
+	};
+
+	return _sccp_parse_unitdata(msgb, result, &offsets);
+}
+
+static int _sccp_parse_xudts(struct msgb *msgb, struct sccp_parse_result *result)
+{
+	static const struct udt_offsets offsets = {
+		.header_size = sizeof(struct sccp_data_ext_unitdata_service),
+		.called_offset = offsetof(struct sccp_data_ext_unitdata_service, variable_called),
+		.calling_offset = offsetof(struct sccp_data_ext_unitdata_service, variable_calling),
+		.data_offset = offsetof(struct sccp_data_ext_unitdata_service, variable_data),
 	};
 
 	return _sccp_parse_unitdata(msgb, result, &offsets);
@@ -1474,8 +1498,14 @@ int sccp_parse_header(struct msgb *msg, struct sccp_parse_result *result)
 	case SCCP_MSG_TYPE_UDT:
 		return _sccp_parse_udt(msg, result);
 		break;
+	case SCCP_MSG_TYPE_UDTS:
+		return _sccp_parse_udts(msg, result);
+		break;
 	case SCCP_MSG_TYPE_XUDT:
 		return _sccp_parse_xudt(msg, result);
+		break;
+	case SCCP_MSG_TYPE_XUDTS:
+		return _sccp_parse_xudts(msg, result);
 		break;
 	case SCCP_MSG_TYPE_IT:
 		return _sccp_parse_it(msg, result);
