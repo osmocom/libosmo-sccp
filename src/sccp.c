@@ -404,37 +404,46 @@ int _sccp_parse_connection_dt1(struct msgb *msgb, struct sccp_parse_result *resu
 	return 0;
 }
 
-int _sccp_parse_udt(struct msgb *msgb, struct sccp_parse_result *result)
+struct udt_offsets {
+	uint32_t	header_size;
+	uint32_t	called_offset;
+	uint32_t	calling_offset;
+	uint32_t	data_offset;
+};
+
+static int _sccp_parse_unitdata(struct msgb *msgb, struct sccp_parse_result *result,
+				const struct udt_offsets *offs)
 {
-	static const uint32_t header_size = sizeof(struct sccp_data_unitdata);
-	static const uint32_t called_offset = offsetof(struct sccp_data_unitdata, variable_called);
-	static const uint32_t calling_offset = offsetof(struct sccp_data_unitdata, variable_calling);
-	static const uint32_t data_offset = offsetof(struct sccp_data_unitdata, variable_data);
+	uint8_t		variable_called;
+	uint8_t		variable_calling;
+	uint8_t		variable_data;
 
-	struct sccp_data_unitdata *udt = (struct sccp_data_unitdata *)msgb->l2h;
-
-	if (msgb_l2len(msgb) < header_size) {
+	if (msgb_l2len(msgb) < offs->header_size) {
 		LOGP(DSCCP, LOGL_ERROR, "msgb < header_size %u %u\n",
-		        msgb_l2len(msgb), header_size);
+		        msgb_l2len(msgb), offs->header_size);
 		return -1;
 	}
 
+	variable_called = msgb->l2h[offs->called_offset];
+	variable_calling = msgb->l2h[offs->calling_offset];
+	variable_data = msgb->l2h[offs->data_offset];
+
 	/* copy out the calling and called address. Add the off */
-	if (copy_address(&result->called, called_offset + udt->variable_called, msgb) != 0)
+	if (copy_address(&result->called, offs->called_offset + variable_called, msgb) != 0)
 		return -1;
 
-	if (copy_address(&result->calling, calling_offset + udt->variable_calling, msgb) != 0)
+	if (copy_address(&result->calling, offs->calling_offset + variable_calling, msgb) != 0)
 		return -1;
 
 	/* we don't have enough size for the data */
-	if (msgb_l2len(msgb) < data_offset + udt->variable_data + 1) {
+	if (msgb_l2len(msgb) < offs->data_offset + variable_data + 1) {
 		LOGP(DSCCP, LOGL_ERROR, "msgb < header + offset %u %u %u\n",
-			msgb_l2len(msgb), header_size, udt->variable_data);
+			msgb_l2len(msgb), offs->header_size, variable_data);
 		return -1;
 	}
 
 
-	msgb->l3h = &udt->data[udt->variable_data];
+	msgb->l3h = &msgb->l2h[offs->data_offset + variable_data + 1];
 	result->data_len = msgb_l3len(msgb);
 
 	if (msgb_l3len(msgb) <  msgb->l3h[-1]) {
@@ -444,6 +453,30 @@ int _sccp_parse_udt(struct msgb *msgb, struct sccp_parse_result *result)
 	}
 
 	return 0;
+}
+
+int _sccp_parse_udt(struct msgb *msgb, struct sccp_parse_result *result)
+{
+	static const struct udt_offsets offsets = {
+		.header_size = sizeof(struct sccp_data_unitdata),
+		.called_offset = offsetof(struct sccp_data_unitdata, variable_called),
+		.calling_offset = offsetof(struct sccp_data_unitdata, variable_calling),
+		.data_offset = offsetof(struct sccp_data_unitdata, variable_data),
+	};
+
+	return _sccp_parse_unitdata(msgb, result, &offsets);
+}
+
+static int _sccp_parse_xudt(struct msgb *msgb, struct sccp_parse_result *result)
+{
+	static const struct udt_offsets offsets = {
+		.header_size = sizeof(struct sccp_data_ext_unitdata),
+		.called_offset = offsetof(struct sccp_data_ext_unitdata, variable_called),
+		.calling_offset = offsetof(struct sccp_data_ext_unitdata, variable_calling),
+		.data_offset = offsetof(struct sccp_data_ext_unitdata, variable_data),
+	};
+
+	return _sccp_parse_unitdata(msgb, result, &offsets);
 }
 
 static int _sccp_parse_it(struct msgb *msgb, struct sccp_parse_result *result)
@@ -1440,6 +1473,9 @@ int sccp_parse_header(struct msgb *msg, struct sccp_parse_result *result)
 		break;
 	case SCCP_MSG_TYPE_UDT:
 		return _sccp_parse_udt(msg, result);
+		break;
+	case SCCP_MSG_TYPE_XUDT:
+		return _sccp_parse_xudt(msg, result);
 		break;
 	case SCCP_MSG_TYPE_IT:
 		return _sccp_parse_it(msg, result);

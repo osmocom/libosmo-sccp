@@ -400,6 +400,80 @@ struct sccp_data_unitdata {
 	uint8_t			data[0];
 } __attribute__((packed));
 
+struct sccp_data_unitdata_service {
+	/* mandantory */
+	uint8_t			type;
+	uint8_t			return_cause;
+
+
+	/* variable */
+	uint8_t			variable_called;
+	uint8_t			variable_calling;
+	uint8_t			variable_data;
+
+#if VARIABLE
+	called party address
+	calling party address
+#endif
+
+	uint8_t			data[0];
+} __attribute__((packed));
+
+/* Extended unitdata (XUDT) */
+struct sccp_data_ext_unitdata {
+	/* mandatory */
+	uint8_t			type;
+	uint8_t			proto_class;
+	uint8_t			hop_counter;
+
+	/* variable */
+	uint8_t			variable_called;
+	uint8_t			variable_calling;
+	uint8_t			variable_data;
+
+#if VARIABLE
+	called party address
+	calling party address
+	data
+#endif
+
+#if OPTIONAL
+	segmentation
+	importance
+#endif
+
+	uint8_t			data[0];
+
+} __attribute__((packed));
+
+
+/* Extended unitdata service (XUDTS) */
+struct  sccp_data_ext_unitdata_service {
+	/* mandantory */
+	uint8_t			type;
+	uint8_t			return_cause;
+	uint8_t			hop_counter;
+
+
+	/* variable */
+	uint8_t			variable_called;
+	uint8_t			variable_calling;
+	uint8_t			variable_data;
+
+#if VARIABLE
+	called party address
+	calling party address
+	data
+#endif
+
+#if OPTIONAL
+	segmentation
+	importancd
+#endif
+
+	uint8_t			data[0];
+} __attribute__((packed));
+
 struct sccp_data_it {
 	/* mandantory */
 	uint8_t			type;
