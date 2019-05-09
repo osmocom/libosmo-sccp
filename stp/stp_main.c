@@ -180,6 +180,7 @@ int main(int argc, char **argv)
 	osmo_ss7_vty_init_sg(tall_stp_ctx);
 	osmo_sccp_vty_init();
 	osmo_fsm_vty_add_cmds();
+	osmo_talloc_vty_add_cmds();
 
 	rc = vty_read_config_file(cmdline_config.config_file, NULL);
 	if (rc < 0) {
