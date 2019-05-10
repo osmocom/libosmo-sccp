@@ -166,6 +166,8 @@ int main(int argc, char **argv)
 	msgb_talloc_ctx_init(tall_stp_ctx, 0);
 	osmo_init_logging2(tall_stp_ctx, &log_info);
 	osmo_stats_init(tall_stp_ctx);
+
+	vty_info.tall_ctx = tall_stp_ctx;
 	vty_init(&vty_info);
 
 	handle_options(argc, argv);
