@@ -14,7 +14,8 @@ Build-Depends: debhelper (>= 9),
                doxygen,
                libdpkg-perl,
                libosmo-netif-dev (>= 0.3.0),
-               libsctp-dev
+               libsctp-dev,
+               osmo-gsm-manuals-dev
 Standards-Version: 3.9.7
 Vcs-Git: git://git.osmocom.org/libosmo-sccp.git
 Vcs-Browser: http://git.osmocom.org/libosmo-sccp/
@@ -121,3 +122,12 @@ Description: Debug symbols for Osmocom SIGTRAN STP (Signaling Transfer Point)
   networks.  At this point it is a very minimal implementation, missing
   lots of the functionality usually present in a STP, such as Global Title
   Routing, Global Title Translation.
+
+Package: osmo-stp-doc
+Architecture: all
+Section: doc
+Priority: optional
+Depends: ${misc:Depends}
+Description: ${misc:Package} PDF documentation
+ Various manuals: user manual, VTY reference manual and/or
+ protocol/interface manuals.

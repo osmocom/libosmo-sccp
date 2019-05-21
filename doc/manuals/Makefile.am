@@ -13,5 +13,6 @@ if BUILD_MANUALS
   VTY_REFERENCE = osmostp-vty-reference.xml
   include $(OSMO_GSM_MANUALS_DIR)/build/Makefile.vty-reference.inc
 
+  OSMO_REPOSITORY=osmo-stp
   include $(OSMO_GSM_MANUALS_DIR)/build/Makefile.common.inc
 endif
