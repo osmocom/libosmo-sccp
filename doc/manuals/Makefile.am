@@ -1,6 +1,7 @@
 EXTRA_DIST = osmostp-usermanual.adoc \
     osmostp-usermanual-docinfo.xml \
     osmostp-vty-reference.xml \
+    regen_doc.sh \
     chapters \
     vty
 
