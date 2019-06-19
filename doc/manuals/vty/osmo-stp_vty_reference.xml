@@ -187,7 +187,7 @@
         <param name='MASK' doc='List of logging categories to log, e.g. &apos;abc:mno:xyz&apos;. Available log categories depend on the specific application, refer to the &apos;logging level&apos; command. Optionally add individual log levels like &apos;abc,1:mno,3:xyz,5&apos;, where the level numbers are LOGL_DEBUG=1 LOGL_INFO=3 LOGL_NOTICE=5 LOGL_ERROR=7 LOGL_FATAL=8' />
       </params>
     </command>
-    <command id='logging level (lglobal|llapd|linp|lmux|lmi|lmib|lsms|lctrl|lgtp|lstats|lgsup|loap|lss7|lsccp|lsua|lm3ua|lmgcp|ljibuf) (debug|info|notice|error|fatal)'>
+    <command id='logging level (lglobal|llapd|linp|lmux|lmi|lmib|lsms|lctrl|lgtp|lstats|lgsup|loap|lss7|lsccp|lsua|lm3ua|lmgcp|ljibuf|lrspro) (debug|info|notice|error|fatal)'>
       <params>
         <param name='logging' doc='Configure logging' />
         <param name='level' doc='Set the log level for a specified category' />
@@ -209,6 +209,7 @@
         <param name='lm3ua' doc='libosmo-sigtran MTP3 User Adaptation' />
         <param name='lmgcp' doc='libosmo-mgcp Media Gateway Control Protocol' />
         <param name='ljibuf' doc='libosmo-netif Jitter Buffer' />
+        <param name='lrspro' doc='Remote SIM protocol' />
         <param name='debug' doc='Log debug messages and higher levels' />
         <param name='info' doc='Log informational messages and higher levels' />
         <param name='notice' doc='Log noticeable messages and higher levels' />
@@ -259,6 +260,35 @@
       <params>
         <param name='show' doc='Show running system information' />
         <param name='alarms' doc='Show current logging configuration' />
+      </params>
+    </command>
+    <command id='show stats'>
+      <params>
+        <param name='show' doc='Show running system information' />
+        <param name='stats' doc='Show statistical values' />
+      </params>
+    </command>
+    <command id='show stats level (global|peer|subscriber)'>
+      <params>
+        <param name='show' doc='Show running system information' />
+        <param name='stats' doc='Show statistical values' />
+        <param name='level' doc='Set the maximum group level' />
+        <param name='global' doc='Show global groups only' />
+        <param name='peer' doc='Show global and network peer related groups' />
+        <param name='subscriber' doc='Show global, peer, and subscriber groups' />
+      </params>
+    </command>
+    <command id='show asciidoc counters'>
+      <params>
+        <param name='show' doc='Show running system information' />
+        <param name='asciidoc' doc='Asciidoc generation' />
+        <param name='counters' doc='Generate table of all registered counters' />
+      </params>
+    </command>
+    <command id='show rate-counters'>
+      <params>
+        <param name='show' doc='Show running system information' />
+        <param name='rate-counters' doc='Show all rate counters' />
       </params>
     </command>
     <command id='show cs7 instance &lt;0-15&gt; users'>
@@ -388,6 +418,43 @@
         <param name='show' doc='Show running system information' />
         <param name='fsm-instances' doc='Show information about finite state machine instances' />
         <param name='all' doc='Display a list of all FSM instances of all finite state machine' />
+      </params>
+    </command>
+    <command id='show talloc-context (application|all) (full|brief|DEPTH)'>
+      <params>
+        <param name='show' doc='Show running system information' />
+        <param name='talloc-context' doc='Show talloc memory hierarchy' />
+        <param name='application' doc='Application&apos;s context' />
+        <param name='all' doc='All contexts, if NULL-context tracking is enabled' />
+        <param name='full' doc='Display a full talloc memory hierarchy' />
+        <param name='brief' doc='Display a brief talloc memory hierarchy' />
+        <param name='DEPTH' doc='Specify required maximal depth value' />
+      </params>
+    </command>
+    <command id='show talloc-context (application|all) (full|brief|DEPTH) tree ADDRESS'>
+      <params>
+        <param name='show' doc='Show running system information' />
+        <param name='talloc-context' doc='Show talloc memory hierarchy' />
+        <param name='application' doc='Application&apos;s context' />
+        <param name='all' doc='All contexts, if NULL-context tracking is enabled' />
+        <param name='full' doc='Display a full talloc memory hierarchy' />
+        <param name='brief' doc='Display a brief talloc memory hierarchy' />
+        <param name='DEPTH' doc='Specify required maximal depth value' />
+        <param name='tree' doc='Display only a specific memory chunk' />
+        <param name='ADDRESS' doc='Chunk address (e.g. 0xdeadbeef)' />
+      </params>
+    </command>
+    <command id='show talloc-context (application|all) (full|brief|DEPTH) filter REGEXP'>
+      <params>
+        <param name='show' doc='Show running system information' />
+        <param name='talloc-context' doc='Show talloc memory hierarchy' />
+        <param name='application' doc='Application&apos;s context' />
+        <param name='all' doc='All contexts, if NULL-context tracking is enabled' />
+        <param name='full' doc='Display a full talloc memory hierarchy' />
+        <param name='brief' doc='Display a brief talloc memory hierarchy' />
+        <param name='DEPTH' doc='Specify required maximal depth value' />
+        <param name='filter' doc='Filter chunks using regular expression' />
+        <param name='REGEXP' doc='Regular expression' />
       </params>
     </command>
   </node>
@@ -558,7 +625,7 @@
         <param name='MASK' doc='List of logging categories to log, e.g. &apos;abc:mno:xyz&apos;. Available log categories depend on the specific application, refer to the &apos;logging level&apos; command. Optionally add individual log levels like &apos;abc,1:mno,3:xyz,5&apos;, where the level numbers are LOGL_DEBUG=1 LOGL_INFO=3 LOGL_NOTICE=5 LOGL_ERROR=7 LOGL_FATAL=8' />
       </params>
     </command>
-    <command id='logging level (lglobal|llapd|linp|lmux|lmi|lmib|lsms|lctrl|lgtp|lstats|lgsup|loap|lss7|lsccp|lsua|lm3ua|lmgcp|ljibuf) (debug|info|notice|error|fatal)'>
+    <command id='logging level (lglobal|llapd|linp|lmux|lmi|lmib|lsms|lctrl|lgtp|lstats|lgsup|loap|lss7|lsccp|lsua|lm3ua|lmgcp|ljibuf|lrspro) (debug|info|notice|error|fatal)'>
       <params>
         <param name='logging' doc='Configure logging' />
         <param name='level' doc='Set the log level for a specified category' />
@@ -580,6 +647,7 @@
         <param name='lm3ua' doc='libosmo-sigtran MTP3 User Adaptation' />
         <param name='lmgcp' doc='libosmo-mgcp Media Gateway Control Protocol' />
         <param name='ljibuf' doc='libosmo-netif Jitter Buffer' />
+        <param name='lrspro' doc='Remote SIM protocol' />
         <param name='debug' doc='Log debug messages and higher levels' />
         <param name='info' doc='Log informational messages and higher levels' />
         <param name='notice' doc='Log noticeable messages and higher levels' />
@@ -630,6 +698,35 @@
       <params>
         <param name='show' doc='Show running system information' />
         <param name='alarms' doc='Show current logging configuration' />
+      </params>
+    </command>
+    <command id='show stats'>
+      <params>
+        <param name='show' doc='Show running system information' />
+        <param name='stats' doc='Show statistical values' />
+      </params>
+    </command>
+    <command id='show stats level (global|peer|subscriber)'>
+      <params>
+        <param name='show' doc='Show running system information' />
+        <param name='stats' doc='Show statistical values' />
+        <param name='level' doc='Set the maximum group level' />
+        <param name='global' doc='Show global groups only' />
+        <param name='peer' doc='Show global and network peer related groups' />
+        <param name='subscriber' doc='Show global, peer, and subscriber groups' />
+      </params>
+    </command>
+    <command id='show asciidoc counters'>
+      <params>
+        <param name='show' doc='Show running system information' />
+        <param name='asciidoc' doc='Asciidoc generation' />
+        <param name='counters' doc='Generate table of all registered counters' />
+      </params>
+    </command>
+    <command id='show rate-counters'>
+      <params>
+        <param name='show' doc='Show running system information' />
+        <param name='rate-counters' doc='Show all rate counters' />
       </params>
     </command>
     <command id='show cs7 instance &lt;0-15&gt; users'>
@@ -759,6 +856,43 @@
         <param name='show' doc='Show running system information' />
         <param name='fsm-instances' doc='Show information about finite state machine instances' />
         <param name='all' doc='Display a list of all FSM instances of all finite state machine' />
+      </params>
+    </command>
+    <command id='show talloc-context (application|all) (full|brief|DEPTH)'>
+      <params>
+        <param name='show' doc='Show running system information' />
+        <param name='talloc-context' doc='Show talloc memory hierarchy' />
+        <param name='application' doc='Application&apos;s context' />
+        <param name='all' doc='All contexts, if NULL-context tracking is enabled' />
+        <param name='full' doc='Display a full talloc memory hierarchy' />
+        <param name='brief' doc='Display a brief talloc memory hierarchy' />
+        <param name='DEPTH' doc='Specify required maximal depth value' />
+      </params>
+    </command>
+    <command id='show talloc-context (application|all) (full|brief|DEPTH) tree ADDRESS'>
+      <params>
+        <param name='show' doc='Show running system information' />
+        <param name='talloc-context' doc='Show talloc memory hierarchy' />
+        <param name='application' doc='Application&apos;s context' />
+        <param name='all' doc='All contexts, if NULL-context tracking is enabled' />
+        <param name='full' doc='Display a full talloc memory hierarchy' />
+        <param name='brief' doc='Display a brief talloc memory hierarchy' />
+        <param name='DEPTH' doc='Specify required maximal depth value' />
+        <param name='tree' doc='Display only a specific memory chunk' />
+        <param name='ADDRESS' doc='Chunk address (e.g. 0xdeadbeef)' />
+      </params>
+    </command>
+    <command id='show talloc-context (application|all) (full|brief|DEPTH) filter REGEXP'>
+      <params>
+        <param name='show' doc='Show running system information' />
+        <param name='talloc-context' doc='Show talloc memory hierarchy' />
+        <param name='application' doc='Application&apos;s context' />
+        <param name='all' doc='All contexts, if NULL-context tracking is enabled' />
+        <param name='full' doc='Display a full talloc memory hierarchy' />
+        <param name='brief' doc='Display a brief talloc memory hierarchy' />
+        <param name='DEPTH' doc='Specify required maximal depth value' />
+        <param name='filter' doc='Filter chunks using regular expression' />
+        <param name='REGEXP' doc='Regular expression' />
       </params>
     </command>
   </node>
@@ -955,6 +1089,43 @@
         <param name='[HOSTNAME]' doc='Host name to send the GSMTAP logging to (UDP port 4729)' />
       </params>
     </command>
+    <command id='stats reporter statsd'>
+      <params>
+        <param name='stats' doc='Configure stats sub-system' />
+        <param name='reporter' doc='Configure a stats reporter' />
+        <param name='statsd' doc='Report to a STATSD server' />
+      </params>
+    </command>
+    <command id='no stats reporter statsd'>
+      <params>
+        <param name='no' doc='Negate a command or set its defaults' />
+        <param name='stats' doc='Configure stats sub-system' />
+        <param name='reporter' doc='Configure a stats reporter' />
+        <param name='statsd' doc='Report to a STATSD server' />
+      </params>
+    </command>
+    <command id='stats reporter log'>
+      <params>
+        <param name='stats' doc='Configure stats sub-system' />
+        <param name='reporter' doc='Configure a stats reporter' />
+        <param name='log' doc='Report to the logger' />
+      </params>
+    </command>
+    <command id='no stats reporter log'>
+      <params>
+        <param name='no' doc='Negate a command or set its defaults' />
+        <param name='stats' doc='Configure stats sub-system' />
+        <param name='reporter' doc='Configure a stats reporter' />
+        <param name='log' doc='Report to the logger' />
+      </params>
+    </command>
+    <command id='stats interval &lt;1-65535&gt;'>
+      <params>
+        <param name='stats' doc='Configure stats sub-system' />
+        <param name='interval' doc='Set the reporting interval' />
+        <param name='&lt;1-65535&gt;' doc='Interval in seconds' />
+      </params>
+    </command>
     <command id='cs7 instance &lt;0-15&gt;'>
       <params>
         <param name='cs7' doc='ITU-T Signaling System 7' />
@@ -1037,7 +1208,7 @@
         <param name='[last]' doc='Log source file info at the end of a log line. If omitted, log source file info just before the log text.' />
       </params>
     </command>
-    <command id='logging level (lglobal|llapd|linp|lmux|lmi|lmib|lsms|lctrl|lgtp|lstats|lgsup|loap|lss7|lsccp|lsua|lm3ua|lmgcp|ljibuf) (debug|info|notice|error|fatal)'>
+    <command id='logging level (lglobal|llapd|linp|lmux|lmi|lmib|lsms|lctrl|lgtp|lstats|lgsup|loap|lss7|lsccp|lsua|lm3ua|lmgcp|ljibuf|lrspro) (debug|info|notice|error|fatal)'>
       <params>
         <param name='logging' doc='Configure logging' />
         <param name='level' doc='Set the log level for a specified category' />
@@ -1059,6 +1230,7 @@
         <param name='lm3ua' doc='libosmo-sigtran MTP3 User Adaptation' />
         <param name='lmgcp' doc='libosmo-mgcp Media Gateway Control Protocol' />
         <param name='ljibuf' doc='libosmo-netif Jitter Buffer' />
+        <param name='lrspro' doc='Remote SIM protocol' />
         <param name='debug' doc='Log debug messages and higher levels' />
         <param name='info' doc='Log informational messages and higher levels' />
         <param name='notice' doc='Log noticeable messages and higher levels' />
@@ -1099,6 +1271,75 @@
       </params>
     </command>
   </node>
+  <node id='config-stats'>
+    <name>config-stats</name>
+    <command id='local-ip ADDR'>
+      <params>
+        <param name='local-ip' doc='Set the IP address to which we bind locally' />
+        <param name='ADDR' doc='IP Address' />
+      </params>
+    </command>
+    <command id='no local-ip'>
+      <params>
+        <param name='no' doc='Negate a command or set its defaults' />
+        <param name='local-ip' doc='Set the IP address to which we bind locally' />
+      </params>
+    </command>
+    <command id='remote-ip ADDR'>
+      <params>
+        <param name='remote-ip' doc='Set the remote IP address to which we connect' />
+        <param name='ADDR' doc='IP Address' />
+      </params>
+    </command>
+    <command id='remote-port &lt;1-65535&gt;'>
+      <params>
+        <param name='remote-port' doc='Set the remote port to which we connect' />
+        <param name='&lt;1-65535&gt;' doc='Remote port number' />
+      </params>
+    </command>
+    <command id='mtu &lt;100-65535&gt;'>
+      <params>
+        <param name='mtu' doc='Set the maximum packet size' />
+        <param name='&lt;100-65535&gt;' doc='Size in byte' />
+      </params>
+    </command>
+    <command id='no mtu'>
+      <params>
+        <param name='no' doc='Negate a command or set its defaults' />
+        <param name='mtu' doc='Set the maximum packet size' />
+      </params>
+    </command>
+    <command id='prefix PREFIX'>
+      <params>
+        <param name='prefix' doc='Set the item name prefix' />
+        <param name='PREFIX' doc='The prefix string' />
+      </params>
+    </command>
+    <command id='no prefix'>
+      <params>
+        <param name='no' doc='Negate a command or set its defaults' />
+        <param name='prefix' doc='Set the item name prefix' />
+      </params>
+    </command>
+    <command id='level (global|peer|subscriber)'>
+      <params>
+        <param name='level' doc='Set the maximum group level' />
+        <param name='global' doc='Report global groups only' />
+        <param name='peer' doc='Report global and network peer related groups' />
+        <param name='subscriber' doc='Report global, peer, and subscriber groups' />
+      </params>
+    </command>
+    <command id='enable'>
+      <params>
+        <param name='enable' doc='Enable the reporter' />
+      </params>
+    </command>
+    <command id='disable'>
+      <params>
+        <param name='disable' doc='Disable the reporter' />
+      </params>
+    </command>
+  </node>
   <node id='config-line'>
     <name>config-line</name>
     <command id='login'>
@@ -1112,10 +1353,11 @@
         <param name='login' doc='Enable password checking' />
       </params>
     </command>
-    <command id='bind A.B.C.D'>
+    <command id='bind A.B.C.D [&lt;0-65535&gt;]'>
       <params>
         <param name='bind' doc='Accept VTY telnet connections on local interface' />
         <param name='A.B.C.D' doc='Local interface IP address (default: 127.0.0.1)' />
+        <param name='[&lt;0-65535&gt;]' doc='Local TCP port number' />
       </params>
     </command>
   </node>
@@ -1438,7 +1680,6 @@
         <param name='[qos-class' doc='Priority' />
         <param name='CLASS' doc='Specify QoS Class' />
         <param name='default' doc='QoS Class' />
-        <param name=']' doc='Default QoS Class' />
       </params>
     </command>
     <command id='remove route POINT_CODE MASK'>
