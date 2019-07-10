@@ -54,6 +54,7 @@ $MAKE $PARALLEL_MAKE
 DISTCHECK_CONFIGURE_FLAGS="--enable-external-tests $CONFIG" \
   $MAKE distcheck \
   || cat-testlogs.sh
+$MAKE maintainer-clean
 
 if [ "$WITH_MANUALS" = "1" ] && [ "$PUBLISH" = "1" ]; then
 	make -C "$base/doc/manuals" publish
