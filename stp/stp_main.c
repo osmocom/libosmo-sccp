@@ -177,7 +177,7 @@ int main(int argc, char **argv)
 
 	osmo_ss7_init();
 	osmo_fsm_log_addr(false);
-	logging_vty_add_cmds(&log_info);
+	logging_vty_add_cmds();
 	osmo_stats_vty_add_cmds();
 	osmo_ss7_vty_init_sg(tall_stp_ctx);
 	osmo_sccp_vty_init();
