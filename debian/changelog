@@ -1,3 +1,51 @@
+libosmo-sccp (1.1.0) unstable; urgency=medium
+
+  [ Max ]
+  * Don't use deprecated osmo_stream_cli_open2()
+  * osmo_ss7.c: fix typo
+  * OsmoSTP: enable statsd support
+
+  [ Neels Hofmeyr ]
+  * debug log typo fix in sccp_scoc.c
+  * improve logging for rejected AS in xua_rkm.c
+  * add caller-owns-msgb variant osmo_sccp_user_sap_down_nofree()
+  * add osmo_sccp_addr_cmp(), osmo_sccp_addr_ri_cmp()
+
+  [ Harald Welte ]
+  * vty: Ensure to properly save route pointcode and mask when writing
+  * Store + show remote ip/port in dynamically created ASPs
+  * Fix output of route destination in 'show ss7 instance <0-15> route'
+  * sccp_scoc: Add more comments describing conn_id and local_ref members
+  * stp: Ensure telnet uses STP talloc context, not NULL context
+
+  [ Oliver Smith ]
+  * Cosmetic: sccp_scoc: fix local reference comments
+  * sccp_scoc: move sccp_find_user() up
+  * sccp_scoc: conn_create{,_id}() user arg, not inst
+  * debian: create -doc subpackage with pdf manuals
+  * contrib/jenkins.sh: run "make maintainer-clean"
+  * contrib/jenkins.sh: "maintainer-clean" after "publish"
+
+  [ Holger Hans Peter Freyther ]
+  * xudt: Implement address and data extraction
+  * udts/xudts: Attempt to implement unitdata service parsing
+
+  [ Vadim Yanitskiy ]
+  * osmo-stp: register VTY commands for talloc context introspection
+  * osmo-stp: expose root talloc context to the VTY code
+
+  [ Daniel Willmann ]
+  * manuals: Add script to regenerate vty/counter documentation
+  * manuals: Update vty documentation
+
+  [ Kira Obrezkova ]
+  * This patch fixes typos on which Lintian complains
+
+  [ Pau Espin Pedrol ]
+  * Remove undefined param passed to {logging,osmo_stats}_vty_add_cmds
+
+ -- Pau Espin Pedrol <pespin@sysmocom.de>  Wed, 07 Aug 2019 21:17:59 +0200
+
 libosmo-sccp (1.0.0) unstable; urgency=medium
 
   [ Harald Welte ]
