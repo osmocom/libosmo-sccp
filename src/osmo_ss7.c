@@ -1810,6 +1810,11 @@ int osmo_ss7_asp_send(struct osmo_ss7_asp *asp, struct msgb *msg)
 			msgb_free(msg);
 			return -EIO;
 		}
+		if (!osmo_stream_cli_is_connected(asp->client)) {
+			LOGPASP(asp, DLSS7, LOGL_ERROR, "Cannot transmit, asp->client not connected\n");
+			msgb_free(msg);
+			return -EIO;
+		}
 		osmo_stream_cli_send(asp->client, msg);
 	}
 
