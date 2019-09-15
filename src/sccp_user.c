@@ -633,7 +633,7 @@ osmo_sccp_simple_client(void *ctx, const char *name, uint32_t default_pc,
 {
 	/*! This is simplified version of osmo_sccp_simple_client_on_ss7_id().
 	 *  the only difference is that the ID of the CS7 instance will be
-	 *  set to 1 statically */
+	 *  set to 0 statically */
 
 	return osmo_sccp_simple_client_on_ss7_id(ctx, 0, name, default_pc, prot,
 						 default_local_port,
