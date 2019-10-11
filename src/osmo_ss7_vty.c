@@ -470,10 +470,7 @@ DEFUN(xua_local_ip, xua_local_ip_cmd,
 	struct osmo_xua_server *xs = vty->index;
 
 	osmo_ss7_xua_server_set_local_host(xs, argv[0]);
-	if (osmo_ss7_xua_server_bind(xs) < 0) {
-		vty_out(vty, "Unable to bind xUA server to IP %s%s", argv[0], VTY_NEWLINE);
-		return CMD_WARNING;
-	}
+
 	return CMD_SUCCESS;
 }
 
@@ -1725,6 +1722,8 @@ int osmo_ss7_vty_go_parent(struct vty *vty)
 		break;
 	case L_CS7_XUA_NODE:
 		oxs = vty->index;
+		if (osmo_ss7_xua_server_bind(oxs) < 0)
+			vty_out(vty, "%% Unable to bind xUA server to IP(s)%s", VTY_NEWLINE);
 		vty->node = L_CS7_NODE;
 		vty->index = oxs->inst;
 		break;
