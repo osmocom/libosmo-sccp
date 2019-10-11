@@ -465,7 +465,7 @@ int osmo_ss7_user_register(struct osmo_ss7_instance *inst, uint8_t service_ind,
  *  \param[in] inst SS7 instance for which we register the user
  *  \param[in] service_ind Service (ISUP, SCCP, ...)
  *  \param[in] user (optional) SS7 user. If present, we will not
- * 		unregister other users 
+ * 		unregister other users
  *  \returns 0 on success; negative on error */
 int osmo_ss7_user_unregister(struct osmo_ss7_instance *inst, uint8_t service_ind,
 			     struct osmo_ss7_user *user)
@@ -1277,9 +1277,13 @@ int osmo_ss7_asp_restart(struct osmo_ss7_asp *asp)
 {
 	int rc;
 	enum xua_asp_role role;
+	char bufloc[512], bufrem[512];
 
 	OSMO_ASSERT(ss7_initialized);
-	LOGPASP(asp, DLSS7, LOGL_INFO, "Restarting ASP\n");
+	osmo_ss7_asp_peer_snprintf(bufloc, sizeof(bufloc), &asp->cfg.local);
+	osmo_ss7_asp_peer_snprintf(bufrem, sizeof(bufrem), &asp->cfg.remote);
+	LOGPASP(asp, DLSS7, LOGL_INFO, "Restarting ASP %s, %s ==> %s\n",
+	       asp->cfg.name, bufloc, bufrem);
 
 	if (!asp->cfg.is_server) {
 		/* We are in client mode now */
@@ -1312,7 +1316,7 @@ int osmo_ss7_asp_restart(struct osmo_ss7_asp *asp)
 		rc = osmo_stream_cli_open(asp->client);
 		if (rc < 0) {
 			LOGPASP(asp, DLSS7, LOGL_ERROR, "Unable to open stream"
-				" client for ASP %s\n", asp->cfg.name);
+				" client for ASP %s, %s ==> %s\n", asp->cfg.name, bufloc, bufrem);
 			/* we don't return error in here because osmo_stream_cli_open()
 			   will continue to retry (due to timeout being explicitly set with
 			   osmo_stream_cli_set_reconnect_timeout() above) to connect so the error is transient */
