@@ -8,6 +8,7 @@
 #include <osmocom/core/fsm.h>
 #include <osmocom/core/msgb.h>
 #include <osmocom/core/prim.h>
+#include <osmocom/core/socket.h>
 
 extern struct llist_head osmo_ss7_instances;
 
@@ -348,7 +349,8 @@ void osmo_ss7_asp_disconnect(struct osmo_ss7_asp *asp);
  ***********************************************************************/
 
 struct osmo_ss7_asp_peer {
-	char *host;
+	char *host[OSMO_SOCK_MAX_ADDRS];
+	size_t host_cnt;
 	uint16_t port;
 };
 
@@ -408,6 +410,8 @@ struct osmo_ss7_asp {
 		uint8_t qos_class;
 	} cfg;
 };
+
+int osmo_ss7_asp_peer_snprintf(char* buf, size_t buf_len, struct osmo_ss7_asp_peer *peer);
 
 struct osmo_ss7_asp *
 osmo_ss7_asp_find_by_name(struct osmo_ss7_instance *inst, const char *name);
@@ -480,7 +484,9 @@ osmo_ss7_xua_server_bind(struct osmo_xua_server *xs);
 
 int
 osmo_ss7_xua_server_set_local_host(struct osmo_xua_server *xs, const char *local_host);
-
+int
+osmo_ss7_xua_server_set_local_hosts(struct osmo_xua_server *xs, const char **local_hosts, size_t local_host_cnt);
+int osmo_ss7_xua_server_add_local_host(struct osmo_xua_server *xs, const char *local_host);
 void osmo_ss7_xua_server_destroy(struct osmo_xua_server *xs);
 
 struct osmo_sccp_instance *

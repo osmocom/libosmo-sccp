@@ -1065,6 +1065,37 @@ bool osmo_ss7_as_has_asp(struct osmo_ss7_as *as,
  * SS7 Application Server Process
  ***********************************************************************/
 
+int osmo_ss7_asp_peer_snprintf(char* buf, size_t buf_len, struct osmo_ss7_asp_peer *peer)
+{
+	int len = 0, offset = 0, rem = buf_len;
+	int ret, i;
+	char *after;
+
+	if (buf_len < 3)
+		return -EINVAL;
+
+	if (peer->host_cnt != 1) {
+		ret = snprintf(buf, rem, "(");
+		if (ret < 0)
+			return ret;
+		OSMO_SNPRINTF_RET(ret, rem, offset, len);
+	}
+	for (i = 0; i < peer->host_cnt; i++) {
+		if (peer->host_cnt == 1)
+			after = "";
+		else
+			after = (i == (peer->host_cnt - 1)) ? ")" : "|";
+		ret = snprintf(buf + offset, rem, "%s%s", peer->host[i] ? : "0.0.0.0", after);
+		OSMO_SNPRINTF_RET(ret, rem, offset, len);
+	}
+	ret = snprintf(buf + offset, rem, ":%u", peer->port);
+	if (ret < 0)
+		return ret;
+	OSMO_SNPRINTF_RET(ret, rem, offset, len);
+
+	return len;
+}
+
 struct osmo_ss7_asp *
 osmo_ss7_asp_find_by_name(struct osmo_ss7_instance *inst, const char *name)
 {
@@ -1103,6 +1134,7 @@ osmo_ss7_asp_find_by_socket_addr(int fd)
 	char hostbuf_l[64], hostbuf_r[64];
 	uint16_t local_port, remote_port;
 	int rc;
+	int i;
 
 	OSMO_ASSERT(ss7_initialized);
 	/* convert local and remote IP to string */
@@ -1129,11 +1161,26 @@ osmo_ss7_asp_find_by_socket_addr(int fd)
 	llist_for_each_entry(inst, &osmo_ss7_instances, list) {
 		struct osmo_ss7_asp *asp;
 		llist_for_each_entry(asp, &inst->asp_list, list) {
-			if (asp->cfg.local.port == local_port &&
-			    (!asp->cfg.remote.port ||asp->cfg.remote.port == remote_port) &&
-			    (!asp->cfg.local.host || !strcmp(asp->cfg.local.host, hostbuf_l)) &&
-			    (!asp->cfg.remote.host || !strcmp(asp->cfg.remote.host, hostbuf_r)))
-				return asp;
+			if (asp->cfg.local.port != local_port)
+				continue;
+			if (asp->cfg.remote.port && asp->cfg.remote.port != remote_port)
+				continue;
+
+			for (i = 0; i < asp->cfg.local.host_cnt; i++) {
+				if (!asp->cfg.local.host[i] || !strcmp(asp->cfg.local.host[i], hostbuf_l))
+					break;
+			}
+			if (i == asp->cfg.local.host_cnt)
+				continue; /* didn't match any local.host */
+
+			for (i = 0; i < asp->cfg.remote.host_cnt; i++) {
+				if (!asp->cfg.remote.host[i] || !strcmp(asp->cfg.remote.host[i], hostbuf_r))
+					break;
+			}
+			if (i == asp->cfg.remote.host_cnt)
+				continue; /* didn't match any remote.host */
+
+			return asp;
 		}
 	}
 
@@ -1250,9 +1297,9 @@ int osmo_ss7_asp_restart(struct osmo_ss7_asp *asp)
 			return -1;
 		}
 		osmo_stream_cli_set_nodelay(asp->client, true);
-		osmo_stream_cli_set_addr(asp->client, asp->cfg.remote.host);
+		osmo_stream_cli_set_addrs(asp->client, (const char**)asp->cfg.remote.host, asp->cfg.remote.host_cnt);
 		osmo_stream_cli_set_port(asp->client, asp->cfg.remote.port);
-		osmo_stream_cli_set_local_addr(asp->client, asp->cfg.local.host);
+		osmo_stream_cli_set_local_addrs(asp->client, (const char**)asp->cfg.local.host, asp->cfg.local.host_cnt);
 		osmo_stream_cli_set_local_port(asp->client, asp->cfg.local.port);
 		osmo_stream_cli_set_proto(asp->client, asp_proto_to_ip_proto(asp->cfg.proto));
 		osmo_stream_cli_set_reconnect_timeout(asp->client, 5);
@@ -1699,8 +1746,11 @@ static int xua_accept_cb(struct osmo_stream_srv_link *link, int fd)
 				LOGP(DLSS7, LOGL_INFO, "%s: created dynamicASP %s\n",
 					sock_name, asp->cfg.name);
 				asp->cfg.is_server = true;
+				asp->cfg.local.host[0] = NULL;
+				asp->cfg.remote.host_cnt = 1;
 				asp->cfg.remote.port = atoi(portbuf);
-				asp->cfg.remote.host = talloc_strdup(asp, hostbuf);
+				asp->cfg.remote.host[0] = talloc_strdup(asp, hostbuf);
+				asp->cfg.remote.host_cnt = 1;
 				asp->dyn_allocated = true;
 				asp->server = srv;
 				osmo_ss7_asp_restart(asp);
@@ -1832,16 +1882,16 @@ osmo_ss7_xua_server_create(struct osmo_ss7_instance *inst, enum osmo_ss7_asp_pro
 
 	oxs->cfg.proto = proto;
 	oxs->cfg.local.port = local_port;
-	oxs->cfg.local.host = talloc_strdup(oxs, local_host);
 
 	oxs->server = osmo_stream_srv_link_create(oxs);
 	osmo_stream_srv_link_set_data(oxs->server, oxs);
 	osmo_stream_srv_link_set_accept_cb(oxs->server, xua_accept_cb);
 
 	osmo_stream_srv_link_set_nodelay(oxs->server, true);
-	osmo_stream_srv_link_set_addr(oxs->server, oxs->cfg.local.host);
 	osmo_stream_srv_link_set_port(oxs->server, oxs->cfg.local.port);
 	osmo_stream_srv_link_set_proto(oxs->server, asp_proto_to_ip_proto(proto));
+
+	osmo_ss7_xua_server_set_local_host(oxs, local_host);
 
 	LOGP(DLSS7, LOGL_INFO, "Created %s server on %s:%" PRIu16 "\n",
 		get_value_string(osmo_ss7_asp_protocol_vals, proto), local_host, local_port);
@@ -1863,20 +1913,74 @@ osmo_ss7_xua_server_create(struct osmo_ss7_instance *inst, enum osmo_ss7_asp_pro
 int
 osmo_ss7_xua_server_bind(struct osmo_xua_server *xs)
 {
-	LOGP(DLSS7, LOGL_INFO, "(Re)binding %s Server to %s:%u\n",
-		get_value_string(osmo_ss7_asp_protocol_vals, xs->cfg.proto),
-		xs->cfg.local.host, xs->cfg.local.port);
+	char buf[512];
+	int rc;
+	const char *proto = get_value_string(osmo_ss7_asp_protocol_vals, xs->cfg.proto);
+
+	rc = osmo_ss7_asp_peer_snprintf(buf, sizeof(buf), &xs->cfg.local);
+	if (rc < 0) {
+		LOGP(DLSS7, LOGL_INFO, "Failed parsing %s Server osmo_ss7_asp_peer\n", proto);
+	} else {
+		LOGP(DLSS7, LOGL_INFO, "(Re)binding %s Server to %s\n",
+		     proto, buf);
+	}
 	return osmo_stream_srv_link_open(xs->server);
 }
 
 int
 osmo_ss7_xua_server_set_local_host(struct osmo_xua_server *xs, const char *local_host)
 {
+	osmo_ss7_xua_server_set_local_hosts(xs, &local_host, 1);
+	return 0;
+}
+
+int
+osmo_ss7_xua_server_set_local_hosts(struct osmo_xua_server *xs, const char **local_hosts, size_t local_host_cnt)
+{
+	int i = 0;
 	OSMO_ASSERT(ss7_initialized);
-	osmo_talloc_replace_string(xs, &xs->cfg.local.host, local_host);
 
-	osmo_stream_srv_link_set_addr(xs->server, xs->cfg.local.host);
+	if (local_host_cnt > ARRAY_SIZE(xs->cfg.local.host))
+		return -EINVAL;
 
+	for (; i < local_host_cnt; i++)
+		osmo_talloc_replace_string(xs, &xs->cfg.local.host[i], local_hosts[i]);
+	for (; i < xs->cfg.local.host_cnt; i++) {
+			talloc_free(xs->cfg.local.host[i]);
+			xs->cfg.local.host[i] = NULL;
+	}
+
+	xs->cfg.local.host_cnt = local_host_cnt;
+
+	osmo_stream_srv_link_set_addrs(xs->server, (const char **)xs->cfg.local.host, xs->cfg.local.host_cnt);
+
+	return 0;
+}
+
+int
+osmo_ss7_xua_server_add_local_host(struct osmo_xua_server *xs, const char *local_host)
+{
+	int i;
+	bool new_is_any = !local_host || !strcmp(local_host, "0.0.0.0");
+	bool iter_is_any;
+
+	/* Makes no sense to have INET_ANY and specific addresses in the set */
+	for (i = 0; i < xs->cfg.local.host_cnt; i++) {
+			iter_is_any = !xs->cfg.local.host[i] ||
+				      !strcmp(xs->cfg.local.host[i], "0.0.0.0");
+			if (new_is_any && iter_is_any)
+				return -EINVAL;
+			if (!new_is_any && iter_is_any)
+				return -EINVAL;
+	}
+	/* Makes no sense to have INET_ANY many times */
+	if (new_is_any && xs->cfg.local.host_cnt)
+		return -EINVAL;
+
+	osmo_talloc_replace_string(xs, &xs->cfg.local.host[xs->cfg.local.host_cnt], local_host);
+	xs->cfg.local.host_cnt++;
+
+	osmo_stream_srv_link_set_addrs(xs->server, (const char **)xs->cfg.local.host, xs->cfg.local.host_cnt);
 	return 0;
 }
 

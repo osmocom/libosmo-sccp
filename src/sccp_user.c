@@ -566,16 +566,18 @@ osmo_sccp_simple_client_on_ss7_id(void *ctx, uint32_t ss7_id, const char *name,
 				goto out_rt;
 			asp_created = true;
 
-			asp->cfg.local.host = NULL;
-			asp->cfg.remote.host = NULL;
+			asp->cfg.local.host[0] = NULL;
+			asp->cfg.remote.host[0] = NULL;
 			if (default_local_ip) {
-				asp->cfg.local.host =
+				asp->cfg.local.host[0] =
 				    talloc_strdup(asp, default_local_ip);
 			}
 			if (default_remote_ip) {
-				asp->cfg.remote.host =
+				asp->cfg.remote.host[0] =
 				    talloc_strdup(asp, default_remote_ip);
 			}
+			asp->cfg.local.host_cnt = 1;
+			asp->cfg.remote.host_cnt = 1;
 			asp->simple_client_allocated = true;
 		} else
 			talloc_free(asp_name);

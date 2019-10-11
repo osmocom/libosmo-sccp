@@ -436,6 +436,8 @@ DEFUN(cs7_xua, cs7_xua_cmd,
 		xs = osmo_ss7_xua_server_create(inst, proto, port, NULL);
 		if (!xs)
 			return CMD_SUCCESS;
+		/* Drop first dummy address created automatically by _create(): */
+		osmo_ss7_xua_server_set_local_hosts(xs, NULL, 0);
 	}
 
 	vty->node = L_CS7_XUA_NODE;
@@ -469,7 +471,7 @@ DEFUN(xua_local_ip, xua_local_ip_cmd,
 {
 	struct osmo_xua_server *xs = vty->index;
 
-	osmo_ss7_xua_server_set_local_host(xs, argv[0]);
+	osmo_ss7_xua_server_add_local_host(xs, argv[0]);
 
 	return CMD_SUCCESS;
 }
@@ -492,21 +494,26 @@ DEFUN(xua_accept_dyn_asp, xua_accept_dyn_asp_cmd,
 
 static void write_one_xua(struct vty *vty, struct osmo_xua_server *xs)
 {
+	int i;
 	vty_out(vty, " listen %s %u%s",
 		get_value_string(osmo_ss7_asp_protocol_vals, xs->cfg.proto),
 		xs->cfg.local.port, VTY_NEWLINE);
-	if (xs->cfg.local.host)
-		vty_out(vty, "  local-ip %s%s", xs->cfg.local.host, VTY_NEWLINE);
+
+	for (i = 0; i < xs->cfg.local.host_cnt; i++) {
+		if (xs->cfg.local.host)
+			vty_out(vty, "  local-ip %s%s", xs->cfg.local.host[i], VTY_NEWLINE);
+	}
 	if (xs->cfg.accept_dyn_reg)
 		vty_out(vty, "  accept-asp-connections dynamic-permitted%s", VTY_NEWLINE);
 }
 
 static void vty_dump_xua_server(struct vty *vty, struct osmo_xua_server *xs)
 {
-	vty_out(vty, "xUA server for %s on %s:%u%s",
-		get_value_string(osmo_ss7_asp_protocol_vals, xs->cfg.proto),
-		xs->cfg.local.host ? xs->cfg.local.host : "0.0.0.0",
-		xs->cfg.local.port, VTY_NEWLINE);
+	char buf[512];
+	const char *proto = get_value_string(osmo_ss7_asp_protocol_vals, xs->cfg.proto);
+	if (osmo_ss7_asp_peer_snprintf(buf, sizeof(buf), &xs->cfg.local) < 0)
+		snprintf(buf, sizeof(buf), "<error>");
+	vty_out(vty, "xUA server for %s on %s%s", proto, buf, VTY_NEWLINE);
 }
 
 DEFUN(show_cs7_xua, show_cs7_xua_cmd,
@@ -604,7 +611,8 @@ DEFUN(asp_local_ip, asp_local_ip_cmd,
 	"Local IP Address from which to contact of ASP\n")
 {
 	struct osmo_ss7_asp *asp = vty->index;
-	osmo_talloc_replace_string(asp, &asp->cfg.local.host, argv[0]);
+	osmo_talloc_replace_string(asp, &asp->cfg.local.host[asp->cfg.local.host_cnt], argv[0]);
+	asp->cfg.local.host_cnt++;
 	return CMD_SUCCESS;
 }
 
@@ -614,7 +622,8 @@ DEFUN(asp_remote_ip, asp_remote_ip_cmd,
 	"Remote IP Address of ASP\n")
 {
 	struct osmo_ss7_asp *asp = vty->index;
-	osmo_talloc_replace_string(asp, &asp->cfg.remote.host, argv[0]);
+	osmo_talloc_replace_string(asp, &asp->cfg.remote.host[asp->cfg.remote.host_cnt], argv[0]);
+	asp->cfg.remote.host_cnt++;
 	return CMD_SUCCESS;
 }
 
@@ -652,6 +661,7 @@ DEFUN(show_cs7_asp, show_cs7_asp_cmd,
 {
 	struct osmo_ss7_instance *inst;
 	struct osmo_ss7_asp *asp;
+	char buf[512];
 	int id = atoi(argv[0]);
 
 	inst = osmo_ss7_instance_find(id);
@@ -661,21 +671,23 @@ DEFUN(show_cs7_asp, show_cs7_asp_cmd,
 	}
 
 	vty_out(vty, "                                                          Effect Primary%s", VTY_NEWLINE);
-	vty_out(vty, "ASP Name      AS Name       State          Type  Rmt Port Remote IP Addr  SCTP%s", VTY_NEWLINE);
-	vty_out(vty, "------------  ------------  -------------  ----  -------- --------------- ----------%s", VTY_NEWLINE);
+	vty_out(vty, "ASP Name      AS Name       State          Type Remote IP Addr:Rmt Port SCTP%s", VTY_NEWLINE);
+	vty_out(vty, "------------  ------------  -------------  ---- ----------------------- ----------%s", VTY_NEWLINE);
 
 	llist_for_each_entry(asp, &inst->asp_list, list) {
-		vty_out(vty, "%-12s  %-12s  %-13s  %-4s  %-8u %-15s %-10s%s",
+		osmo_ss7_asp_peer_snprintf(buf, sizeof(buf), &asp->cfg.remote);
+		vty_out(vty, "%-12s  %-12s  %-13s  %-4s  %-14s  %-10s%s",
 			asp->cfg.name, "?",
 			asp->fi? osmo_fsm_inst_state_name(asp->fi) : "uninitialized",
 			get_value_string(osmo_ss7_asp_protocol_vals, asp->cfg.proto),
-			asp->cfg.remote.port, asp->cfg.remote.host, "", VTY_NEWLINE);
+			buf, "", VTY_NEWLINE);
 	}
 	return CMD_SUCCESS;
 }
 
 static void write_one_asp(struct vty *vty, struct osmo_ss7_asp *asp)
 {
+	int i;
 	/* skip any dynamically created ASPs (e.g. auto-created at connect time) */
 	if (asp->dyn_allocated || asp->simple_client_allocated)
 		return;
@@ -685,10 +697,14 @@ static void write_one_asp(struct vty *vty, struct osmo_ss7_asp *asp)
 		osmo_ss7_asp_protocol_name(asp->cfg.proto), VTY_NEWLINE);
 	if (asp->cfg.description)
 		vty_out(vty, "  description %s%s", asp->cfg.description, VTY_NEWLINE);
-	if (asp->cfg.local.host)
-		vty_out(vty, "  local-ip %s%s", asp->cfg.local.host, VTY_NEWLINE);
-	if (asp->cfg.remote.host)
-		vty_out(vty, "  remote-ip %s%s", asp->cfg.remote.host, VTY_NEWLINE);
+	for (i = 0; i < asp->cfg.local.host_cnt; i++) {
+		if (asp->cfg.local.host)
+			vty_out(vty, "  local-ip %s%s", asp->cfg.local.host[i], VTY_NEWLINE);
+	}
+	for (i = 0; i < asp->cfg.remote.host_cnt; i++) {
+		if (asp->cfg.remote.host)
+			vty_out(vty, "  remote-ip %s%s", asp->cfg.remote.host[i], VTY_NEWLINE);
+	}
 	if (asp->cfg.qos_class)
 		vty_out(vty, "  qos-class %u%s", asp->cfg.qos_class, VTY_NEWLINE);
 }
@@ -1722,6 +1738,9 @@ int osmo_ss7_vty_go_parent(struct vty *vty)
 		break;
 	case L_CS7_XUA_NODE:
 		oxs = vty->index;
+		/* If no local addr was set, or erased after _create(): */
+		if (!oxs->cfg.local.host_cnt)
+			osmo_ss7_xua_server_set_local_host(oxs, NULL);
 		if (osmo_ss7_xua_server_bind(oxs) < 0)
 			vty_out(vty, "%% Unable to bind xUA server to IP(s)%s", VTY_NEWLINE);
 		vty->node = L_CS7_NODE;
