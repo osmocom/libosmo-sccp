@@ -1,7 +1,7 @@
 examples_stpdir = $(docdir)/examples/osmo-stp
-examples_stp_DATA = osmo-stp.cfg
+examples_stp_DATA = osmo-stp.cfg osmo-stp-multihome.cfg
 
 osmoconfdir = $(sysconfdir)/osmocom
 osmoconf_DATA = osmo-stp.cfg
 
-EXTRA_DIST = osmo-stp.cfg
+EXTRA_DIST = osmo-stp.cfg osmo-stp-multihome.cfg
