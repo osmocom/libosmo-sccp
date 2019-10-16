@@ -207,7 +207,7 @@ static int handle_rkey_reg(struct osmo_ss7_asp *asp, struct xua_msg *inner,
 	 *    is a slightly non-standard interpretation of M3UA RKM
 	 *    which requires the SG to not have a-priori-knowledge of
 	 *    all AS/RK in situations where the ASP are trusted.
-	 */ 
+	 */
 
 	/* check if there is already an AS for this routing key */
 	as = osmo_ss7_as_find_by_rctx(asp->inst, rctx);

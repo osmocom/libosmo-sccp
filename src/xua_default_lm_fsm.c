@@ -21,7 +21,7 @@
 /* The idea of this default Layer Manager is as follows:
  * - we wait until a SCTP connection is established
  * - we issue the ASP-UP request and wait for the ASP being in UP state
- * - we wait if we receive a M-NOTIFY indication about any AS in this ASP 
+ * - we wait if we receive a M-NOTIFY indication about any AS in this ASP
  * - if that's not received, we use RKM to register a routing context
  *   for our locally configured ASP and expect a positive registration
  *   result as well as a NOTIFY indication about AS-ACTIVE afterwards.

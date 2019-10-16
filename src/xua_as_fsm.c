@@ -1,6 +1,6 @@
 /* SCCP M3UA / SUA AS osmo_fsm according to RFC3868 4.3.1 / RFC4666 4.3.2 */
 /* (C) Copyright 2017 by Harald Welte <laforge@gnumonks.org>
- * 
+ *
  * All Rights reserved.
  *
  * SPDX-License-Identifier: GPL-2.0+
