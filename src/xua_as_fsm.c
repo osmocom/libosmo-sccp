@@ -71,20 +71,60 @@ static int asp_notify_all_as(struct osmo_ss7_as *as, struct osmo_xlm_prim_notify
 	return sent;
 }
 
-/* actually transmit a message through this AS */
-int xua_as_transmit_msg(struct osmo_ss7_as *as, struct msgb *msg)
+static struct osmo_ss7_asp *xua_as_select_asp_override(struct osmo_ss7_as *as)
 {
 	struct osmo_ss7_asp *asp;
 	unsigned int i;
 
-	/* FIXME: proper selection of the ASP based on the SLS and the
-	 * traffic mode type! */
+	/* FIXME: proper selection of the ASP based on the SLS! */
 	for (i = 0; i < ARRAY_SIZE(as->cfg.asps); i++) {
 		asp = as->cfg.asps[i];
 		if (!asp)
 			continue;
 		if (asp)
 			break;
+	}
+	return asp;
+}
+
+static struct osmo_ss7_asp *xua_as_select_asp_roundrobin(struct osmo_ss7_as *as)
+{
+	struct osmo_ss7_asp *asp;
+	unsigned int i;
+	unsigned int first_idx;
+
+	first_idx = (as->cfg.last_asp_idx_sent + 1) % ARRAY_SIZE(as->cfg.asps);
+	i = first_idx;
+	do {
+		asp = as->cfg.asps[i];
+		if (asp)
+			break;
+		i = (i + 1) % ARRAY_SIZE(as->cfg.asps);
+	} while (i != first_idx);
+	as->cfg.last_asp_idx_sent = i;
+
+	return asp;
+}
+
+/* actually transmit a message through this AS */
+int xua_as_transmit_msg(struct osmo_ss7_as *as, struct msgb *msg)
+{
+	struct osmo_ss7_asp *asp = NULL;
+
+	switch (as->cfg.mode) {
+	case OSMO_SS7_AS_TMOD_OVERRIDE:
+		asp = xua_as_select_asp_override(as);
+		break;
+	case OSMO_SS7_AS_TMOD_LOADSHARE:
+	case OSMO_SS7_AS_TMOD_ROUNDROBIN:
+		asp = xua_as_select_asp_roundrobin(as);
+		break;
+	case OSMO_SS7_AS_TMOD_BCAST:
+		LOGPFSM(as->fi, "Traffic mode broadcast not implemented, dropping message\n");
+		msgb_free(msg);
+		return -1;
+	case _NUM_OSMO_SS7_ASP_TMOD:
+		OSMO_ASSERT(false);
 	}
 
 	if (!asp) {
