@@ -811,6 +811,7 @@ DEFUN(as_traf_mode, as_traf_mode_cmd,
 	struct osmo_ss7_as *as = vty->index;
 
 	as->cfg.mode = get_string_value(osmo_ss7_as_traffic_mode_vals, argv[0]);
+	as->cfg.mode_set_by_vty = true;
 	return CMD_SUCCESS;
 }
 
@@ -994,7 +995,7 @@ static void write_one_as(struct vty *vty, struct osmo_ss7_as *as)
 			continue;
 		vty_out(vty, "  asp %s%s", asp->cfg.name, VTY_NEWLINE);
 	}
-	if (as->cfg.mode != OSMO_SS7_AS_TMOD_OVERRIDE)
+	if (as->cfg.mode_set_by_vty)
 		vty_out(vty, "  traffic-mode %s%s",
 			osmo_ss7_as_traffic_mode_name(as->cfg.mode), VTY_NEWLINE);
 	if (as->cfg.recovery_timeout_msec != 2000) {

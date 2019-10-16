@@ -2049,12 +2049,13 @@ enum osmo_ss7_as_traffic_mode osmo_ss7_tmode_from_xua(uint32_t in)
 {
 	switch (in) {
 	case M3UA_TMOD_OVERRIDE:
-	default:
 		return OSMO_SS7_AS_TMOD_OVERRIDE;
 	case M3UA_TMOD_LOADSHARE:
 		return OSMO_SS7_AS_TMOD_LOADSHARE;
 	case M3UA_TMOD_BCAST:
 		return OSMO_SS7_AS_TMOD_BCAST;
+	default:
+		OSMO_ASSERT(false);
 	}
 }
 

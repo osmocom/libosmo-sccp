@@ -314,6 +314,7 @@ struct osmo_ss7_as {
 		enum osmo_ss7_asp_protocol proto;
 		struct osmo_ss7_routing_key routing_key;
 		enum osmo_ss7_as_traffic_mode mode;
+		bool mode_set_by_vty;
 		uint32_t recovery_timeout_msec;
 		uint8_t qos_class;
 		struct {
