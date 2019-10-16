@@ -267,27 +267,27 @@ ss7_asp_vty_test(config-cs7-as)# no ?
   asp  Specify ASP to be removed from this AS
 
 ss7_asp_vty_test(config-cs7-as)# do show cs7 instance 0 as all
-                          Routing    Routing Key                          Cic   Cic
-AS Name      State        Context    Dpc           Si   Opc           Ssn Min   Max
------------- ------------ ---------- ------------- ---- ------------- --- ----- -----
-my-ass       AS_DOWN      0          0.0.0                                          
+                          Routing    Routing Key                          Cic   Cic   Traffic
+AS Name      State        Context    Dpc           Si   Opc           Ssn Min   Max   Mode
+------------ ------------ ---------- ------------- ---- ------------- --- ----- ----- -------
+my-ass       AS_DOWN      0          0.0.0                                            loadshare
 
 ss7_asp_vty_test(config-cs7-as)# do show cs7 instance 0 as active
-                          Routing    Routing Key                          Cic   Cic
-AS Name      State        Context    Dpc           Si   Opc           Ssn Min   Max
------------- ------------ ---------- ------------- ---- ------------- --- ----- -----
-my-ass       AS_DOWN      0          0.0.0                                          
+                          Routing    Routing Key                          Cic   Cic   Traffic
+AS Name      State        Context    Dpc           Si   Opc           Ssn Min   Max   Mode
+------------ ------------ ---------- ------------- ---- ------------- --- ----- ----- -------
+my-ass       AS_DOWN      0          0.0.0                                            loadshare
 
 ss7_asp_vty_test(config-cs7-as)# do show cs7 instance 0 as sua
-                          Routing    Routing Key                          Cic   Cic
-AS Name      State        Context    Dpc           Si   Opc           Ssn Min   Max
------------- ------------ ---------- ------------- ---- ------------- --- ----- -----
+                          Routing    Routing Key                          Cic   Cic   Traffic
+AS Name      State        Context    Dpc           Si   Opc           Ssn Min   Max   Mode
+------------ ------------ ---------- ------------- ---- ------------- --- ----- ----- -------
 
 ss7_asp_vty_test(config-cs7-as)# do show cs7 instance 0 as m3ua
-                          Routing    Routing Key                          Cic   Cic
-AS Name      State        Context    Dpc           Si   Opc           Ssn Min   Max
------------- ------------ ---------- ------------- ---- ------------- --- ----- -----
-my-ass       AS_DOWN      0          0.0.0                                          
+                          Routing    Routing Key                          Cic   Cic   Traffic
+AS Name      State        Context    Dpc           Si   Opc           Ssn Min   Max   Mode
+------------ ------------ ---------- ------------- ---- ------------- --- ----- ----- -------
+my-ass       AS_DOWN      0          0.0.0                                            loadshare
 
 ss7_asp_vty_test(config-cs7-as)# asp my-asp
 ss7_asp_vty_test(config-cs7-as)# routing-key 0 3.2.1
@@ -315,10 +315,10 @@ ASP Name      AS Name       State          Type Remote IP Addr:Rmt Port SCTP
 my-asp        ?             ASP_DOWN       m3ua  127.0.0.200:12345            
 
 ss7_asp_vty_test(config)# do show cs7 instance 0 as all
-                          Routing    Routing Key                          Cic   Cic
-AS Name      State        Context    Dpc           Si   Opc           Ssn Min   Max
------------- ------------ ---------- ------------- ---- ------------- --- ----- -----
-my-ass       AS_DOWN      0          3.2.1                                          
+                          Routing    Routing Key                          Cic   Cic   Traffic
+AS Name      State        Context    Dpc           Si   Opc           Ssn Min   Max   Mode
+------------ ------------ ---------- ------------- ---- ------------- --- ----- ----- -------
+my-ass       AS_DOWN      0          3.2.1                                            loadshare
 
 
 
@@ -356,10 +356,10 @@ ASP Name      AS Name       State          Type Remote IP Addr:Rmt Port SCTP
 ------------  ------------  -------------  ---- ----------------------- ----------
 
 ss7_asp_vty_test(config-cs7)# do show cs7 instance 0 as all
-                          Routing    Routing Key                          Cic   Cic
-AS Name      State        Context    Dpc           Si   Opc           Ssn Min   Max
------------- ------------ ---------- ------------- ---- ------------- --- ----- -----
-my-ass       AS_DOWN      0          3.2.1                                          
+                          Routing    Routing Key                          Cic   Cic   Traffic
+AS Name      State        Context    Dpc           Si   Opc           Ssn Min   Max   Mode
+------------ ------------ ---------- ------------- ---- ------------- --- ----- ----- -------
+my-ass       AS_DOWN      0          3.2.1                                            loadshare
 
 
 ss7_asp_vty_test(config-cs7)# do show cs7 instance 0 sccp timers

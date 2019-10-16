@@ -1040,9 +1040,9 @@ DEFUN(show_cs7_as, show_cs7_as_cmd,
 		return CMD_WARNING;
 	}
 
-	vty_out(vty, "                          Routing    Routing Key                          Cic   Cic%s", VTY_NEWLINE);
-	vty_out(vty, "AS Name      State        Context    Dpc           Si   Opc           Ssn Min   Max%s", VTY_NEWLINE);
-	vty_out(vty, "------------ ------------ ---------- ------------- ---- ------------- --- ----- -----%s", VTY_NEWLINE);
+	vty_out(vty, "                          Routing    Routing Key                          Cic   Cic   Traffic%s", VTY_NEWLINE);
+	vty_out(vty, "AS Name      State        Context    Dpc           Si   Opc           Ssn Min   Max   Mode%s", VTY_NEWLINE);
+	vty_out(vty, "------------ ------------ ---------- ------------- ---- ------------- --- ----- ----- -------%s", VTY_NEWLINE);
 
 	llist_for_each_entry(as, &inst->as_list, list) {
 		if (filter && !strcmp(filter, "m3ua") && as->cfg.proto != OSMO_SS7_ASP_PROT_M3UA)
@@ -1050,10 +1050,11 @@ DEFUN(show_cs7_as, show_cs7_as_cmd,
 		if (filter && !strcmp(filter, "sua") && as->cfg.proto != OSMO_SS7_ASP_PROT_SUA)
 			continue;
 		/* FIXME: active filter */
-		vty_out(vty, "%-12s %-12s %-10u %-13s %4s %13s %3s %5s %4s%s",
+		vty_out(vty, "%-12s %-12s %-10u %-13s %4s %13s %3s %5s %4s %10s%s",
 			as->cfg.name, osmo_fsm_inst_state_name(as->fi), as->cfg.routing_key.context,
 			osmo_ss7_pointcode_print(as->inst, as->cfg.routing_key.pc),
-			"", "", "", "", "", VTY_NEWLINE);
+			"", "", "", "", "", osmo_ss7_as_traffic_mode_name(as->cfg.mode),
+			VTY_NEWLINE);
 	}
 	return CMD_SUCCESS;
 }
