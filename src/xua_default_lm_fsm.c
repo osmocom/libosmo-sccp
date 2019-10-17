@@ -184,6 +184,7 @@ static int lm_timer_cb(struct osmo_fsm_inst *fi)
 		}
 		/* Fill in settings from first AS (TODO: multiple AS support) */
 		prim->u.rk_reg.key = as->cfg.routing_key;
+		prim->u.rk_reg.traf_mode = as->cfg.mode;
 		osmo_xlm_sap_down(lmp->asp, &prim->oph);
 		break;
 	case T_WAIT_NOTIFY_RKM:
