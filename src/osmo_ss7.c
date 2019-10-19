@@ -985,7 +985,6 @@ osmo_ss7_as_find_or_create(struct osmo_ss7_instance *inst, const char *name,
 		return NULL;
 
 	if (!as) {
-		LOGSS7(inst, LOGL_INFO, "Creating AS %s\n", name);
 		as = talloc_zero(inst, struct osmo_ss7_as);
 		if (!as)
 			return NULL;
@@ -997,6 +996,7 @@ osmo_ss7_as_find_or_create(struct osmo_ss7_instance *inst, const char *name,
 		as->cfg.routing_key.l_rk_id = find_free_l_rk_id(inst);
 		as->fi = xua_as_fsm_start(as, LOGL_DEBUG);
 		llist_add_tail(&as->list, &inst->as_list);
+		LOGPAS(as, DLSS7, LOGL_INFO, "Created AS\n");
 	}
 
 	return as;
@@ -1016,8 +1016,7 @@ int osmo_ss7_as_add_asp(struct osmo_ss7_as *as, const char *asp_name)
 	if (!asp)
 		return -ENODEV;
 
-	LOGSS7(as->inst, LOGL_INFO, "Adding ASP %s to AS %s\n",
-		asp->cfg.name, as->cfg.name);
+	LOGPAS(as, DLSS7, LOGL_INFO, "Adding ASP %s to AS\n", asp->cfg.name);
 
 	if (osmo_ss7_as_has_asp(as, asp))
 		return 0;
@@ -1046,8 +1045,7 @@ int osmo_ss7_as_del_asp(struct osmo_ss7_as *as, const char *asp_name)
 	if (!asp)
 		return -ENODEV;
 
-	LOGSS7(as->inst, LOGL_INFO, "Removing ASP %s from AS %s\n",
-		asp->cfg.name, as->cfg.name);
+	LOGPAS(as, DLSS7, LOGL_INFO, "Removing ASP %s from AS\n", asp->cfg.name);
 
 	for (i = 0; i < ARRAY_SIZE(as->cfg.asps); i++) {
 		if (as->cfg.asps[i] == asp) {
@@ -1066,7 +1064,7 @@ void osmo_ss7_as_destroy(struct osmo_ss7_as *as)
 	struct osmo_ss7_route *rt, *rt2;
 
 	OSMO_ASSERT(ss7_initialized);
-	LOGSS7(as->inst, LOGL_INFO, "Destroying AS %s\n", as->cfg.name);
+	LOGPAS(as, DLSS7, LOGL_INFO, "Destroying AS\n");
 
 	if (as->fi)
 		osmo_fsm_inst_term(as->fi, OSMO_FSM_TERM_REQUEST, NULL);
@@ -1233,7 +1231,7 @@ void osmo_ss7_asp_destroy(struct osmo_ss7_asp *asp)
 	struct osmo_ss7_as *as;
 
 	OSMO_ASSERT(ss7_initialized);
-	LOGSS7(asp->inst, LOGL_INFO, "Destroying ASP %s\n", asp->cfg.name);
+	LOGPASP(asp, DLSS7, LOGL_INFO, "Destroying ASP\n");
 
 	if (asp->server)
 		osmo_stream_srv_destroy(asp->server);
@@ -1270,7 +1268,7 @@ int osmo_ss7_asp_restart(struct osmo_ss7_asp *asp)
 	enum xua_asp_role role;
 
 	OSMO_ASSERT(ss7_initialized);
-	LOGSS7(asp->inst, LOGL_INFO, "Restarting ASP %s\n", asp->cfg.name);
+	LOGPASP(asp, DLSS7, LOGL_INFO, "Restarting ASP\n");
 
 	if (!asp->cfg.is_server) {
 		/* We are in client mode now */
@@ -1283,7 +1281,7 @@ int osmo_ss7_asp_restart(struct osmo_ss7_asp *asp)
 		if (!asp->client)
 			asp->client = osmo_stream_cli_create(asp);
 		if (!asp->client) {
-			LOGSS7(asp->inst, LOGL_ERROR, "Unable to create stream"
+			LOGPASP(asp, DLSS7, LOGL_ERROR, "Unable to create stream"
 				" client for ASP %s\n", asp->cfg.name);
 			return -1;
 		}
@@ -1302,7 +1300,7 @@ int osmo_ss7_asp_restart(struct osmo_ss7_asp *asp)
 		osmo_stream_cli_set_data(asp->client, asp);
 		rc = osmo_stream_cli_open(asp->client);
 		if (rc < 0) {
-			LOGSS7(asp->inst, LOGL_ERROR, "Unable to open stream"
+			LOGPASP(asp, DLSS7, LOGL_ERROR, "Unable to open stream"
 				" client for ASP %s\n", asp->cfg.name);
 			/* we don't return error in here because osmo_stream_cli_open()
 			   will continue to retry (due to timeout being explicitly set with
@@ -1319,7 +1317,7 @@ int osmo_ss7_asp_restart(struct osmo_ss7_asp *asp)
 			asp->client = NULL;
 		}
 		/* FIXME: ensure we have a SCTP server */
-		LOGSS7(asp->inst, LOGL_NOTICE, "ASP Restart for server "
+		LOGPASP(asp, DLSS7, LOGL_NOTICE, "ASP Restart for server "
 			"not implemented yet!\n");
 		/* TODO: make this configurable and not implicit */
 		role = XUA_ASPFSM_ROLE_SG;
