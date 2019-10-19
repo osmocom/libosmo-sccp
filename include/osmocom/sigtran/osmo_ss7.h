@@ -430,8 +430,14 @@ typedef int osmo_ss7_asp_rx_unknown_cb(struct osmo_ss7_asp *asp, int ppid_mux, s
 
 void osmo_ss7_register_rx_unknown_cb(osmo_ss7_asp_rx_unknown_cb *cb);
 
+#define _LOGSS7(inst, subsys, level, fmt, args ...)      \
+        LOGP(subsys, level, "%u: " fmt, inst ? (inst)->cfg.id : 0, ## args)
+#define LOGSS7(inst, level, fmt, args ...)      _LOGSS7(inst, DLSS7, level, fmt, ## args)
+
 #define LOGPASP(asp, subsys, level, fmt, args ...)		\
-	LOGP(subsys, level, "asp-%s: " fmt, (asp)->cfg.name, ## args)
+	_LOGSS7((asp)->inst, subsys, level, "asp-%s: " fmt, (asp)->cfg.name, ## args)
+#define LOGPAS(as, subsys, level, fmt, args ...)		\
+	_LOGSS7((as)->inst, subsys, level, "as-%s: " fmt, (as)->cfg.name, ## args)
 
 /***********************************************************************
  * xUA Servers

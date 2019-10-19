@@ -74,9 +74,6 @@ struct value_string osmo_ss7_asp_protocol_vals[] = {
 	{ 0, NULL }
 };
 
-#define LOGSS7(inst, level, fmt, args ...)	\
-	LOGP(DLSS7, level, "%u: " fmt, inst ? (inst)->cfg.id : 0, ## args)
-
 static int asp_proto_to_ip_proto(enum osmo_ss7_asp_protocol proto)
 {
 	switch (proto) {
