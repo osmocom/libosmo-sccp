@@ -250,6 +250,7 @@ ss7_asp_vty_test(config-cs7-as)# list
   routing-key RCONTEXT DPC ssn SSN
   routing-key RCONTEXT DPC si (aal2|bicc|b-isup|h248|isup|sat-isup|sccp|tup) ssn SSN
   point-code override dpc PC
+  point-code override patch-sccp (disabled|both)
 
 ss7_asp_vty_test(config-cs7-as)# ?
 ...

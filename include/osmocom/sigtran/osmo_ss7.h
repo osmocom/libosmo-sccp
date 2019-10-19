@@ -290,6 +290,11 @@ osmo_ss7_asp_protocol_name(enum osmo_ss7_asp_protocol mode)
 
 int osmo_ss7_asp_protocol_port(enum osmo_ss7_asp_protocol prot);
 
+enum osmo_ss7_as_patch_sccp_mode {
+	OSMO_SS7_PATCH_NONE,	/* no patching of SCCP */
+	OSMO_SS7_PATCH_BOTH,	/* patch both OPC and DPC into SCCP addresses */
+};
+
 struct osmo_ss7_as {
 	/*! entry in 'ref osmo_ss7_instance.as_list */
 	struct llist_head list;
@@ -314,6 +319,7 @@ struct osmo_ss7_as {
 		uint8_t qos_class;
 		struct {
 			uint32_t dpc;
+			enum osmo_ss7_as_patch_sccp_mode sccp_mode;
 		} pc_override;
 
 		struct osmo_ss7_asp *asps[16];

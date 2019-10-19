@@ -260,10 +260,12 @@ static int ipa_rx_msg_sccp(struct osmo_ss7_asp *asp, struct msgb *msg)
 	}
 
 	/* Second, patch this into the SCCP message */
-	msg = patch_sccp_with_pc(asp, msg, opc, dpc);
-	if (!msg) {
-		LOGPASP(asp, DLSS7, LOGL_ERROR, "Unable to patch PC into SCCP message; dropping\n");
-		return -1;
+	if (as->cfg.pc_override.sccp_mode == OSMO_SS7_PATCH_BOTH) {
+		msg = patch_sccp_with_pc(asp, msg, opc, dpc);
+		if (!msg) {
+			LOGPASP(asp, DLSS7, LOGL_ERROR, "Unable to patch PC into SCCP message; dropping\n");
+			return -1;
+		}
 	}
 
 	/* Third, create a MTP3/M3UA label with those point codes */
