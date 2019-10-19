@@ -204,6 +204,8 @@ static struct msgb *patch_sccp_with_pc(struct osmo_ss7_asp *asp, struct msgb *sc
 
 	/* re-encode SUA to SCCP and return */
 	sccp_msg_out = osmo_sua_to_sccp(sua);
+	if (!sccp_msg_out)
+		LOGPASP(asp, DLSS7, LOGL_ERROR, "Couldn't re-encode SUA to SCCP\n");
 	xua_msg_free(sua);
 	return sccp_msg_out;
 }
@@ -259,6 +261,10 @@ static int ipa_rx_msg_sccp(struct osmo_ss7_asp *asp, struct msgb *msg)
 
 	/* Second, patch this into the SCCP message */
 	msg = patch_sccp_with_pc(asp, msg, opc, dpc);
+	if (!msg) {
+		LOGPASP(asp, DLSS7, LOGL_ERROR, "Unable to patch PC into SCCP message; dropping\n");
+		return -1;
+	}
 
 	/* Third, create a MTP3/M3UA label with those point codes */
 	memset(&data_hdr, 0, sizeof(data_hdr));
