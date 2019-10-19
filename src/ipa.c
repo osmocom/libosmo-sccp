@@ -57,6 +57,7 @@
 int ipa_tx_xua_as(struct osmo_ss7_as *as, struct xua_msg *xua)
 {
 	struct xua_msg_part *data_ie;
+	struct m3ua_data_hdr *data_hdr;
 	struct msgb *msg;
 	unsigned int src_len;
 	const uint8_t *src;
@@ -68,6 +69,13 @@ int ipa_tx_xua_as(struct osmo_ss7_as *as, struct xua_msg *xua)
 	data_ie = xua_msg_find_tag(xua, M3UA_IEI_PROT_DATA);
 	if (!data_ie || data_ie->len < sizeof(struct m3ua_data_hdr))
 		return -1;
+	data_hdr = (struct m3ua_data_hdr *) data_ie->dat;
+
+	if (data_hdr->si != MTP_SI_SCCP) {
+		LOGPAS(as, DLSS7, LOGL_ERROR, "Cannot transmit non-SCCP SI (%u) to IPA peer\n",
+			data_hdr->si);
+		return -1;
+	}
 
 	/* and even the data part still has the header prepended */
 	src = data_ie->dat + sizeof(struct m3ua_data_hdr);
