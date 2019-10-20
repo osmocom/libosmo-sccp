@@ -864,6 +864,12 @@ static int _rout_key(struct vty *vty,
 	struct osmo_ss7_routing_key *rkey = &as->cfg.routing_key;
 	int pc;
 
+	if (as->cfg.proto == OSMO_SS7_ASP_PROT_IPA && atoi(rcontext) != 0) {
+		vty_out(vty, "IPA doesn't suppor routing contexts; only permitted routing context "
+			"is 0\n");
+		return CMD_WARNING;
+	}
+
 	pc = osmo_ss7_pointcode_parse(as->inst, dpc);
 	if (pc < 0) {
 		vty_out(vty, "Invalid point code (%s)%s", dpc, VTY_NEWLINE);
