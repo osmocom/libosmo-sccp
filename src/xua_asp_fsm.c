@@ -848,6 +848,7 @@ static void ipa_asp_fsm_wait_id_ack2(struct osmo_fsm_inst *fi, uint32_t event, v
 	struct ipa_asp_fsm_priv *iafp = fi->priv;
 	struct osmo_ss7_asp *asp = iafp->asp;
 	struct osmo_ss7_instance *inst = asp->inst;
+	/* We use routing-context '0' here, as that's the only one we support in IPA */
 	struct osmo_ss7_as *as = osmo_ss7_as_find_by_rctx(inst, 0);
 
 	OSMO_ASSERT(as);
@@ -920,6 +921,7 @@ static void ipa_asp_fsm_del_route(struct ipa_asp_fsm_priv *iafp)
 {
 	struct osmo_ss7_asp *asp = iafp->asp;
 	struct osmo_ss7_instance *inst = asp->inst;
+	/* We use routing-context '0' here, as that's the only one we support in IPA */
 	struct osmo_ss7_as *as = osmo_ss7_as_find_by_rctx(inst, 0);
 	struct osmo_ss7_route *rt;
 
