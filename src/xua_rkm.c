@@ -30,6 +30,7 @@
 
 #include "xua_internal.h"
 #include "xua_as_fsm.h"
+#include "xua_asp_fsm.h"
 
 const struct value_string m3ua_rkm_reg_status_vals[] = {
 	{ M3UA_RKM_REG_SUCCESS,			"SUCCESS" },
@@ -338,7 +339,11 @@ static int handle_rkey_dereg(struct osmo_ss7_asp *asp, uint32_t rctx,
 		return -1;
 	}
 
-	/* FIXME Reject if any ASP stillactively using this RCTX */
+	/* Reject if ASP is still active */
+	if (asp->fi->state == XUA_ASP_S_ACTIVE) {
+		msgb_append_dereg_res(resp, M3UA_RKM_DEREG_ERR_ASP_ACTIVE, 0);
+		return -1;
+	}
 
 	rt = osmo_ss7_route_find_dpc(inst->rtable_system, as->cfg.routing_key.pc);
 	if (!rt) {
