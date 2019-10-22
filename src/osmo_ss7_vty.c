@@ -865,7 +865,7 @@ static int _rout_key(struct vty *vty,
 	int pc;
 
 	if (as->cfg.proto == OSMO_SS7_ASP_PROT_IPA && atoi(rcontext) != 0) {
-		vty_out(vty, "IPA doesn't suppor routing contexts; only permitted routing context "
+		vty_out(vty, "IPA doesn't support routing contexts; only permitted routing context "
 			"is 0\n");
 		return CMD_WARNING;
 	}
