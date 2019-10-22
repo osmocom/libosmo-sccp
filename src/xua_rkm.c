@@ -258,6 +258,8 @@ static int handle_rkey_reg(struct osmo_ss7_asp *asp, struct xua_msg *inner,
 		newly_assigned_as[(*nas_idx)++] = as;
 	} else {
 		/* not permitted to create dynamic RKM entries */
+		LOGPASP(asp, DLSS7, LOGL_NOTICE, "RKM: RCTX %u not found in configuration, and "
+			"dynamic RKM allocation not permitted; permission denied\n", rctx);
 		msgb_append_reg_res(resp, rk_id, M3UA_RKM_REG_ERR_PERM_DENIED, 0);
 		return -1;
 	}
