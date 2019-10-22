@@ -561,9 +561,9 @@ static int m3ua_rx_xfer(struct osmo_ss7_asp *asp, struct xua_msg *xua)
 	/* Verify that this ASP is part of the AS. */
 	if (!osmo_ss7_as_has_asp(as, asp)) {
 		LOGPASP(asp, DLM3UA, LOGL_ERROR,
-			"%s(): This Application Server Process is not part of the AS resolved by"
+			"%s(): This Application Server Process is not part of the AS %s resolved by"
 			" routing context %u\n",
-			__func__, rctx);
+			__func__, (as)->cfg.name, rctx);
 		return M3UA_ERR_NO_CONFGD_AS_FOR_ASP;
 	}
 
