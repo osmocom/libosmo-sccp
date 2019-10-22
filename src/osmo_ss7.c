@@ -2059,6 +2059,31 @@ enum osmo_ss7_as_traffic_mode osmo_ss7_tmode_from_xua(uint32_t in)
 	}
 }
 
+bool osmo_ss7_as_tmode_compatible_xua(struct osmo_ss7_as *as, uint32_t m3ua_tmt)
+{
+	if (!as->cfg.mode_set_by_vty && !as->cfg.mode_set_by_peer)
+		return true;
+
+	switch (m3ua_tmt) {
+	case M3UA_TMOD_OVERRIDE:
+		if (as->cfg.mode == OSMO_SS7_AS_TMOD_OVERRIDE)
+			return true;
+		break;
+	case M3UA_TMOD_LOADSHARE:
+		if (as->cfg.mode == OSMO_SS7_AS_TMOD_LOADSHARE ||
+		    as->cfg.mode == OSMO_SS7_AS_TMOD_ROUNDROBIN)
+			return true;
+		break;
+	case M3UA_TMOD_BCAST:
+		if (as->cfg.mode == OSMO_SS7_AS_TMOD_BCAST)
+			return true;
+		break;
+	default:
+		break;
+	}
+	return false;
+}
+
 static osmo_ss7_asp_rx_unknown_cb *g_osmo_ss7_asp_rx_unknown_cb;
 
 int ss7_asp_rx_unknown(struct osmo_ss7_asp *asp, int ppid_mux, struct msgb *msg)

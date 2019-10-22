@@ -316,7 +316,7 @@ struct osmo_ss7_as {
 		enum osmo_ss7_as_traffic_mode mode;
 		/* traffic mode was configured by VTY / config file */
 		bool mode_set_by_vty;
-		/* traffic mode was configured by RKM (routing key management) or ASPAC */
+		/* traffic mode was configured by RKM (routing key management) or first ASPAC */
 		bool mode_set_by_peer;
 		uint32_t recovery_timeout_msec;
 		uint8_t qos_class;
@@ -346,6 +346,7 @@ int osmo_ss7_as_del_asp(struct osmo_ss7_as *as, const char *asp_name);
 void osmo_ss7_as_destroy(struct osmo_ss7_as *as);
 bool osmo_ss7_as_has_asp(struct osmo_ss7_as *as,
 			 struct osmo_ss7_asp *asp);
+bool osmo_ss7_as_tmode_compatible_xua(struct osmo_ss7_as *as, uint32_t m3ua_tmt);
 void osmo_ss7_asp_disconnect(struct osmo_ss7_asp *asp);
 
 

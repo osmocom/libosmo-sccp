@@ -225,9 +225,8 @@ static int handle_rkey_reg(struct osmo_ss7_asp *asp, struct xua_msg *inner,
 				LOGPAS(as, DLSS7, LOGL_INFO,
 					"RKM: Traffic mode set dynamically by peer to %s\n",
 					osmo_ss7_as_traffic_mode_name(as->cfg.mode));
-			} else if (as->cfg.mode != tmode) {
-				/*FIXME: ^ properly check if tmode is
-				  compatible with already set as->cfg.mode */
+			/* verify if existing AS has same traffic-mode as new request (if any) */
+			} else if (!osmo_ss7_as_tmode_compatible_xua(as, _tmode)) {
 				LOGPASP(asp, DLSS7, LOGL_NOTICE, "RKM: Non-matching Traffic Mode %s\n",
 					osmo_ss7_as_traffic_mode_name(tmode));
 				msgb_append_reg_res(resp, rk_id, M3UA_RKM_REG_ERR_UNSUPP_TRAF_MODE, 0);

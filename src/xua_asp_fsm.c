@@ -483,10 +483,7 @@ static void xua_asp_fsm_inactive(struct osmo_fsm_inst *fi, uint32_t event, void 
 					LOGPAS(as, DLSS7, LOGL_INFO,
 						"ASPAC: Traffic mode set dynamically by peer to %s\n",
 						osmo_ss7_as_traffic_mode_name(as->cfg.mode));
-				} else if (as->cfg.mode != tmode) {
-					/*FIXME: ^ properly check if tmode is
-					  compatible with already set
-					  as->cfg.mode */
+				} else if (!osmo_ss7_as_tmode_compatible_xua(as, traf_mode)) {
 					peer_send_error(fi, M3UA_ERR_UNSUPP_TRAF_MOD_TYP);
 					return;
 				}
