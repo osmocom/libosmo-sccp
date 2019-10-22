@@ -1710,9 +1710,9 @@ static int xua_accept_cb(struct osmo_stream_srv_link *link, int fd)
 	struct osmo_stream_srv *srv;
 	struct osmo_ss7_asp *asp;
 	char *sock_name = osmo_sock_get_name(link, fd);
+	const char *proto_name = get_value_string(osmo_ss7_asp_protocol_vals, oxs->cfg.proto);
 
-	LOGP(DLSS7, LOGL_INFO, "%s: New %s connection accepted\n",
-		sock_name, get_value_string(osmo_ss7_asp_protocol_vals, oxs->cfg.proto));
+	LOGP(DLSS7, LOGL_INFO, "%s: New %s connection accepted\n", sock_name, proto_name);
 
 	if (oxs->cfg.proto == OSMO_SS7_ASP_PROT_IPA) {
 		srv = osmo_stream_srv_create(oxs, link, fd,
@@ -1737,9 +1737,9 @@ static int xua_accept_cb(struct osmo_stream_srv_link *link, int fd)
 			sock_name, asp->cfg.name);
 	} else {
 		if (!oxs->cfg.accept_dyn_reg) {
-			LOGP(DLSS7, LOGL_NOTICE, "%s: SCTP connection without matching "
+			LOGP(DLSS7, LOGL_NOTICE, "%s: %s connection without matching "
 			     "ASP definition and no dynamic registration enabled, terminating\n",
-			     sock_name);
+			     sock_name, proto_name);
 		} else {
 			char namebuf[32];
 			static uint32_t dyn_asp_num = 0;
