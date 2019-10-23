@@ -204,8 +204,9 @@ static int peer_send(struct osmo_fsm_inst *fi, int out_event, struct xua_msg *in
 		/* RFC3868 Ch. 3.6.2 */
 		xua->hdr = XUA_HDR(SUA_MSGC_ASPTM, SUA_ASPTM_ACTIVE_ACK);
 		/* Optional: Traffic Mode Type */
-		/* Mandatory: Routing Context */
-		//FIXME xua_msg_add_u32(xua, SUA_IEI_ROUTE_CTX,
+		xua_msg_copy_part(xua, M3UA_IEI_TRAF_MODE_TYP, in, M3UA_IEI_TRAF_MODE_TYP);
+		/* Optional: Routing Context */
+		xua_msg_copy_part(xua, M3UA_IEI_ROUTE_CTX, in, M3UA_IEI_ROUTE_CTX);
 		/* Optional: Info String */
 		break;
 	case XUA_ASP_E_ASPTM_ASPIA:
@@ -469,7 +470,7 @@ static void xua_asp_fsm_inactive(struct osmo_fsm_inst *fi, uint32_t event, void 
 			}
 		}
 		/* send ACK */
-		peer_send(fi, XUA_ASP_E_ASPTM_ASPAC_ACK, NULL);
+		peer_send(fi, XUA_ASP_E_ASPTM_ASPAC_ACK, xua_in);
 		/* transition state and inform layer manager */
 		osmo_fsm_inst_state_chg(fi, XUA_ASP_S_ACTIVE, 0, 0);
 		send_xlm_prim_simple(fi, OSMO_XLM_PRIM_M_ASP_ACTIVE,
@@ -509,6 +510,7 @@ static void xua_asp_fsm_inactive_onenter(struct osmo_fsm_inst *fi, uint32_t prev
 
 static void xua_asp_fsm_active(struct osmo_fsm_inst *fi, uint32_t event, void *data)
 {
+	struct xua_msg *xua_in;
 	check_stop_t_ack(fi, event);
 	switch (event) {
 	case XUA_ASP_E_ASPSM_ASPDN_ACK:
@@ -573,10 +575,11 @@ static void xua_asp_fsm_active(struct osmo_fsm_inst *fi, uint32_t event, void *d
 				     PRIM_OP_INDICATION);
 		break;
 	case XUA_ASP_E_ASPTM_ASPAC:
+		xua_in = data;
 		/* only in role SG */
 		ENSURE_SG_OR_IPSP(fi, event);
 		/* send ACK */
-		peer_send(fi, XUA_ASP_E_ASPTM_ASPAC_ACK, NULL);
+		peer_send(fi, XUA_ASP_E_ASPTM_ASPAC_ACK, xua_in);
 		break;
 	}
 }
