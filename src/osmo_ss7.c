@@ -955,7 +955,7 @@ osmo_ss7_as_find_or_create(struct osmo_ss7_instance *inst, const char *name,
 		as->inst = inst;
 		as->cfg.name = talloc_strdup(as, name);
 		as->cfg.proto = proto;
-		as->cfg.mode = OSMO_SS7_AS_TMOD_LOADSHARE;
+		as->cfg.mode = OSMO_SS7_AS_TMOD_OVERRIDE;
 		as->cfg.recovery_timeout_msec = 2000;
 		as->cfg.routing_key.l_rk_id = find_free_l_rk_id(inst);
 		as->fi = xua_as_fsm_start(as, LOGL_DEBUG);

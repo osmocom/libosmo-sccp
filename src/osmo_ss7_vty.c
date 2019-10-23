@@ -994,7 +994,7 @@ static void write_one_as(struct vty *vty, struct osmo_ss7_as *as)
 			continue;
 		vty_out(vty, "  asp %s%s", asp->cfg.name, VTY_NEWLINE);
 	}
-	if (as->cfg.mode != OSMO_SS7_AS_TMOD_LOADSHARE)
+	if (as->cfg.mode != OSMO_SS7_AS_TMOD_OVERRIDE)
 		vty_out(vty, "  traffic-mode %s%s",
 			osmo_ss7_as_traffic_mode_name(as->cfg.mode), VTY_NEWLINE);
 	if (as->cfg.recovery_timeout_msec != 2000) {
