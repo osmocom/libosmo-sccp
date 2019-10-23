@@ -1,6 +1,6 @@
 /* SCCP M3UA / SUA ASP osmo_fsm according to RFC3868 4.3.1 */
 /* (C) Copyright 2017 by Harald Welte <laforge@gnumonks.org>
- * 
+ *
  * All Rights reserved.
  *
  * SPDX-License-Identifier: GPL-2.0+
@@ -36,7 +36,7 @@
  * * translate incoming SUA/M3UA msg_class/msg_type to xua_asp_event
  * * propagate state transitions to XUA_AS_FSM via _onenter functiosn
  * * notify the Layer Management of any relevant changes
- * * 
+ * *
  */
 
 /* According to RFC3868 Section 8 */
@@ -205,7 +205,7 @@ static int peer_send(struct osmo_fsm_inst *fi, int out_event, struct xua_msg *in
 		xua->hdr = XUA_HDR(SUA_MSGC_ASPTM, SUA_ASPTM_ACTIVE_ACK);
 		/* Optional: Traffic Mode Type */
 		/* Mandatory: Routing Context */
-		//FIXME xua_msg_add_u32(xua, SUA_IEI_ROUTE_CTX, 
+		//FIXME xua_msg_add_u32(xua, SUA_IEI_ROUTE_CTX,
 		/* Optional: Info String */
 		break;
 	case XUA_ASP_E_ASPTM_ASPIA:
