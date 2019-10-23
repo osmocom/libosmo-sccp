@@ -1174,12 +1174,15 @@ osmo_ss7_asp_find_by_socket_addr(int fd)
 			if (i == asp->cfg.local.host_cnt)
 				continue; /* didn't match any local.host */
 
-			for (i = 0; i < asp->cfg.remote.host_cnt; i++) {
-				if (!asp->cfg.remote.host[i] || !strcmp(asp->cfg.remote.host[i], hostbuf_r))
-					break;
+			/* If no remote host was set, it's probably a server and hence we match any cli src */
+			if (asp->cfg.remote.host_cnt) {
+				for (i = 0; i < asp->cfg.remote.host_cnt; i++) {
+					if (!asp->cfg.remote.host[i] || !strcmp(asp->cfg.remote.host[i], hostbuf_r))
+						break;
+				}
+				if (i == asp->cfg.remote.host_cnt)
+					continue; /* didn't match any remote.host */
 			}
-			if (i == asp->cfg.remote.host_cnt)
-				continue; /* didn't match any remote.host */
 
 			return asp;
 		}
