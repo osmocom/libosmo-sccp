@@ -1722,6 +1722,11 @@ int osmo_ss7_vty_go_parent(struct vty *vty)
 	switch (vty->node) {
 	case L_CS7_ASP_NODE:
 		asp = vty->index;
+		/* If no local addr was set */
+		if (!asp->cfg.local.host_cnt) {
+			asp->cfg.local.host[0] = NULL;
+			asp->cfg.local.host_cnt = 1;
+		}
 		osmo_ss7_asp_restart(asp);
 		vty->node = L_CS7_NODE;
 		vty->index = asp->inst;
