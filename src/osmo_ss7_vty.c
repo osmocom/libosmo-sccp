@@ -500,7 +500,7 @@ static void write_one_xua(struct vty *vty, struct osmo_xua_server *xs)
 		xs->cfg.local.port, VTY_NEWLINE);
 
 	for (i = 0; i < xs->cfg.local.host_cnt; i++) {
-		if (xs->cfg.local.host)
+		if (xs->cfg.local.host[i])
 			vty_out(vty, "  local-ip %s%s", xs->cfg.local.host[i], VTY_NEWLINE);
 	}
 	if (xs->cfg.accept_dyn_reg)
@@ -698,11 +698,11 @@ static void write_one_asp(struct vty *vty, struct osmo_ss7_asp *asp)
 	if (asp->cfg.description)
 		vty_out(vty, "  description %s%s", asp->cfg.description, VTY_NEWLINE);
 	for (i = 0; i < asp->cfg.local.host_cnt; i++) {
-		if (asp->cfg.local.host)
+		if (asp->cfg.local.host[i])
 			vty_out(vty, "  local-ip %s%s", asp->cfg.local.host[i], VTY_NEWLINE);
 	}
 	for (i = 0; i < asp->cfg.remote.host_cnt; i++) {
-		if (asp->cfg.remote.host)
+		if (asp->cfg.remote.host[i])
 			vty_out(vty, "  remote-ip %s%s", asp->cfg.remote.host[i], VTY_NEWLINE);
 	}
 	if (asp->cfg.qos_class)
