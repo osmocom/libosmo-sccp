@@ -1167,7 +1167,8 @@ osmo_ss7_asp_find_by_socket_addr(int fd)
 				continue;
 
 			for (i = 0; i < asp->cfg.local.host_cnt; i++) {
-				if (!asp->cfg.local.host[i] || !strcmp(asp->cfg.local.host[i], hostbuf_l))
+				bool is_any = !asp->cfg.local.host[i] || !strcmp(asp->cfg.local.host[i], "0.0.0.0");
+				if (is_any || !strcmp(asp->cfg.local.host[i], hostbuf_l))
 					break;
 			}
 			if (i == asp->cfg.local.host_cnt)
