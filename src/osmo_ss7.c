@@ -1074,7 +1074,7 @@ int osmo_ss7_asp_peer_snprintf(char* buf, size_t buf_len, struct osmo_ss7_asp_pe
 	if (buf_len < 3)
 		return -EINVAL;
 
-	if (peer->host_cnt != 1) {
+	if (peer->host_cnt > 1) {
 		ret = snprintf(buf, rem, "(");
 		if (ret < 0)
 			return ret;
