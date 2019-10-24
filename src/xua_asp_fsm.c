@@ -416,6 +416,9 @@ static void xua_asp_fsm_inactive(struct osmo_fsm_inst *fi, uint32_t event, void 
 	struct osmo_ss7_asp *asp = xafp->asp;
 	struct xua_msg *xua_in;
 	uint32_t traf_mode;
+	struct xua_msg_part *part;
+	uint32_t rctx;
+	int i;
 
 	check_stop_t_ack(fi, event);
 	switch (event) {
@@ -456,11 +459,13 @@ static void xua_asp_fsm_inactive(struct osmo_fsm_inst *fi, uint32_t event, void 
 				break;
 			}
 		}
-		if (xua_msg_find_tag(xua_in, M3UA_IEI_ROUTE_CTX)) {
-			uint32_t rctx = xua_msg_get_u32(xua_in, M3UA_IEI_ROUTE_CTX);
-			if (!osmo_ss7_as_find_by_rctx(asp->inst, rctx)) {
-				peer_send_error(fi, M3UA_ERR_INVAL_ROUT_CTX);
-				break;
+		if ((part = xua_msg_find_tag(xua_in, M3UA_IEI_ROUTE_CTX))) {
+			for (i = 0; i < part->len / sizeof(uint32_t); i++) {
+				rctx = osmo_load32be(&part->dat[i * sizeof(uint32_t)]);
+				if (!osmo_ss7_as_find_by_rctx(asp->inst, rctx)) {
+					peer_send_error(fi, M3UA_ERR_INVAL_ROUT_CTX);
+					break;
+				}
 			}
 		}
 		/* send ACK */
