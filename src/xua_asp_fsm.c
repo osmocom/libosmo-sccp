@@ -457,7 +457,7 @@ static void xua_asp_fsm_inactive(struct osmo_fsm_inst *fi, uint32_t event, void 
 			    traf_mode != M3UA_TMOD_LOADSHARE &&
 			    traf_mode != M3UA_TMOD_BCAST) {
 				peer_send_error(fi, M3UA_ERR_UNSUPP_TRAF_MOD_TYP);
-				break;
+				return;
 			}
 		}
 		if ((part = xua_msg_find_tag(xua_in, M3UA_IEI_ROUTE_CTX))) {
@@ -465,7 +465,7 @@ static void xua_asp_fsm_inactive(struct osmo_fsm_inst *fi, uint32_t event, void 
 				rctx = osmo_load32be(&part->dat[i * sizeof(uint32_t)]);
 				if (!osmo_ss7_as_find_by_rctx(asp->inst, rctx)) {
 					peer_send_error(fi, M3UA_ERR_INVAL_ROUT_CTX);
-					break;
+					return;
 				}
 			}
 		}
