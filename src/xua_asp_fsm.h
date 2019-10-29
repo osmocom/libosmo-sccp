@@ -36,14 +36,8 @@ enum xua_asp_event {
 	_NUM_XUA_ASP_E
 };
 
-enum xua_asp_role {
-	XUA_ASPFSM_ROLE_ASP,
-	XUA_ASPFSM_ROLE_SG,
-	XUA_ASPFSM_ROLE_IPSP,
-};
-
 extern struct osmo_fsm xua_asp_fsm;
 extern struct osmo_fsm ipa_asp_fsm;
 
 struct osmo_fsm_inst *xua_asp_fsm_start(struct osmo_ss7_asp *asp,
-					enum xua_asp_role role, int log_level);
+					enum osmo_ss7_asp_role role, int log_level);

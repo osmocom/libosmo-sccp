@@ -74,6 +74,13 @@ struct value_string osmo_ss7_asp_protocol_vals[] = {
 	{ 0, NULL }
 };
 
+const struct value_string osmo_ss7_asp_role_names[] = {
+	{ OSMO_SS7_ASP_ROLE_ASP,	"ASP" },
+	{ OSMO_SS7_ASP_ROLE_SG,		"SG" },
+	{ OSMO_SS7_ASP_ROLE_IPSP,	"IPSP" },
+	{ 0, NULL }
+};
+
 static int asp_proto_to_ip_proto(enum osmo_ss7_asp_protocol proto)
 {
 	switch (proto) {
@@ -1280,7 +1287,7 @@ static int xua_cli_connect_cb(struct osmo_stream_cli *cli);
 int osmo_ss7_asp_restart(struct osmo_ss7_asp *asp)
 {
 	int rc;
-	enum xua_asp_role role;
+	enum osmo_ss7_asp_role role;
 	char bufloc[512], bufrem[512];
 
 	OSMO_ASSERT(ss7_initialized);
@@ -1326,7 +1333,7 @@ int osmo_ss7_asp_restart(struct osmo_ss7_asp *asp)
 			   osmo_stream_cli_set_reconnect_timeout() above) to connect so the error is transient */
 		}
 		/* TODO: make this configurable and not implicit */
-		role = XUA_ASPFSM_ROLE_ASP;
+		role = OSMO_SS7_ASP_ROLE_ASP;
 	} else {
 		/* We are in server mode now */
 		if (asp->client) {
@@ -1339,7 +1346,7 @@ int osmo_ss7_asp_restart(struct osmo_ss7_asp *asp)
 		LOGPASP(asp, DLSS7, LOGL_NOTICE, "ASP Restart for server "
 			"not implemented yet!\n");
 		/* TODO: make this configurable and not implicit */
-		role = XUA_ASPFSM_ROLE_SG;
+		role = OSMO_SS7_ASP_ROLE_SG;
 	}
 
 	/* (re)start the ASP FSM */

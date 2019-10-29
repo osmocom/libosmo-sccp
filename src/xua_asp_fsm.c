@@ -47,13 +47,6 @@
 #define SUA_T_IAS_SEC	(7*60)		/* SUA only */
 #define SUA_T_IAR_SEC	(15*60)		/* SUA only */
 
-static const struct value_string xua_asp_role_names[] = {
-	{ XUA_ASPFSM_ROLE_ASP,	"ASP" },
-	{ XUA_ASPFSM_ROLE_SG,	"SG" },
-	{ XUA_ASPFSM_ROLE_IPSP,	"IPSP" },
-	{ 0, NULL }
-};
-
 static const struct value_string xua_asp_event_names[] = {
 	{ XUA_ASP_E_M_ASP_UP_REQ,	"M-ASP_UP.req" },
 	{ XUA_ASP_E_M_ASP_ACTIVE_REQ,	"M-ASP_ACTIVE.req" },
@@ -88,7 +81,7 @@ struct xua_asp_fsm_priv {
 	/* pointer back to ASP to which we belong */
 	struct osmo_ss7_asp *asp;
 	/* Role (ASP/SG/IPSP) */
-	enum xua_asp_role role;
+	enum osmo_ss7_asp_role role;
 
 	/* routing context[s]: list of 32bit integers */
 	/* ACTIVE: traffic mode type, tid label, drn label ? */
@@ -312,12 +305,12 @@ static void check_stop_t_ack(struct osmo_fsm_inst *fi, uint32_t event)
 #define ENSURE_ASP_OR_IPSP(fi, event) 					\
 	do {								\
 		struct xua_asp_fsm_priv *_xafp = fi->priv;		\
-		if (_xafp->role != XUA_ASPFSM_ROLE_ASP &&		\
-		    _xafp->role != XUA_ASPFSM_ROLE_IPSP) {		\
+		if (_xafp->role != OSMO_SS7_ASP_ROLE_ASP &&		\
+		    _xafp->role != OSMO_SS7_ASP_ROLE_IPSP) {		\
 			LOGPFSML(fi, LOGL_ERROR, "event %s not permitted " \
 				 "in role %s\n",			\
 				 osmo_fsm_event_name(fi->fsm, event),	\
-				 get_value_string(xua_asp_role_names, _xafp->role));\
+				 get_value_string(osmo_ss7_asp_role_names, _xafp->role));\
 			return;						\
 		}							\
 	} while(0)
@@ -325,12 +318,12 @@ static void check_stop_t_ack(struct osmo_fsm_inst *fi, uint32_t event)
 #define ENSURE_SG_OR_IPSP(fi, event) 					\
 	do {								\
 		struct xua_asp_fsm_priv *_xafp = fi->priv;		\
-		if (_xafp->role != XUA_ASPFSM_ROLE_SG &&		\
-		    _xafp->role != XUA_ASPFSM_ROLE_IPSP) {		\
+		if (_xafp->role != OSMO_SS7_ASP_ROLE_SG &&		\
+		    _xafp->role != OSMO_SS7_ASP_ROLE_IPSP) {		\
 			LOGPFSML(fi, LOGL_ERROR, "event %s not permitted " \
 				 "in role %s\n",			\
 				 osmo_fsm_event_name(fi->fsm, event),	\
-				 get_value_string(xua_asp_role_names, _xafp->role));\
+				 get_value_string(osmo_ss7_asp_role_names, _xafp->role));\
 			return;						\
 		}							\
 	} while(0)
@@ -709,7 +702,7 @@ struct osmo_fsm xua_asp_fsm = {
 };
 
 static struct osmo_fsm_inst *ipa_asp_fsm_start(struct osmo_ss7_asp *asp,
-					enum xua_asp_role role, int log_level);
+					       enum osmo_ss7_asp_role role, int log_level);
 
 /*! \brief Start a new ASP finite stae machine for given ASP
  *  \param[in] asp Application Server Process for which to start FSM
@@ -717,7 +710,7 @@ static struct osmo_fsm_inst *ipa_asp_fsm_start(struct osmo_ss7_asp *asp,
  *  \param[in] log_level Logging Level for ASP FSM logging
  *  \returns FSM instance on success; NULL on error */
 struct osmo_fsm_inst *xua_asp_fsm_start(struct osmo_ss7_asp *asp,
-					enum xua_asp_role role, int log_level)
+					enum osmo_ss7_asp_role role, int log_level)
 {
 	struct osmo_fsm_inst *fi;
 	struct xua_asp_fsm_priv *xafp;
@@ -768,7 +761,7 @@ struct ipa_asp_fsm_priv {
 	/* pointer back to ASP to which we belong */
 	struct osmo_ss7_asp *asp;
 	/* Role (ASP/SG/IPSP) */
-	enum xua_asp_role role;
+	enum osmo_ss7_asp_role role;
 
 	/* Structure holding parsed data of the IPA CCM ID exchange */
 	struct ipaccess_unit *ipa_unit;
@@ -807,7 +800,7 @@ static void ipa_asp_fsm_down(struct osmo_fsm_inst *fi, uint32_t event, void *dat
 	switch (event) {
 	case XUA_ASP_E_M_ASP_UP_REQ:
 	case XUA_ASP_E_SCTP_EST_IND:
-		if (iafp->role == XUA_ASPFSM_ROLE_SG) {
+		if (iafp->role == OSMO_SS7_ASP_ROLE_SG) {
 			/* Server: Transmit IPA ID GET + Wait for Response */
 			if (fd >= 0) {
 				ipa_ccm_send_id_req(fd);
@@ -1115,7 +1108,7 @@ struct osmo_fsm ipa_asp_fsm = {
  *  \param[in] log_level Logging Level for ASP FSM logging
  *  \returns FSM instance on success; NULL on error */
 static struct osmo_fsm_inst *ipa_asp_fsm_start(struct osmo_ss7_asp *asp,
-					enum xua_asp_role role, int log_level)
+					       enum osmo_ss7_asp_role role, int log_level)
 {
 	struct osmo_fsm_inst *fi;
 	struct ipa_asp_fsm_priv *iafp;
@@ -1137,7 +1130,7 @@ static struct osmo_fsm_inst *ipa_asp_fsm_start(struct osmo_ss7_asp *asp,
 
 	fi->priv = iafp;
 
-	if (role == XUA_ASPFSM_ROLE_ASP)
+	if (role == OSMO_SS7_ASP_ROLE_ASP)
 		osmo_fsm_inst_dispatch(fi, XUA_ASP_E_M_ASP_UP_REQ, NULL);
 
 	return fi;

@@ -369,6 +369,14 @@ enum osmo_ss7_asp_admin_state {
 	OSMO_SS7_ASP_ADM_S_ENABLED,
 };
 
+enum osmo_ss7_asp_role {
+	OSMO_SS7_ASP_ROLE_ASP,
+	OSMO_SS7_ASP_ROLE_SG,
+	OSMO_SS7_ASP_ROLE_IPSP,
+};
+
+extern const struct value_string osmo_ss7_asp_role_names[];
+
 struct osmo_ss7_asp {
 	/*! entry in \ref osmo_ss7_instance.asp_list */
 	struct llist_head list;
