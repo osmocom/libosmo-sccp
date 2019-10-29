@@ -587,6 +587,7 @@ osmo_sccp_simple_client_on_ss7_id(void *ctx, uint32_t ss7_id, const char *name,
 
 	/* Ensure that the ASP we use is set to client mode. */
 	asp->cfg.is_server = false;
+	asp->cfg.role = OSMO_SS7_ASP_ROLE_ASP;
 
 	/* Restart ASP */
 	if (prot != OSMO_SS7_ASP_PROT_IPA)
@@ -734,6 +735,7 @@ osmo_sccp_simple_server_add_clnt(struct osmo_sccp_instance *inst,
 	if (!asp)
 		goto out_rt;
 	asp->cfg.is_server = true;
+	asp->cfg.role = OSMO_SS7_ASP_ROLE_SG;
 	osmo_ss7_as_add_asp(as, asp_name);
 	talloc_free(asp_name);
 	talloc_free(as_name);

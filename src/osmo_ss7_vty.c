@@ -580,6 +580,7 @@ DEFUN(cs7_asp, cs7_asp_cmd,
 		return CMD_WARNING;
 	}
 	asp->cfg.is_server = true;
+	asp->cfg.role = OSMO_SS7_ASP_ROLE_SG;
 
 	vty->node = L_CS7_ASP_NODE;
 	vty->index = asp;
@@ -634,6 +635,29 @@ DEFUN(asp_qos_clas, asp_qos_class_cmd,
 {
 	struct osmo_ss7_asp *asp = vty->index;
 	asp->cfg.qos_class = atoi(argv[0]);
+	return CMD_SUCCESS;
+}
+
+DEFUN(asp_role, asp_role_cmd,
+	"role (sg|asp|ipsp)",
+	"Specify the xUA role for this ASP\n"
+	"SG (Signaling Gateway)\n"
+	"ASP (Application Server Process)\n"
+	"IPSP (IP Signalling Point)\n")
+{
+	struct osmo_ss7_asp *asp = vty->index;
+
+	if (!strcmp(argv[0], "sg")) {
+		asp->cfg.role = OSMO_SS7_ASP_ROLE_SG;
+	} else if (!strcmp(argv[0], "asp")) {
+		asp->cfg.role = OSMO_SS7_ASP_ROLE_ASP;
+	} else if (!strcmp(argv[0], "ipsp")) {
+		vty_out(vty, "IPSP role isn't supported yet%s", VTY_NEWLINE);
+		return CMD_WARNING;
+	} else
+		OSMO_ASSERT(0);
+
+	asp->cfg.role_set_by_vty = true;
 	return CMD_SUCCESS;
 }
 
@@ -707,6 +731,10 @@ static void write_one_asp(struct vty *vty, struct osmo_ss7_asp *asp)
 	}
 	if (asp->cfg.qos_class)
 		vty_out(vty, "  qos-class %u%s", asp->cfg.qos_class, VTY_NEWLINE);
+	if (asp->cfg.role_set_by_vty) {
+		vty_out(vty, "  role %s%s", get_value_string(osmo_ss7_asp_role_names, asp->cfg.role),
+			VTY_NEWLINE);
+	}
 }
 
 
@@ -1847,6 +1875,7 @@ static void vty_init_shared(void *ctx)
 	install_element(L_CS7_ASP_NODE, &asp_remote_ip_cmd);
 	install_element(L_CS7_ASP_NODE, &asp_local_ip_cmd);
 	install_element(L_CS7_ASP_NODE, &asp_qos_class_cmd);
+	install_element(L_CS7_ASP_NODE, &asp_role_cmd);
 	install_element(L_CS7_ASP_NODE, &asp_block_cmd);
 	install_element(L_CS7_ASP_NODE, &asp_shutdown_cmd);
 

@@ -1287,7 +1287,6 @@ static int xua_cli_connect_cb(struct osmo_stream_cli *cli);
 int osmo_ss7_asp_restart(struct osmo_ss7_asp *asp)
 {
 	int rc;
-	enum osmo_ss7_asp_role role;
 	char bufloc[512], bufrem[512];
 
 	OSMO_ASSERT(ss7_initialized);
@@ -1332,8 +1331,6 @@ int osmo_ss7_asp_restart(struct osmo_ss7_asp *asp)
 			   will continue to retry (due to timeout being explicitly set with
 			   osmo_stream_cli_set_reconnect_timeout() above) to connect so the error is transient */
 		}
-		/* TODO: make this configurable and not implicit */
-		role = OSMO_SS7_ASP_ROLE_ASP;
 	} else {
 		/* We are in server mode now */
 		if (asp->client) {
@@ -1345,14 +1342,12 @@ int osmo_ss7_asp_restart(struct osmo_ss7_asp *asp)
 		/* FIXME: ensure we have a SCTP server */
 		LOGPASP(asp, DLSS7, LOGL_NOTICE, "ASP Restart for server "
 			"not implemented yet!\n");
-		/* TODO: make this configurable and not implicit */
-		role = OSMO_SS7_ASP_ROLE_SG;
 	}
 
 	/* (re)start the ASP FSM */
 	if (asp->fi)
 		osmo_fsm_inst_term(asp->fi, OSMO_FSM_TERM_REQUEST, NULL);
-	asp->fi = xua_asp_fsm_start(asp, role, LOGL_DEBUG);
+	asp->fi = xua_asp_fsm_start(asp, asp->cfg.role, LOGL_DEBUG);
 
 	return 0;
 }
