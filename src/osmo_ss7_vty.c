@@ -661,6 +661,24 @@ DEFUN(asp_role, asp_role_cmd,
 	return CMD_SUCCESS;
 }
 
+DEFUN(sctp_role, asp_sctp_role_cmd,
+	"sctp-role (client|server)",
+	"Specify the SCTP role for this ASP\n"
+	"Operate as SCTP client; connect to a server\n"
+	"Operate as SCTP server; wait for client connections\n")
+{
+	struct osmo_ss7_asp *asp = vty->index;
+
+	if (!strcmp(argv[0], "client"))
+		asp->cfg.is_server = false;
+	else if (!strcmp(argv[0], "server"))
+		asp->cfg.is_server = true;
+	else
+		OSMO_ASSERT(0);
+
+	return CMD_SUCCESS;
+}
+
 DEFUN(asp_block, asp_block_cmd,
 	"block",
 	"Allows a SCTP Association with ASP, but doesn't let it become active\n")
@@ -1876,6 +1894,7 @@ static void vty_init_shared(void *ctx)
 	install_element(L_CS7_ASP_NODE, &asp_local_ip_cmd);
 	install_element(L_CS7_ASP_NODE, &asp_qos_class_cmd);
 	install_element(L_CS7_ASP_NODE, &asp_role_cmd);
+	install_element(L_CS7_ASP_NODE, &asp_sctp_role_cmd);
 	install_element(L_CS7_ASP_NODE, &asp_block_cmd);
 	install_element(L_CS7_ASP_NODE, &asp_shutdown_cmd);
 

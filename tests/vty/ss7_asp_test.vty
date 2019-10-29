@@ -216,6 +216,7 @@ ss7_asp_vty_test(config-cs7-asp)# list
   local-ip A.B.C.D
   qos-class <0-255>
   role (sg|asp|ipsp)
+  sctp-role (client|server)
   block
   shutdown
 
@@ -226,6 +227,7 @@ ss7_asp_vty_test(config-cs7-asp)# ?
   local-ip     Specify Local IP Address from which to contact ASP
   qos-class    Specify QoS Class of ASP
   role         Specify the xUA role for this ASP
+  sctp-role    Specify the SCTP role for this ASP
   block        Allows a SCTP Association with ASP, but doesn't let it become active
   shutdown     Terminates SCTP association; New associations will be rejected
 

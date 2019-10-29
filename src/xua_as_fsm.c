@@ -51,6 +51,10 @@ static int asp_notify_all_as(struct osmo_ss7_as *as, struct osmo_xlm_prim_notify
 		if (!asp)
 			continue;
 
+		/* NOTIFY are only sent by SG or IPSP role */
+		if (asp->cfg.role == OSMO_SS7_ASP_ROLE_ASP)
+			continue;
+
 		if (!asp->fi || asp->fi->state == XUA_ASP_S_DOWN)
 			continue;
 
