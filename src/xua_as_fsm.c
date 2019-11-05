@@ -35,7 +35,7 @@ static struct msgb *encode_notify(const struct osmo_xlm_prim_notify *npar)
 	return msg;
 }
 
-static int asp_notify_all_as(struct osmo_ss7_as *as, struct osmo_xlm_prim_notify *npar)
+static int as_notify_all_asp(struct osmo_ss7_as *as, struct osmo_xlm_prim_notify *npar)
 {
 	struct msgb *msg;
 	unsigned int i, sent = 0;
@@ -264,7 +264,7 @@ static void xua_as_fsm_onenter(struct osmo_fsm_inst *fi, uint32_t old_state)
 
 	/* TODO: ASP-Id of ASP triggering this state change */
 
-	asp_notify_all_as(xafp->as, &npar);
+	as_notify_all_asp(xafp->as, &npar);
 };
 
 static void xua_as_fsm_inactive(struct osmo_fsm_inst *fi, uint32_t event, void *data)
