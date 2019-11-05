@@ -663,11 +663,13 @@ static void xua_asp_fsm_active_onenter(struct osmo_fsm_inst *fi, uint32_t prev_s
 
 static void xua_asp_allstate(struct osmo_fsm_inst *fi, uint32_t event, void *data)
 {
+	struct xua_asp_fsm_priv *xafp = fi->priv;
 	struct xua_msg *xua;
 
 	switch (event) {
 	case XUA_ASP_E_SCTP_COMM_DOWN_IND:
 	case XUA_ASP_E_SCTP_RESTART_IND:
+		osmo_timer_del(&xafp->t_ack.timer);
 		osmo_fsm_inst_state_chg(fi, XUA_ASP_S_DOWN, 0, 0);
 		send_xlm_prim_simple(fi, OSMO_XLM_PRIM_M_ASP_DOWN,
 				     PRIM_OP_INDICATION);
