@@ -705,7 +705,8 @@ static const struct osmo_fsm_state xua_asp_states[] = {
 				 S(XUA_ASP_E_ASPSM_ASPUP_ACK) |
 				 S(XUA_ASP_E_ASPSM_ASPDN) |
 				 S(XUA_ASP_E_SCTP_EST_IND),
-		.out_state_mask = S(XUA_ASP_S_INACTIVE),
+		.out_state_mask = S(XUA_ASP_S_INACTIVE) |
+		                  S(XUA_ASP_S_DOWN),
 		.name = "ASP_DOWN",
 		.action = xua_asp_fsm_down,
 		.onenter = xua_asp_fsm_down_onenter,
