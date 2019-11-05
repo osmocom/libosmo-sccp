@@ -314,7 +314,10 @@ struct osmo_ss7_as {
 		enum osmo_ss7_asp_protocol proto;
 		struct osmo_ss7_routing_key routing_key;
 		enum osmo_ss7_as_traffic_mode mode;
+		/* traffic mode was configured by VTY / config file */
 		bool mode_set_by_vty;
+		/* traffic mode was configured by RKM (routing key management) or ASPAC */
+		bool mode_set_by_peer;
 		uint32_t recovery_timeout_msec;
 		uint8_t qos_class;
 		struct {

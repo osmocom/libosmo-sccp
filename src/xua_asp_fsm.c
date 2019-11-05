@@ -415,10 +415,11 @@ static void xua_asp_fsm_inactive(struct osmo_fsm_inst *fi, uint32_t event, void 
 {
 	struct xua_asp_fsm_priv *xafp = fi->priv;
 	struct osmo_ss7_asp *asp = xafp->asp;
+	struct osmo_ss7_as *as;
 	struct xua_msg *xua_in;
-	uint32_t traf_mode;
+	uint32_t traf_mode = 0;
+	enum osmo_ss7_as_traffic_mode tmode;
 	struct xua_msg_part *part;
-	uint32_t rctx;
 	int i;
 
 	check_stop_t_ack(fi, event);
@@ -459,16 +460,40 @@ static void xua_asp_fsm_inactive(struct osmo_fsm_inst *fi, uint32_t event, void 
 				peer_send_error(fi, M3UA_ERR_UNSUPP_TRAF_MOD_TYP);
 				return;
 			}
+			tmode = osmo_ss7_tmode_from_xua(traf_mode);
 		}
 		if ((part = xua_msg_find_tag(xua_in, M3UA_IEI_ROUTE_CTX))) {
 			for (i = 0; i < part->len / sizeof(uint32_t); i++) {
-				rctx = osmo_load32be(&part->dat[i * sizeof(uint32_t)]);
-				if (!osmo_ss7_as_find_by_rctx(asp->inst, rctx)) {
+				uint32_t rctx = osmo_load32be(&part->dat[i * sizeof(uint32_t)]);
+				as = osmo_ss7_as_find_by_rctx(asp->inst, rctx);
+				if (!as) {
 					peer_send_error(fi, M3UA_ERR_INVAL_ROUT_CTX);
 					return;
 				}
 			}
 		}
+
+		if (traf_mode) { /* if the peer has specified a traffic mode at all */
+			llist_for_each_entry(as, &asp->inst->as_list, list) {
+				if (!osmo_ss7_as_has_asp(as, asp))
+					continue;
+
+				if (!as->cfg.mode_set_by_peer && !as->cfg.mode_set_by_vty) {
+					as->cfg.mode = tmode;
+					LOGPAS(as, DLSS7, LOGL_INFO,
+						"ASPAC: Traffic mode set dynamically by peer to %s\n",
+						osmo_ss7_as_traffic_mode_name(as->cfg.mode));
+				} else if (as->cfg.mode != tmode) {
+					/*FIXME: ^ properly check if tmode is
+					  compatible with already set
+					  as->cfg.mode */
+					peer_send_error(fi, M3UA_ERR_UNSUPP_TRAF_MOD_TYP);
+					return;
+				}
+				as->cfg.mode_set_by_peer = true;
+			}
+		}
+
 		/* send ACK */
 		peer_send(fi, XUA_ASP_E_ASPTM_ASPAC_ACK, xua_in);
 		/* transition state and inform layer manager */
