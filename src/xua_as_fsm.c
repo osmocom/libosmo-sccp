@@ -101,7 +101,7 @@ static struct osmo_ss7_asp *xua_as_select_asp_roundrobin(struct osmo_ss7_as *as)
 	i = first_idx;
 	do {
 		asp = as->cfg.asps[i];
-		if (asp)
+		if (asp && osmo_ss7_asp_active(asp))
 			break;
 		i = (i + 1) % ARRAY_SIZE(as->cfg.asps);
 	} while (i != first_idx);

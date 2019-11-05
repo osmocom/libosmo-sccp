@@ -1352,6 +1352,13 @@ int osmo_ss7_asp_restart(struct osmo_ss7_asp *asp)
 	return 0;
 }
 
+bool osmo_ss7_asp_active(const struct osmo_ss7_asp *asp)
+{
+	if (!asp->fi)
+		return false;
+	return asp->fi->state == XUA_ASP_S_ACTIVE;
+}
+
 /***********************************************************************
  * libosmo-netif integration for SCTP stream server/client
  ***********************************************************************/
