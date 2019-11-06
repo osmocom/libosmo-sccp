@@ -1096,7 +1096,8 @@ DEFUN(show_cs7_as, show_cs7_as_cmd,
 			continue;
 		if (filter && !strcmp(filter, "sua") && as->cfg.proto != OSMO_SS7_ASP_PROT_SUA)
 			continue;
-		/* FIXME: active filter */
+		if (filter && !strcmp(filter, "active") && !osmo_ss7_as_active(as))
+			continue;
 		vty_out(vty, "%-12s %-12s %-10u %-13s %4s %13s %3s %5s %4s %10s%s",
 			as->cfg.name, osmo_fsm_inst_state_name(as->fi), as->cfg.routing_key.context,
 			osmo_ss7_pointcode_print(as->inst, as->cfg.routing_key.pc),

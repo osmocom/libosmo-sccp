@@ -147,13 +147,6 @@ int xua_as_transmit_msg(struct osmo_ss7_as *as, struct msgb *msg)
 
 #define MSEC_TO_S_US(x)		(x/1000), ((x%1000)*10)
 
-enum xua_as_state {
-	XUA_AS_S_DOWN,
-	XUA_AS_S_INACTIVE,
-	XUA_AS_S_ACTIVE,
-	XUA_AS_S_PENDING,
-};
-
 static const struct value_string xua_as_event_names[] = {
 	{ XUA_ASPAS_ASP_INACTIVE_IND, 	"ASPAS-ASP_INACTIVE.ind" },
 	{ XUA_ASPAS_ASP_DOWN_IND,	"ASPAS-ASP_DOWN.ind" },

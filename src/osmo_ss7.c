@@ -1068,6 +1068,16 @@ bool osmo_ss7_as_has_asp(struct osmo_ss7_as *as,
 	return false;
 }
 
+/*! Determine if given AS is in the active state.
+ *  \param[in] as Application Server.
+ *  \returns true in case as is active; false otherwise. */
+bool osmo_ss7_as_active(const struct osmo_ss7_as *as)
+{
+	if (!as->fi)
+		return false;
+	return as->fi->state == XUA_AS_S_ACTIVE;
+}
+
 /***********************************************************************
  * SS7 Application Server Process
  ***********************************************************************/

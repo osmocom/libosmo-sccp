@@ -280,7 +280,6 @@ ss7_asp_vty_test(config-cs7-as)# do show cs7 instance 0 as active
                           Routing    Routing Key                          Cic   Cic   Traffic
 AS Name      State        Context    Dpc           Si   Opc           Ssn Min   Max   Mode
 ------------ ------------ ---------- ------------- ---- ------------- --- ----- ----- -------
-my-ass       AS_DOWN      0          0.0.0                                             override
 
 ss7_asp_vty_test(config-cs7-as)# do show cs7 instance 0 as sua
                           Routing    Routing Key                          Cic   Cic   Traffic

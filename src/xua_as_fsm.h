@@ -2,6 +2,13 @@
 
 struct osmo_ss7_as;
 
+enum xua_as_state {
+	XUA_AS_S_DOWN,
+	XUA_AS_S_INACTIVE,
+	XUA_AS_S_ACTIVE,
+	XUA_AS_S_PENDING,
+};
+
 enum xua_as_event {
 	XUA_ASPAS_ASP_INACTIVE_IND,
 	XUA_ASPAS_ASP_DOWN_IND,
