@@ -83,9 +83,7 @@ static struct osmo_ss7_asp *xua_as_select_asp_override(struct osmo_ss7_as *as)
 	/* FIXME: proper selection of the ASP based on the SLS! */
 	for (i = 0; i < ARRAY_SIZE(as->cfg.asps); i++) {
 		asp = as->cfg.asps[i];
-		if (!asp)
-			continue;
-		if (asp)
+		if (asp && osmo_ss7_asp_active(asp))
 			break;
 	}
 	return asp;
