@@ -211,6 +211,37 @@ static bool check_any_other_asp_in_active(struct osmo_ss7_as *as, struct osmo_ss
 	return false;
 }
 
+/* Tell other previously-active ASPs that a new ASP has been activated and mark
+   them as inactive. Used in override mode when an ASP becomes active. */
+static void notify_any_other_active_asp_as_inactive(struct osmo_ss7_as *as, struct osmo_ss7_asp *asp_cmp)
+{
+	unsigned int i;
+	struct msgb *msg;
+	struct osmo_xlm_prim_notify npar = {
+		.status_type = M3UA_NOTIFY_T_OTHER,
+		.status_info = M3UA_NOTIFY_I_OT_ALT_ASP_ACT,
+	};
+
+	if (asp_cmp->asp_id_present)
+		npar.asp_id = asp_cmp->asp_id;
+
+	for (i = 0; i < ARRAY_SIZE(as->cfg.asps); i++) {
+		struct osmo_ss7_asp *asp = as->cfg.asps[i];
+		if (!asp || !osmo_ss7_asp_active(asp))
+			continue;
+
+		if (asp_cmp == asp)
+			continue;
+
+		msg = encode_notify(&npar);
+		osmo_ss7_asp_send(asp, msg);
+
+		osmo_fsm_inst_state_chg(asp->fi, XUA_ASP_S_INACTIVE, 0, 0);
+	}
+
+	return;
+}
+
 static void t_r_callback(void *_fi)
 {
 	struct osmo_fsm_inst *fi = _fi;
@@ -321,7 +352,10 @@ static void xua_as_fsm_active(struct osmo_fsm_inst *fi, uint32_t event, void *da
 		}
 		break;
 	case XUA_ASPAS_ASP_ACTIVE_IND:
-		/* ignore */
+		asp = data;
+		/* RFC466 sec 4.3.4.3 ASP Active Procedures*/
+		if (xafp->as->cfg.mode == OSMO_SS7_AS_TMOD_OVERRIDE)
+			notify_any_other_active_asp_as_inactive(xafp->as, asp);
 		break;
 	case XUA_AS_E_TRANSFER_REQ:
 		/* message for transmission */
