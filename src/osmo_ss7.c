@@ -1763,6 +1763,7 @@ static int xua_accept_cb(struct osmo_stream_srv_link *link, int fd)
 				LOGP(DLSS7, LOGL_INFO, "%s: created dynamic ASP %s\n",
 					sock_name, asp->cfg.name);
 				asp->cfg.is_server = true;
+				asp->cfg.role = OSMO_SS7_ASP_ROLE_SG;
 				asp->cfg.local.host[0] = NULL;
 				asp->cfg.local.host_cnt = 1;
 				asp->cfg.remote.port = atoi(portbuf);
