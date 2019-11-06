@@ -252,6 +252,17 @@ static void xua_as_fsm_onenter(struct osmo_fsm_inst *fi, uint32_t old_state)
 	case XUA_AS_S_PENDING:
 		npar.status_info = M3UA_NOTIFY_I_AS_PEND;
 		break;
+	case XUA_AS_S_DOWN:
+		/* RFC4666 sec 4.3.2 AS States:
+		   If we end up here, it means no ASP is ACTIVE or INACTIVE,
+		   meaning no ASP can have already configured the traffic mode
+		   in ASPAC or REG REQ. Hence, we can clear traffic mode defined
+		   by peers and allow next first peer to request a new traffic
+		   mode. */
+		as->cfg.mode_set_by_peer = false;
+		if (!as->cfg.mode_set_by_vty)
+			as->cfg.mode = OSMO_SS7_AS_TMOD_OVERRIDE;
+		return;
 	default:
 		return;
 	}
@@ -374,6 +385,7 @@ static const struct osmo_fsm_state xua_as_fsm_states[] = {
 				  S(XUA_AS_S_INACTIVE),
 		.name = "AS_DOWN",
 		.action = xua_as_fsm_down,
+		.onenter = xua_as_fsm_onenter,
 	},
 	[XUA_AS_S_INACTIVE] = {
 		.in_event_mask = S(XUA_ASPAS_ASP_DOWN_IND) |
