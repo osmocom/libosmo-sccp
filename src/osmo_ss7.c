@@ -1764,7 +1764,7 @@ static int xua_accept_cb(struct osmo_stream_srv_link *link, int fd)
 					sock_name, asp->cfg.name);
 				asp->cfg.is_server = true;
 				asp->cfg.local.host[0] = NULL;
-				asp->cfg.remote.host_cnt = 1;
+				asp->cfg.local.host_cnt = 1;
 				asp->cfg.remote.port = atoi(portbuf);
 				asp->cfg.remote.host[0] = talloc_strdup(asp, hostbuf);
 				asp->cfg.remote.host_cnt = 1;
