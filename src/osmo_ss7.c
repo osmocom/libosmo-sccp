@@ -1760,7 +1760,7 @@ static int xua_accept_cb(struct osmo_stream_srv_link *link, int fd)
 				char portbuf[16];
 
 				osmo_sock_get_ip_and_port(fd, hostbuf, sizeof(hostbuf), portbuf, sizeof(portbuf), false);
-				LOGP(DLSS7, LOGL_INFO, "%s: created dynamicASP %s\n",
+				LOGP(DLSS7, LOGL_INFO, "%s: created dynamic ASP %s\n",
 					sock_name, asp->cfg.name);
 				asp->cfg.is_server = true;
 				asp->cfg.local.host[0] = NULL;
