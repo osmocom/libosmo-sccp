@@ -749,6 +749,7 @@ struct osmo_fsm_inst *xua_asp_fsm_start(struct osmo_ss7_asp *asp,
 
 enum ipa_asp_state {
 	IPA_ASP_S_DOWN = XUA_ASP_S_DOWN,
+	IPA_ASP_S_INACTIVE = XUA_ASP_S_INACTIVE,
 	IPA_ASP_S_ACTIVE = XUA_ASP_S_ACTIVE,
 	IPA_ASP_S_WAIT_ID_RESP,		/* Waiting for ID_RESP from peer */
 	IPA_ASP_S_WAIT_ID_GET,		/* Waiting for ID_GET from peer */
@@ -977,6 +978,16 @@ static void ipa_asp_fsm_active(struct osmo_fsm_inst *fi, uint32_t event, void *d
 	}
 }
 
+static void ipa_asp_fsm_inactive(struct osmo_fsm_inst *fi, uint32_t event, void *data)
+{
+	switch (event) {
+	case XUA_ASP_E_M_ASP_DOWN_REQ:
+		ipa_asp_fsm_del_route(fi->priv);
+		osmo_fsm_inst_state_chg(fi, IPA_ASP_S_DOWN, 0, 0);
+		break;
+	}
+}
+
 static void ipa_asp_allstate(struct osmo_fsm_inst *fi, uint32_t event, void *data)
 {
 	struct ipa_asp_fsm_priv *iafp = fi->priv;
@@ -1008,6 +1019,11 @@ static void ipa_asp_fsm_active_onenter(struct osmo_fsm_inst *fi, uint32_t prev_s
 {
 	dispatch_to_all_as(fi, XUA_ASPAS_ASP_INACTIVE_IND);
 	dispatch_to_all_as(fi, XUA_ASPAS_ASP_ACTIVE_IND);
+}
+
+static void ipa_asp_fsm_inactive_onenter(struct osmo_fsm_inst *fi, uint32_t prev_state)
+{
+	dispatch_to_all_as(fi, XUA_ASPAS_ASP_INACTIVE_IND);
 }
 
 static void ipa_pong_timer_cb(void *_fi)
@@ -1074,10 +1090,19 @@ static const struct osmo_fsm_state ipa_asp_states[] = {
 	[IPA_ASP_S_ACTIVE] = {
 		.in_event_mask = S(XUA_ASP_E_M_ASP_DOWN_REQ) |
 				 S(XUA_ASP_E_M_ASP_INACTIVE_REQ),
-		.out_state_mask = S(IPA_ASP_S_DOWN),
+		.out_state_mask = S(IPA_ASP_S_DOWN) |
+				  S(IPA_ASP_S_INACTIVE),
 		.name = "ASP_ACTIVE",
 		.action = ipa_asp_fsm_active,
 		.onenter = ipa_asp_fsm_active_onenter,
+	},
+	[IPA_ASP_S_INACTIVE] = {
+		.in_event_mask = S(XUA_ASP_E_M_ASP_DOWN_REQ),
+		.out_state_mask = S(IPA_ASP_S_DOWN) |
+				  S(IPA_ASP_S_ACTIVE),
+		.name = "ASP_INACTIVE",
+		.action = ipa_asp_fsm_inactive,
+		.onenter = ipa_asp_fsm_inactive_onenter,
 	},
 };
 
