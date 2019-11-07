@@ -233,8 +233,10 @@ static void notify_any_other_active_asp_as_inactive(struct osmo_ss7_as *as, stru
 		if (asp_cmp == asp)
 			continue;
 
-		msg = encode_notify(&npar);
-		osmo_ss7_asp_send(asp, msg);
+		if (asp->cfg.proto != OSMO_SS7_ASP_PROT_IPA) {
+			msg = encode_notify(&npar);
+			osmo_ss7_asp_send(asp, msg);
+		}
 
 		osmo_fsm_inst_state_chg(asp->fi, XUA_ASP_S_INACTIVE, 0, 0);
 	}
