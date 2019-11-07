@@ -768,6 +768,8 @@ struct ipa_asp_fsm_priv {
 	struct ipaccess_unit *ipa_unit;
 	/* Timer for tracking if no PONG is received in response to PING */
 	struct osmo_timer_list pong_timer;
+	/* Did we receive IPA ID ACK before IPA ID RESP ? */
+	bool ipa_id_ack_rcvd;
 };
 
 enum ipa_asp_fsm_t {
@@ -857,7 +859,19 @@ static void ipa_asp_fsm_wait_id_resp(struct osmo_fsm_inst *fi, uint32_t event, v
 		if (fd >= 0) {
 			ipaccess_send_id_ack(fd);
 			osmo_fsm_inst_state_chg(fi, IPA_ASP_S_WAIT_ID_ACK2, 10, T_WAIT_ID_ACK);
+			/* If we received the ACK beforehand, submit it now */
+			if (iafp->ipa_id_ack_rcvd) {
+				iafp->ipa_id_ack_rcvd = false;
+				osmo_fsm_inst_dispatch(fi, IPA_ASP_E_ID_ACK, NULL);
+			}
 		}
+		break;
+	case IPA_ASP_E_ID_ACK:
+		/* Since there's no official spec for IPA and some
+		   implementations seem to like sending the IPA ID ACK before
+		   the IPA ID RESP, let's catch it and feed it after we receive
+		   the IPA ID RESP and we are in correct state */
+		iafp->ipa_id_ack_rcvd = true;
 		break;
 	}
 	return;
@@ -1058,7 +1072,8 @@ static const struct osmo_fsm_state ipa_asp_states[] = {
 	},
 	/* Server Side */
 	[IPA_ASP_S_WAIT_ID_RESP] = {
-		.in_event_mask = S(IPA_ASP_E_ID_RESP),
+		.in_event_mask = S(IPA_ASP_E_ID_RESP) |
+				 S(IPA_ASP_E_ID_ACK),
 		.out_state_mask = S(IPA_ASP_S_WAIT_ID_ACK2) |
 				  S(IPA_ASP_S_DOWN),
 		.name = "WAIT_ID_RESP",
