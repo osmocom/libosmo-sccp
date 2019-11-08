@@ -1775,6 +1775,11 @@ int osmo_ss7_vty_go_parent(struct vty *vty)
 			asp->cfg.local.host[0] = NULL;
 			asp->cfg.local.host_cnt = 1;
 		}
+		/* If no remote addr was set */
+		if (!asp->cfg.remote.host_cnt) {
+			asp->cfg.remote.host[0] = "127.0.0.1";
+			asp->cfg.remote.host_cnt = 1;
+		}
 		osmo_ss7_asp_restart(asp);
 		vty->node = L_CS7_NODE;
 		vty->index = asp->inst;
