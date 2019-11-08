@@ -1718,6 +1718,7 @@ static int xua_accept_cb(struct osmo_stream_srv_link *link, int fd)
 	struct osmo_xua_server *oxs = osmo_stream_srv_link_get_data(link);
 	struct osmo_stream_srv *srv;
 	struct osmo_ss7_asp *asp;
+	int i;
 	char *sock_name = osmo_sock_get_name(link, fd);
 	const char *proto_name = get_value_string(osmo_ss7_asp_protocol_vals, oxs->cfg.proto);
 
@@ -1764,8 +1765,10 @@ static int xua_accept_cb(struct osmo_stream_srv_link *link, int fd)
 					sock_name, asp->cfg.name);
 				asp->cfg.is_server = true;
 				asp->cfg.role = OSMO_SS7_ASP_ROLE_SG;
-				asp->cfg.local.host[0] = NULL;
-				asp->cfg.local.host_cnt = 1;
+				asp->cfg.local.port = oxs->cfg.local.port;
+				for (i = 0; i < oxs->cfg.local.host_cnt; i++)
+					asp->cfg.local.host[i] = talloc_strdup(asp, oxs->cfg.local.host[i]);
+				asp->cfg.local.host_cnt = oxs->cfg.local.host_cnt;
 				asp->cfg.remote.port = atoi(portbuf);
 				asp->cfg.remote.host[0] = talloc_strdup(asp, hostbuf);
 				asp->cfg.remote.host_cnt = 1;
