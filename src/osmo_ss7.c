@@ -1292,8 +1292,8 @@ int osmo_ss7_asp_restart(struct osmo_ss7_asp *asp)
 	OSMO_ASSERT(ss7_initialized);
 	osmo_ss7_asp_peer_snprintf(bufloc, sizeof(bufloc), &asp->cfg.local);
 	osmo_ss7_asp_peer_snprintf(bufrem, sizeof(bufrem), &asp->cfg.remote);
-	LOGPASP(asp, DLSS7, LOGL_INFO, "Restarting ASP %s, %s ==> %s\n",
-	       asp->cfg.name, bufloc, bufrem);
+	LOGPASP(asp, DLSS7, LOGL_INFO, "Restarting ASP %s, r=%s<->l=%s\n",
+	       asp->cfg.name, bufrem, bufloc);
 
 	if (!asp->cfg.is_server) {
 		/* We are in client mode now */
