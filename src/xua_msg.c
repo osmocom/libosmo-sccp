@@ -496,18 +496,18 @@ char *xua_msg_dump(struct xua_msg *xua, const struct xua_dialect *dialect)
 	static char buf[1024];
 	struct xua_msg_part *part;
 	const struct xua_msg_class *xmc = NULL;
-
+	bool comma = false;
 	if (dialect)
 		xmc = dialect->class[xua->hdr.msg_class];
 
 	buf[0] = '\0';
 
-	append_to_buf(buf, NULL, "HDR=(%s,V=%u,LEN=%u)",
+	append_to_buf(buf, &comma, "HDR=(%s,V=%u,LEN=%u)",
 			xua_hdr_dump(xua, dialect),
 			xua->hdr.version, xua->hdr.msg_length);
-	buf[0] = ' ';
+
 	llist_for_each_entry(part, &xua->headers, entry)
-		append_to_buf(buf, NULL, "\n\tPART(T=%s,L=%u,D=%s)",
+		append_to_buf(buf, NULL, " PART(T=%s,L=%u,D=%s)",
 				xua_class_iei_name(xmc, part->tag), part->len,
 				osmo_hexdump_nospc(part->dat, part->len));
 	return buf;
