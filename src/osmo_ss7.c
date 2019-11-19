@@ -1226,6 +1226,24 @@ struct osmo_ss7_asp
 }
 
 struct osmo_ss7_asp *
+osmo_ss7_asp_find(struct osmo_ss7_instance *inst, const char *name,
+		  uint16_t remote_port, uint16_t local_port,
+		  enum osmo_ss7_asp_protocol proto)
+{
+	struct osmo_ss7_asp *asp;
+
+	OSMO_ASSERT(ss7_initialized);
+	asp = osmo_ss7_asp_find_by_name(inst, name);
+	if (!asp)
+		return NULL;
+
+	if ((asp->cfg.remote.port != remote_port || asp->cfg.local.port != local_port || asp->cfg.proto != proto))
+		return NULL;
+
+	return asp;
+}
+
+struct osmo_ss7_asp *
 osmo_ss7_asp_find_or_create(struct osmo_ss7_instance *inst, const char *name,
 			    uint16_t remote_port, uint16_t local_port,
 			    enum osmo_ss7_asp_protocol proto)
