@@ -574,13 +574,16 @@ DEFUN(cs7_asp, cs7_asp_cmd,
 		return CMD_WARNING;
 	}
 
-	asp = osmo_ss7_asp_find_or_create(inst, name, remote_port, local_port, protocol);
+	asp = osmo_ss7_asp_find(inst, name, remote_port, local_port, protocol);
 	if (!asp) {
-		vty_out(vty, "cannot create ASP '%s'%s", name, VTY_NEWLINE);
-		return CMD_WARNING;
+		asp = osmo_ss7_asp_find_or_create(inst, name, remote_port, local_port, protocol);
+		if (!asp) {
+			vty_out(vty, "cannot create ASP '%s'%s", name, VTY_NEWLINE);
+			return CMD_WARNING;
+		}
+		asp->cfg.is_server = true;
+		asp->cfg.role = OSMO_SS7_ASP_ROLE_SG;
 	}
-	asp->cfg.is_server = true;
-	asp->cfg.role = OSMO_SS7_ASP_ROLE_SG;
 
 	vty->node = L_CS7_ASP_NODE;
 	vty->index = asp;
