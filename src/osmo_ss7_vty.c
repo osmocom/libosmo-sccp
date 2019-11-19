@@ -753,7 +753,7 @@ static void write_one_asp(struct vty *vty, struct osmo_ss7_asp *asp)
 	if (asp->cfg.qos_class)
 		vty_out(vty, "  qos-class %u%s", asp->cfg.qos_class, VTY_NEWLINE);
 	if (asp->cfg.role_set_by_vty) {
-		vty_out(vty, "  role %s%s", get_value_string(osmo_ss7_asp_role_names, asp->cfg.role),
+		vty_out(vty, "  role %s%s", osmo_str_tolower(get_value_string(osmo_ss7_asp_role_names, asp->cfg.role)),
 			VTY_NEWLINE);
 	}
 	if (!asp->cfg.is_server)
