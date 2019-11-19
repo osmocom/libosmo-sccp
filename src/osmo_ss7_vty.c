@@ -753,6 +753,8 @@ static void write_one_asp(struct vty *vty, struct osmo_ss7_asp *asp)
 		vty_out(vty, "  role %s%s", get_value_string(osmo_ss7_asp_role_names, asp->cfg.role),
 			VTY_NEWLINE);
 	}
+	if (!asp->cfg.is_server)
+		vty_out(vty, "  sctp-role client%s", VTY_NEWLINE);
 }
 
 
