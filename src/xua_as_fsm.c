@@ -108,6 +108,26 @@ static struct osmo_ss7_asp *xua_as_select_asp_roundrobin(struct osmo_ss7_as *as)
 	return asp;
 }
 
+int xua_as_transmit_msg_broadcast(struct osmo_ss7_as *as, struct msgb *msg)
+{
+	struct osmo_ss7_asp *asp;
+	unsigned int i;
+	struct msgb *msg_cpy;
+	bool sent = false;
+
+	for (i = 0; i < ARRAY_SIZE(as->cfg.asps); i++) {
+		asp = as->cfg.asps[i];
+		if (!asp || !osmo_ss7_asp_active(asp))
+			continue;
+		msg_cpy = msgb_copy(msg, "xua_bcast_cpy");
+		if (osmo_ss7_asp_send(asp, msg_cpy) == 0)
+			sent = true;
+	}
+
+	msgb_free(msg);
+	return sent ? 0 : -1;
+}
+
 /* actually transmit a message through this AS */
 int xua_as_transmit_msg(struct osmo_ss7_as *as, struct msgb *msg)
 {
@@ -122,9 +142,7 @@ int xua_as_transmit_msg(struct osmo_ss7_as *as, struct msgb *msg)
 		asp = xua_as_select_asp_roundrobin(as);
 		break;
 	case OSMO_SS7_AS_TMOD_BCAST:
-		LOGPFSM(as->fi, "Traffic mode broadcast not implemented, dropping message\n");
-		msgb_free(msg);
-		return -1;
+		return xua_as_transmit_msg_broadcast(as, msg);
 	case _NUM_OSMO_SS7_ASP_TMOD:
 		OSMO_ASSERT(false);
 	}
