@@ -1044,6 +1044,9 @@ static void write_one_as(struct vty *vty, struct osmo_ss7_as *as)
 		struct osmo_ss7_asp *asp = as->cfg.asps[i];
 		if (!asp)
 			continue;
+		/* skip any dynamically created ASPs (e.g. auto-created at connect time) */
+		if (asp->dyn_allocated || asp->simple_client_allocated)
+			continue;
 		vty_out(vty, "  asp %s%s", asp->cfg.name, VTY_NEWLINE);
 	}
 	if (as->cfg.mode_set_by_vty)
