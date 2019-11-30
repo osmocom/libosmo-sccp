@@ -168,6 +168,30 @@ static int determine_traf_mode(struct osmo_ss7_asp *asp)
 	return tmode;
 }
 
+/* add M3UA_IEI_ROUTE_CTX to xua_msg containig all routing keys of ASs within ASP */
+static int xua_msg_add_asp_rctx(struct xua_msg *xua, struct osmo_ss7_asp *asp)
+{
+	struct osmo_ss7_as *as;
+	uint32_t rctx[128];
+	unsigned int i = 0;
+
+	/* iterate over all ASs and build array of routing contexts */
+	llist_for_each_entry(as, &asp->inst->as_list, list) {
+		if (!osmo_ss7_as_has_asp(as, asp))
+			continue;
+		rctx[i++] = htonl(as->cfg.routing_key.context);
+		if (i >= ARRAY_SIZE(rctx)-1) {
+			break;
+		}
+	}
+	/* add xUA IE with routing contests to the message (if any) */
+	if (i)
+		xua_msg_add_data(xua, M3UA_IEI_ROUTE_CTX, i*sizeof(uint32_t), (uint8_t *)rctx);
+
+	/* return count of routing contexts added */
+	return i;
+}
+
 /* ask the xUA implementation to transmit a specific message */
 static int peer_send(struct osmo_fsm_inst *fi, int out_event, struct xua_msg *in)
 {
@@ -220,6 +244,7 @@ static int peer_send(struct osmo_fsm_inst *fi, int out_event, struct xua_msg *in
 		if (rc >= 0)
 			xua_msg_add_u32(xua, M3UA_IEI_TRAF_MODE_TYP, osmo_ss7_tmode_to_xua(rc));
 		/* Optional: Routing Context */
+		xua_msg_add_asp_rctx(xua, asp);
 		/* Optional: TID Label */
 		/* Optional: DRN Label */
 		/* Optional: Info String */
@@ -237,6 +262,7 @@ static int peer_send(struct osmo_fsm_inst *fi, int out_event, struct xua_msg *in
 		/* RFC3868 Ch. 3.6.3 */
 		xua->hdr = XUA_HDR(SUA_MSGC_ASPTM, SUA_ASPTM_INACTIVE);
 		/* Optional: Routing Context */
+		xua_msg_add_asp_rctx(xua, asp);
 		/* Optional: Info String */
 		break;
 	case XUA_ASP_E_ASPTM_ASPIA_ACK:
