@@ -141,6 +141,33 @@ static void send_xlm_prim_simple(struct osmo_fsm_inst *fi,
 	xua_asp_send_xlm_prim_simple(asp, prim_type, op);
 }
 
+/* determine the osmo_ss7_as_traffic_mode to be used by this ASP; will
+ * iterate over all AS configured for this ASP.  If they're compatible,
+ * a single traffic mode is returned as enum osmo_ss7_as_traffic_mode.
+ * If they're incompatible, -EINVAL is returned.  If there is none
+ * configured, -1 is returned */
+static int determine_traf_mode(struct osmo_ss7_asp *asp)
+{
+	struct osmo_ss7_as *as;
+	int tmode = -1;
+
+	llist_for_each_entry(as, &asp->inst->as_list, list) {
+		if (!osmo_ss7_as_has_asp(as, asp))
+			continue;
+		/* we only care about traffic modes explicitly set */
+		if (!as->cfg.mode_set_by_vty)
+			continue;
+		if (tmode == -1) {
+			/* this is the first AS; we use this traffic mode */
+			tmode = as->cfg.mode;
+		} else {
+			if (tmode != as->cfg.mode)
+				return -EINVAL;
+		}
+	}
+	return tmode;
+}
+
 /* ask the xUA implementation to transmit a specific message */
 static int peer_send(struct osmo_fsm_inst *fi, int out_event, struct xua_msg *in)
 {
@@ -148,6 +175,7 @@ static int peer_send(struct osmo_fsm_inst *fi, int out_event, struct xua_msg *in
 	struct osmo_ss7_asp *asp = xafp->asp;
 	struct xua_msg *xua = xua_msg_alloc();
 	struct msgb *msg;
+	int rc;
 
 	switch (out_event) {
 	case XUA_ASP_E_ASPSM_ASPUP:
@@ -188,6 +216,9 @@ static int peer_send(struct osmo_fsm_inst *fi, int out_event, struct xua_msg *in
 		/* RFC3868 Ch. 3.6.1 */
 		xua->hdr = XUA_HDR(SUA_MSGC_ASPTM, SUA_ASPTM_ACTIVE);
 		/* Optional: Traffic Mode Type */
+		rc = determine_traf_mode(asp);
+		if (rc >= 0)
+			xua_msg_add_u32(xua, M3UA_IEI_TRAF_MODE_TYP, osmo_ss7_tmode_to_xua(rc));
 		/* Optional: Routing Context */
 		/* Optional: TID Label */
 		/* Optional: DRN Label */
