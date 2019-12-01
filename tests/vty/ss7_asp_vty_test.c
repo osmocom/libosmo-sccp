@@ -164,7 +164,7 @@ int main(int argc, char **argv)
 	osmo_init_logging2(root_ctx, &log_info);
 	logging_vty_add_cmds();
 
-	osmo_ss7_init();
+	OSMO_ASSERT(osmo_ss7_init() == 0);
 	osmo_ss7_vty_init_asp(root_ctx);
 	osmo_sccp_vty_init();
 

@@ -302,7 +302,7 @@ int main(int argc, char **argv)
 	osmo_fsm_log_addr(false);
 
 	/* init */
-	osmo_ss7_init();
+	OSMO_ASSERT(osmo_ss7_init() == 0);
 	s7i = osmo_ss7_instance_find_or_create(NULL, 0);
 	OSMO_ASSERT(osmo_ss7_instance_find(0) == s7i);
 	OSMO_ASSERT(osmo_ss7_instance_find(23) == NULL);

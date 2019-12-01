@@ -230,7 +230,7 @@ int main(int argc, char **argv)
 	signal(SIGUSR2, &signal_handler);
 
 	init_logging();
-	osmo_ss7_init();
+	OSMO_ASSERT(osmo_ss7_init() == 0);
 	osmo_fsm_log_addr(false);
 	vty_init(&vty_info);
 	osmo_ss7_vty_init_asp(NULL);

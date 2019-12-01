@@ -2061,13 +2061,26 @@ bool osmo_ss7_pc_is_local(struct osmo_ss7_instance *inst, uint32_t pc)
 
 int osmo_ss7_init(void)
 {
+	int rc;
+
 	if (ss7_initialized)
 		return 1;
-	osmo_fsm_register(&sccp_scoc_fsm);
-	osmo_fsm_register(&xua_as_fsm);
-	osmo_fsm_register(&xua_asp_fsm);
-	osmo_fsm_register(&ipa_asp_fsm);
-	osmo_fsm_register(&xua_default_lm_fsm);
+	rc = osmo_fsm_register(&sccp_scoc_fsm);
+	if (rc < 0)
+		return rc;
+	rc = osmo_fsm_register(&xua_as_fsm);
+	if (rc < 0)
+		return rc;
+	rc = osmo_fsm_register(&xua_asp_fsm);
+	if (rc < 0)
+		return rc;
+	rc = osmo_fsm_register(&ipa_asp_fsm);
+	if (rc < 0)
+		return rc;
+	rc = osmo_fsm_register(&xua_default_lm_fsm);
+	if (rc < 0)
+		return rc;
+
 	ss7_initialized = true;
 	return 0;
 }

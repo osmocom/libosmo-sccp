@@ -175,7 +175,7 @@ int main(int argc, char **argv)
 	fputs(stp_copyright, stdout);
 	fputs("\n", stdout);
 
-	osmo_ss7_init();
+	OSMO_ASSERT(osmo_ss7_init() == 0);
 	osmo_fsm_log_addr(false);
 	logging_vty_add_cmds();
 	osmo_stats_vty_add_cmds();
