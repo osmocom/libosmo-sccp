@@ -80,3 +80,6 @@ doc/manuals/generated/
 doc/manuals/osmomsc-usermanual.xml
 doc/manuals/common
 doc/manuals/build
+doc/html.tar
+doc/libosmo-sigtran.tag
+doc/sigtran
