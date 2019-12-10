@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 app_configs = {
     "osmo-stp": ["doc/examples/osmo-stp.cfg"],
