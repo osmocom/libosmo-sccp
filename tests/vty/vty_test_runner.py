@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 
 # (C) 2013 by Katerina Barone-Adesi <kat.obsc@gmail.com>
 # (C) 2013 by Holger Hans Peter Freyther
@@ -35,9 +35,9 @@ class TestVTYBase(unittest.TestCase):
     def checkForEndAndExit(self):
         res = self.vty.command("list")
         #print ('looking for "exit"\n')
-        self.assert_(res.find('  exit\r') > 0)
+        self.assertTrue(res.find('  exit\r') > 0)
         #print 'found "exit"\nlooking for "end"\n'
-        self.assert_(res.find('  end\r') > 0)
+        self.assertTrue(res.find('  end\r') > 0)
         #print 'found "end"\n'
 
     def vty_command(self):
@@ -56,8 +56,8 @@ class TestVTYBase(unittest.TestCase):
         try:
             self.proc = osmoutil.popen_devnull(osmo_vty_cmd)
         except OSError:
-            print >> sys.stderr, "Current directory: %s" % os.getcwd()
-            print >> sys.stderr, "Consider setting -b"
+            print("Current directory: %s" % os.getcwd(), file=sys.stderr)
+            print("Consider setting -b", file=sys.stderr)
 
         appstring = self.vty_app()[2]
         appport = self.vty_app()[0]
@@ -89,22 +89,22 @@ class TestVTYSTP(TestVTYBase):
                         line = fp.readline().strip()
                         if not line:
                             return False
-                        print "%s: parsing line: %s" %(path, line)
+                        print("%s: parsing line: %s" %(path, line))
                         it = line.split()
                         if lport == int(it[5]):
-                            print "%s: local port %d found" %(path, lport)
+                            print("%s: local port %d found" %(path, lport))
                             itaddr_list = it[8:]
                             if len(itaddr_list) != len(laddr_list):
-                                print "%s: addr list mismatch: %r vs %r" % (path, repr(itaddr_list), repr(laddr_list))
+                                print("%s: addr list mismatch: %r vs %r" % (path, repr(itaddr_list), repr(laddr_list)))
                                 continue
                             for addr in laddr_list:
                                 if addr not in itaddr_list:
-                                    print "%s: addr not found in list: %s vs %r" % (path, addr, repr(itaddr_list))
+                                    print("%s: addr not found in list: %s vs %r" % (path, addr, repr(itaddr_list)))
                                     return False
                             return True
                     return False
             except IOError as e:
-                print "I/O error({0}): {1}".format(e.errno, e.strerror)
+                print("I/O error({0}): {1}".format(e.errno, e.strerror))
                 return False
 
     def testMultiHome(self):
@@ -115,9 +115,9 @@ class TestVTYSTP(TestVTYBase):
                 found = True
                 break
             else:
-                print "[%d] osmo-stp not yet available, retrying in a second" % i
+                print("[%d] osmo-stp not yet available, retrying in a second" % i)
                 time.sleep(1)
-        self.assert_(found)
+        self.assertTrue(found)
         try:
             proto = socket.IPPROTO_SCTP
         except AttributeError: # it seems to be not defined under python2?
@@ -128,8 +128,8 @@ class TestVTYSTP(TestVTYBase):
             s.connect(('127.0.0.2',2905))
         except socket.error as msg:
             s.close()
-            self.assert_(False)
-        print "Connected to STP through SCTP"
+            self.assertTrue(False)
+        print("Connected to STP through SCTP")
         s.close()
 
 if __name__ == '__main__':
@@ -158,9 +158,9 @@ if __name__ == '__main__':
     if args.p:
         confpath = args.p
 
-    print "confpath %s, workdir %s" % (confpath, workdir)
+    print("confpath %s, workdir %s" % (confpath, workdir))
     os.chdir(workdir)
-    print "Running tests for specific VTY commands"
+    print("Running tests for specific VTY commands")
     suite = unittest.TestSuite()
     suite.addTest(unittest.TestLoader().loadTestsFromTestCase(TestVTYSTP))
 
