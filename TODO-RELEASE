@@ -7,6 +7,3 @@
 # If any interfaces have been added since the last public release: c:r:a + 1.
 # If any interfaces have been removed or changed since the last public release: c:r:0.
 #library	what		description / commit summary line
-libosmo-sigtran osmo_ss7_asp_peer	ABI breakage (host is now an array of strings)
-libosmo-sigtran osmo_ss7_as		ABI breakage (added field last_asp_idx_sent)
-libosmo-sigtran osmo_ss7_as		ABI breakage (added field mode_set_by_vty)

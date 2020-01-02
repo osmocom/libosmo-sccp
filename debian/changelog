@@ -1,3 +1,91 @@
+libosmo-sccp (1.2.0) unstable; urgency=medium
+
+  [ Kira Obrezkova ]
+  * systemd: This patch adds Documentation field to the systemd service file
+
+  [ Alexander Couzens ]
+  * osmo_sccp_simple_client(): use sccp instance index 0 instead of 1
+  * sccp_user: correct comment for osmo_sccp_simple_client
+
+  [ Pau Espin Pedrol ]
+  * ss7: Do not queue messages if stream is not connected
+  * Fix typo in log message of recent commit
+  * m3ua: Log incorrect selected AS
+  * Defer xua server binding until exit of VTY node
+  * ss7: Support multiple addresses in SCTP connections
+  * ss7: Log local and remote address set upon ASP restart
+  * tests: Introduce test for multi-homing STP features
+  * cosmetic: ss7: Fix trailing whitespace
+  * vty: Fix write-config of local-ip and remote-ip commands
+  * cosmetic: Fix trailing whitespace
+  * ss7: Fix osmo_ss7_asp_peer_snprintf() output if peer has zero IP addr assigned
+  * ss7: Fix finding asp by socket addr if local ip addr is 0.0.0.0
+  * ss7: Fix finding asp by socket addr if it has no remote hosts configured
+  * vty: ss7: Make sure ASP has at least INET_ANY addr set if not configured in VTY
+  * vty: Print traffic mode during show cs7 instance as
+  * ss7: Set default traffic-mode to override
+  * ss7: Implement AS traffic mode loadshare using round robin ASP selection
+  * ss7: Set configured AS traffic mode when sending Routing Key Register msg
+  * ss7: Only override traffic mode from recv REG REQ if not set by VTY
+  * xua: Verify all route ctxs received in ASPAC msg
+  * ss7: Set Traffic mode and Route Ctx in ASPAC ACK msg if known
+  * xua: Allow traffic mode set by peer if not set by VTY
+  * xua: Fix private function name
+  * xua: loadshare: select ASP for tx only if active
+  * xua: Reset AS traffic mode set by peer during shutdown
+  * xua: Select only active ASPs during tx in Override traffic mode
+  * xua: On new ASPAC, set and notify other ASPs as inactive
+  * ss7: Set ASP default remote addr to 127.0.0.1 if none set in VTY
+  * xua: Don't send NOTIFY messages to IPA ASPs
+  * xua: ipa_asp_fsm: Allow moving ASP to inactive state
+  * xua: ipa_asp_fsm: Allow receiving IPA ID ACK before IPA ID RESP
+  * ss7: Improve log formatting during ASP restart
+  * ss7: Set correct local addr and port during dynamic ASP creation
+  * xua: Avoid multiline log in xua_msg_dump()
+  * xua: Implement traffic mode broadcast
+  * debian: Drop patches directory containing old patch not longer required
+
+  [ Harald Welte ]
+  * Move definition of LOGSS7() to header file; add LOGPAS() like LOGPASP()
+  * Use LOGPAS / LOGPASP in favor of generic LOGSS7 where applicable
+  * ipa: Don't send non-SCCP data over IPA/SCCPlite
+  * ipa: Fix crash when parsing of received IPA SCCP message fails
+  * ipa: VTY config option to explicitly enable/disable SCCP patching
+  * Don't permit routing-context != 0 for IPA peers
+  * cosmetic: Document why IPA uses hard-coded routing-context 0
+  * Log correct protocol during xua_accept_cb()
+  * xua_rkm: Print NOTICE log message if registration for wrong rctx
+  * xua_rkm: Don't permit de-registration of rctx with ASP active
+  * xua_asp_fsm: Don't send M3UA ERR and then send ASPAC_ACK
+  * M3UA: Reject ASP activation + RKM registration for incompatible traffic-mode
+  * introduce public enum osmo_ss7_asp_role for ASP/SG/IPSP
+  * Allow ASP role to be configured
+  * vty: Permit configuration of ASPs in SCTP client mode
+  * Don't forget to store the sctp-role during writing config file
+  * osmo_ss7: Add osmo_ss7_asp_find()
+  * asp: Don't override ASP and SCTP role when re-entering asp node
+  * fix generating asp-role that can be parsed when re-opening config file
+  * Skip dynamic ASPs when writing the list of ASPs in an AS
+  * check for osmo_fsm_register() failures and propagate error
+  * xua_asp_fsm: Ensure xUA client includes traffic-mode if configured
+  * xua_asp_fsm: Ensure xUA client includes routing contexts in ASPAC/ASPIA
+  * stp: exit(2) on unsupported positional arguments on command line
+  * ASP FSM: Permit DOWN -> DOWN "transition"
+  * ASP: Stop re-transmitting un-acknowledged messages on SCTP down event
+
+  [ Vadim Yanitskiy ]
+  * osmo_ss7.c: cosmetic: fix typo in xua_accept_cb()
+  * osmo_ss7.c: fix copy-paste error in xua_accept_cb()
+  * osmo_ss7.c: fix xua_accept_cb(): properly assign role
+  * tests/sccp/Makefile.am: use sccp.o from $(top_builddir)
+  * osmo_ss7_vty.c: implement 'active' filter for show_cs7_as_cmd
+
+  [ Oliver Smith ]
+  * gitignore: add various generated doc files
+  * osmoappdesc.py, tests: switch to python 3
+
+ -- Pau Espin Pedrol <pespin@sysmocom.de>  Thu, 02 Jan 2020 21:24:11 +0100
+
 libosmo-sccp (1.1.0) unstable; urgency=medium
 
   [ Max ]
