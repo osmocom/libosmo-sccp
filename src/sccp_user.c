@@ -174,6 +174,7 @@ static int mtp_user_prim_cb(struct osmo_prim_hdr *oph, void *ctx)
 		xua->mtp = omp->u.transfer;
 		/* hand this primitive into SCCP via the SCRC code */
 		rc = scrc_rx_mtp_xfer_ind_xua(inst, xua);
+		xua_msg_free(xua);
 		break;
 	default:
 		LOGP(DLSCCP, LOGL_ERROR, "Unknown primitive %u:%u receivd\n",

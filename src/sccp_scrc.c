@@ -438,14 +438,13 @@ int sccp_scrc_rx_sclc_msg(struct osmo_sccp_instance *inst,
 }
 
 /* Figure C.1/Q.714 Sheet 1 of 12, after we converted the
- * MTP-TRANSFER.ind to SUA. Takes ownership of \a xua and frees it once processed. */
+ * MTP-TRANSFER.ind to SUA. */
 int scrc_rx_mtp_xfer_ind_xua(struct osmo_sccp_instance *inst,
 			     struct xua_msg *xua)
 {
 	struct osmo_sccp_addr called;
 	uint32_t proto_class;
 	struct xua_msg_part *hop_ctr_part;
-	int rc;
 
 	LOGP(DLSS7, LOGL_DEBUG, "%s: %s\n", __func__, xua_msg_dump(xua, &xua_dialect_sua));
 	/* TODO: SCCP or nodal congestion? */
@@ -455,7 +454,6 @@ int scrc_rx_mtp_xfer_ind_xua(struct osmo_sccp_instance *inst,
 		/* Node 1 (Sheet 3) */
 		/* deliver to SCOC */
 		sccp_scoc_rx_from_scrc(inst, xua);
-		xua_msg_free(xua);
 		return 0;
 	}
 	/* We only treat connectionless and CR below */
@@ -465,9 +463,7 @@ int scrc_rx_mtp_xfer_ind_xua(struct osmo_sccp_instance *inst,
 	/* Route on GT? */
 	if (called.ri != OSMO_SCCP_RI_GT) {
 		/* Node 6 (Sheet 3) */
-		rc = scrc_node_6(inst, xua, &called);
-		xua_msg_free(xua);
-		return rc;
+		return scrc_node_6(inst, xua, &called);
 	}
 	/* Message with hop-counter? */
 	hop_ctr_part = xua_msg_find_tag(xua, SUA_IEI_S7_HOP_CTR);
@@ -476,9 +472,7 @@ int scrc_rx_mtp_xfer_ind_xua(struct osmo_sccp_instance *inst,
 		if (hop_counter <= 1) {
 			/* Error: hop-counter violation */
 			/* node 4 */
-			rc = scrc_node_4(inst, xua, SCCP_RETURN_CAUSE_HOP_COUNTER_VIOLATION);
-			xua_msg_free(xua);
-			return rc;
+			return scrc_node_4(inst, xua, SCCP_RETURN_CAUSE_HOP_COUNTER_VIOLATION);
 		}
 		/* Decrement hop-counter */
 		hop_counter--;
@@ -498,7 +492,5 @@ int scrc_rx_mtp_xfer_ind_xua(struct osmo_sccp_instance *inst,
 	default:
 		break;
 	}
-	rc = scrc_translate_node_9(inst, xua, &called);
-	xua_msg_free(xua);
-	return rc;
+	return scrc_translate_node_9(inst, xua, &called);
 }
