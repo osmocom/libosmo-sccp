@@ -35,14 +35,14 @@ PKG_CHECK_MODULES(LIBOSMOGSM, libosmogsm >= 1.3.0)
 PKG_CHECK_MODULES(LIBOSMONETIF, libosmo-netif >= 0.7.0)
 
 old_LIBS=$LIBS
-AC_SEARCH_LIBS([sctp_send], [sctp], [
+AC_SEARCH_LIBS([sctp_recvmsg], [sctp], [
 	AC_DEFINE(HAVE_LIBSCTP, 1, [Define 1 to enable SCTP support])
 	AC_SUBST(HAVE_LIBSCTP, [1])
 	if test -n "$ac_lib"; then
 		AC_SUBST(LIBSCTP_LIBS, [-l$ac_lib])
 	fi
 	], [
-	AC_MSG_ERROR([sctp_send not found in searched libs])])
+	AC_MSG_ERROR([sctp_recvmsg not found in searched libs])])
 LIBS=$old_LIBS
 
 AC_ARG_ENABLE(sanitize,
