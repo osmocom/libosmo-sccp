@@ -1800,7 +1800,6 @@ static int xua_accept_cb(struct osmo_stream_srv_link *link, int fd)
 	struct osmo_xua_server *oxs = osmo_stream_srv_link_get_data(link);
 	struct osmo_stream_srv *srv;
 	struct osmo_ss7_asp *asp;
-	int i;
 	char *sock_name = osmo_sock_get_name(link, fd);
 	const char *proto_name = get_value_string(osmo_ss7_asp_protocol_vals, oxs->cfg.proto);
 
@@ -1840,6 +1839,7 @@ static int xua_accept_cb(struct osmo_stream_srv_link *link, int fd)
 							  oxs->cfg.proto);
 			if (asp) {
 				char hostbuf[INET6_ADDRSTRLEN];
+				const char *hostbuf_ptr = &hostbuf[0];
 				char portbuf[16];
 
 				osmo_sock_get_ip_and_port(fd, hostbuf, sizeof(hostbuf), portbuf, sizeof(portbuf), false);
@@ -1848,14 +1848,14 @@ static int xua_accept_cb(struct osmo_stream_srv_link *link, int fd)
 				asp->cfg.is_server = true;
 				asp->cfg.role = OSMO_SS7_ASP_ROLE_SG;
 				asp->cfg.local.port = oxs->cfg.local.port;
-				for (i = 0; i < oxs->cfg.local.host_cnt; i++)
-					asp->cfg.local.host[i] = talloc_strdup(asp, oxs->cfg.local.host[i]);
-				asp->cfg.local.host_cnt = oxs->cfg.local.host_cnt;
 				asp->cfg.remote.port = atoi(portbuf);
-				asp->cfg.remote.host[0] = talloc_strdup(asp, hostbuf);
-				asp->cfg.remote.host_cnt = 1;
 				asp->dyn_allocated = true;
 				asp->server = srv;
+				osmo_ss7_asp_peer_set_hosts(&asp->cfg.local, asp,
+							    (const char* const*)oxs->cfg.local.host,
+							    oxs->cfg.local.host_cnt);
+				osmo_ss7_asp_peer_set_hosts(&asp->cfg.remote, asp,
+							    &hostbuf_ptr, 1);
 				osmo_ss7_asp_restart(asp);
 			}
 		}

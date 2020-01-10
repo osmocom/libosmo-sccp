@@ -615,8 +615,7 @@ DEFUN(asp_local_ip, asp_local_ip_cmd,
 	"Local IP Address from which to contact of ASP\n")
 {
 	struct osmo_ss7_asp *asp = vty->index;
-	osmo_talloc_replace_string(asp, &asp->cfg.local.host[asp->cfg.local.host_cnt], argv[0]);
-	asp->cfg.local.host_cnt++;
+	osmo_ss7_asp_peer_add_host(&asp->cfg.local, asp, argv[0]);
 	return CMD_SUCCESS;
 }
 
@@ -626,8 +625,7 @@ DEFUN(asp_remote_ip, asp_remote_ip_cmd,
 	"Remote IP Address of ASP\n")
 {
 	struct osmo_ss7_asp *asp = vty->index;
-	osmo_talloc_replace_string(asp, &asp->cfg.remote.host[asp->cfg.remote.host_cnt], argv[0]);
-	asp->cfg.remote.host_cnt++;
+	osmo_ss7_asp_peer_add_host(&asp->cfg.remote, asp, argv[0]);
 	return CMD_SUCCESS;
 }
 
@@ -1780,15 +1778,11 @@ int osmo_ss7_vty_go_parent(struct vty *vty)
 	case L_CS7_ASP_NODE:
 		asp = vty->index;
 		/* If no local addr was set */
-		if (!asp->cfg.local.host_cnt) {
-			asp->cfg.local.host[0] = NULL;
-			asp->cfg.local.host_cnt = 1;
-		}
+		if (!asp->cfg.local.host_cnt)
+			osmo_ss7_asp_peer_add_host(&asp->cfg.local, asp, NULL);
 		/* If no remote addr was set */
-		if (!asp->cfg.remote.host_cnt) {
-			asp->cfg.remote.host[0] = "127.0.0.1";
-			asp->cfg.remote.host_cnt = 1;
-		}
+		if (!asp->cfg.remote.host_cnt)
+			osmo_ss7_asp_peer_add_host(&asp->cfg.remote, asp, "127.0.0.1");
 		osmo_ss7_asp_restart(asp);
 		vty->node = L_CS7_NODE;
 		vty->index = asp->inst;
