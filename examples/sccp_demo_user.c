@@ -78,7 +78,7 @@ static void init_logging(void)
 }
 
 static struct vty_app_info vty_info = {
-	.name	= "sccp-demo-user",
+	.name	= "SccpDemoUser",
 	.version = 0,
 };
 
