@@ -1113,6 +1113,60 @@ int osmo_ss7_asp_peer_snprintf(char* buf, size_t buf_len, struct osmo_ss7_asp_pe
 	return len;
 }
 
+/*! \brief Set (copy) addresses for a given ASP peer. Previous addresses are freed.
+ *  \param[in] peer Application Server Process peer whose addresses are to be set.
+ *  \param[in] talloc_ctx talloc context used to allocate new addresses.
+ *  \param[in] hosts Array of strings containing IP addresses.
+ *  \param[in] host_cnt Number of strings in hosts
+ *  \returns 0 on success; negtive otherwise */
+int osmo_ss7_asp_peer_set_hosts(struct osmo_ss7_asp_peer *peer, void *talloc_ctx, const char* const* hosts, size_t host_cnt)
+{
+	int i = 0;
+
+	if (host_cnt > ARRAY_SIZE(peer->host))
+		return -EINVAL;
+
+	for (; i < host_cnt; i++)
+		osmo_talloc_replace_string(talloc_ctx, &peer->host[i], hosts[i]);
+	for (; i < peer->host_cnt; i++) {
+			talloc_free(peer->host[i]);
+			peer->host[i] = NULL;
+	}
+
+	peer->host_cnt = host_cnt;
+	return 0;
+}
+
+/*! \brief Append (copy) address to a given ASP peer. Previous addresses are kept.
+ *  \param[in] peer Application Server Process peer the address is appened to.
+ *  \param[in] talloc_ctx talloc context used to allocate new address.
+ *  \param[in] host string containing an IP addresses.
+ *  \returns 0 on success; negtive otherwise */
+int osmo_ss7_asp_peer_add_host(struct osmo_ss7_asp_peer *peer, void *talloc_ctx, const char *host)
+
+{
+	int i;
+	bool new_is_any = !host || !strcmp(host, "0.0.0.0");
+	bool iter_is_any;
+
+	/* Makes no sense to have INET_ANY and specific addresses in the set */
+	for (i = 0; i < peer->host_cnt; i++) {
+			iter_is_any = !peer->host[i] ||
+				      !strcmp(peer->host[i], "0.0.0.0");
+			if (new_is_any && iter_is_any)
+				return -EINVAL;
+			if (!new_is_any && iter_is_any)
+				return -EINVAL;
+	}
+	/* Makes no sense to have INET_ANY many times */
+	if (new_is_any && peer->host_cnt)
+		return -EINVAL;
+
+	osmo_talloc_replace_string(talloc_ctx, &peer->host[peer->host_cnt], host);
+	peer->host_cnt++;
+	return 0;
+}
+
 struct osmo_ss7_asp *
 osmo_ss7_asp_find_by_name(struct osmo_ss7_instance *inst, const char *name)
 {
@@ -1985,51 +2039,24 @@ osmo_ss7_xua_server_set_local_host(struct osmo_xua_server *xs, const char *local
 int
 osmo_ss7_xua_server_set_local_hosts(struct osmo_xua_server *xs, const char **local_hosts, size_t local_host_cnt)
 {
-	int i = 0;
+	int rc;
 	OSMO_ASSERT(ss7_initialized);
 
-	if (local_host_cnt > ARRAY_SIZE(xs->cfg.local.host))
-		return -EINVAL;
-
-	for (; i < local_host_cnt; i++)
-		osmo_talloc_replace_string(xs, &xs->cfg.local.host[i], local_hosts[i]);
-	for (; i < xs->cfg.local.host_cnt; i++) {
-			talloc_free(xs->cfg.local.host[i]);
-			xs->cfg.local.host[i] = NULL;
-	}
-
-	xs->cfg.local.host_cnt = local_host_cnt;
-
-	osmo_stream_srv_link_set_addrs(xs->server, (const char **)xs->cfg.local.host, xs->cfg.local.host_cnt);
-
-	return 0;
+	rc = osmo_ss7_asp_peer_set_hosts(&xs->cfg.local, xs, local_hosts, local_host_cnt);
+	if (rc < 0)
+		return rc;
+	return osmo_stream_srv_link_set_addrs(xs->server, (const char **)xs->cfg.local.host, xs->cfg.local.host_cnt);
 }
 
 int
 osmo_ss7_xua_server_add_local_host(struct osmo_xua_server *xs, const char *local_host)
 {
-	int i;
-	bool new_is_any = !local_host || !strcmp(local_host, "0.0.0.0");
-	bool iter_is_any;
+	int rc;
 
-	/* Makes no sense to have INET_ANY and specific addresses in the set */
-	for (i = 0; i < xs->cfg.local.host_cnt; i++) {
-			iter_is_any = !xs->cfg.local.host[i] ||
-				      !strcmp(xs->cfg.local.host[i], "0.0.0.0");
-			if (new_is_any && iter_is_any)
-				return -EINVAL;
-			if (!new_is_any && iter_is_any)
-				return -EINVAL;
-	}
-	/* Makes no sense to have INET_ANY many times */
-	if (new_is_any && xs->cfg.local.host_cnt)
-		return -EINVAL;
-
-	osmo_talloc_replace_string(xs, &xs->cfg.local.host[xs->cfg.local.host_cnt], local_host);
-	xs->cfg.local.host_cnt++;
-
-	osmo_stream_srv_link_set_addrs(xs->server, (const char **)xs->cfg.local.host, xs->cfg.local.host_cnt);
-	return 0;
+	rc = osmo_ss7_asp_peer_add_host(&xs->cfg.local, xs, local_host);
+	if (rc < 0)
+		return rc;
+	return osmo_stream_srv_link_set_addrs(xs->server, (const char **)xs->cfg.local.host, xs->cfg.local.host_cnt);
 }
 
 void osmo_ss7_xua_server_destroy(struct osmo_xua_server *xs)
