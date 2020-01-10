@@ -700,6 +700,7 @@ osmo_sccp_simple_server_add_clnt(struct osmo_sccp_instance *inst,
 	struct osmo_ss7_as *as;
 	struct osmo_ss7_route *rt;
 	struct osmo_ss7_asp *asp;
+	struct osmo_xua_server *oxs;
 	char *as_name, *asp_name;
 
 	if (local_port < 0)
@@ -724,6 +725,15 @@ osmo_sccp_simple_server_add_clnt(struct osmo_sccp_instance *inst,
 	asp = osmo_ss7_asp_find_or_create(ss7, asp_name, remote_port, local_port, prot);
 	if (!asp)
 		goto out_rt;
+	oxs = osmo_ss7_xua_server_find(ss7, prot, local_port);
+	if (!oxs)
+		goto out_asp;
+	if (osmo_ss7_asp_peer_set_hosts(&asp->cfg.local, asp,
+					(const char* const*)oxs->cfg.local.host,
+					oxs->cfg.local.host_cnt) < 0)
+		goto out_asp;
+	if (osmo_ss7_asp_peer_add_host(&asp->cfg.remote, asp, remote_ip) < 0)
+		goto out_asp;
 	asp->cfg.is_server = true;
 	asp->cfg.role = OSMO_SS7_ASP_ROLE_SG;
 	osmo_ss7_as_add_asp(as, asp_name);
@@ -733,6 +743,8 @@ osmo_sccp_simple_server_add_clnt(struct osmo_sccp_instance *inst,
 
 	return ss7->sccp;
 
+out_asp:
+	osmo_ss7_asp_destroy(asp);
 out_rt:
 	osmo_ss7_route_destroy(rt);
 out_as:
