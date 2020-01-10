@@ -1979,8 +1979,7 @@ osmo_ss7_xua_server_bind(struct osmo_xua_server *xs)
 int
 osmo_ss7_xua_server_set_local_host(struct osmo_xua_server *xs, const char *local_host)
 {
-	osmo_ss7_xua_server_set_local_hosts(xs, &local_host, 1);
-	return 0;
+	return osmo_ss7_xua_server_set_local_hosts(xs, &local_host, 1);
 }
 
 int
