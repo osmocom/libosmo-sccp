@@ -1149,18 +1149,24 @@ int osmo_ss7_asp_peer_add_host(struct osmo_ss7_asp_peer *peer, void *talloc_ctx,
 	bool new_is_any = !host || !strcmp(host, "0.0.0.0");
 	bool iter_is_any;
 
-	/* Makes no sense to have INET_ANY and specific addresses in the set */
-	for (i = 0; i < peer->host_cnt; i++) {
-			iter_is_any = !peer->host[i] ||
-				      !strcmp(peer->host[i], "0.0.0.0");
-			if (new_is_any && iter_is_any)
-				return -EINVAL;
-			if (!new_is_any && iter_is_any)
-				return -EINVAL;
-	}
-	/* Makes no sense to have INET_ANY many times */
-	if (new_is_any && peer->host_cnt)
+	if (peer->host_cnt >= ARRAY_SIZE(peer->host))
 		return -EINVAL;
+
+	/* Makes no sense to have INET_ANY many times, or INET_ANY together with
+	   specific addresses: */
+	if (new_is_any && peer->host_cnt != 0)
+		return -EINVAL;
+
+	/* Makes no sense to add specific address to set if INET_ANY is
+	   already set: */
+	if (!new_is_any) {
+		for (i = 0; i < peer->host_cnt; i++) {
+				iter_is_any = !peer->host[i] ||
+					      !strcmp(peer->host[i], "0.0.0.0");
+				if (iter_is_any)
+					return -EINVAL;
+		}
+	}
 
 	osmo_talloc_replace_string(talloc_ctx, &peer->host[peer->host_cnt], host);
 	peer->host_cnt++;
