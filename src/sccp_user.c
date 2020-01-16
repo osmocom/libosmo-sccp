@@ -171,6 +171,12 @@ static int mtp_user_prim_cb(struct osmo_prim_hdr *oph, void *ctx)
 	case OSMO_PRIM(OSMO_MTP_PRIM_TRANSFER, PRIM_OP_INDICATION):
 		/* Convert from SCCP to SUA in xua_msg format */
 		xua = osmo_sccp_to_xua(oph->msg);
+		if (!xua) {
+			LOGP(DLSCCP, LOGL_ERROR, "Couldn't convert SCCP to SUA: %s\n",
+				msgb_hexdump(oph->msg));
+			rc = -1;
+			break;
+		}
 		xua->mtp = omp->u.transfer;
 		/* hand this primitive into SCCP via the SCRC code */
 		rc = scrc_rx_mtp_xfer_ind_xua(inst, xua);
