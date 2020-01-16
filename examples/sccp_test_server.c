@@ -87,7 +87,7 @@ static int callback_prim_cb(struct osmo_prim_hdr *oph, void *_scu)
 
 	switch (OSMO_PRIM_HDR(&scu_prim->oph)) {
 	case OSMO_PRIM(OSMO_SCU_PRIM_N_UNITDATA, PRIM_OP_INDICATION):
-		printf("%s: N-UNITDATA.ind: Connectiong back to sender\n", __func__);
+		printf("%s: N-UNITDATA.ind: Connecting back to sender\n", __func__);
 		osmo_sccp_tx_conn_req(scu, conn_id++,
 				     &scu_prim->u.unitdata.called_addr,
 				     &scu_prim->u.unitdata.calling_addr,
