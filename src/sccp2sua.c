@@ -705,6 +705,12 @@ static struct xua_msg *sccp_to_xua_opt(struct msgb *msg, uint8_t *ptr_opt, struc
 	/* some bounds checking */
 	if (ptr_opt < msg->data || ptr_opt > msg->tail)
 		return NULL;
+
+	/* Q.713 section 2.3 "Coding of pointers": pointer value all zeros used
+	  to indicate that no optional param is present. */
+	if (*ptr_opt == 0)
+		return xua;
+
 	opt_start = ptr_opt + *ptr_opt;
 	if (opt_start > msg->tail)
 		return NULL;
