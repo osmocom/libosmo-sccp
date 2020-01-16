@@ -80,6 +80,10 @@ enum sccp_parameter_name_codes {
 	SCCP_PNC_LONG_DATA			= 19,
 };
 
+extern const struct value_string osmo_sccp_pnc_names[];
+static inline const char *osmo_sccp_pnc_name(enum sccp_message_types val)
+{ return get_value_string(osmo_sccp_pnc_names, val); }
+
 /* Figure 3/Q.713 Called/calling party address */
 enum {
 	SCCP_TITLE_IND_NONE			= 0,

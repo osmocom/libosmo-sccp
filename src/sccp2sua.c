@@ -711,10 +711,11 @@ static struct xua_msg *sccp_to_xua_opt(struct msgb *msg, uint8_t *ptr_opt, struc
 
 	oneopt = opt_start;
 
+	enum sccp_parameter_name_codes opt_type = 0; /* dummy value not used */
 	while (oneopt < msg->tail) {
-		enum sccp_parameter_name_codes opt_type = oneopt[0];
 		uint8_t opt_len;
 		uint16_t opt_len16;
+		opt_type = oneopt[0];
 
 		switch (opt_type) {
 		case SCCP_PNC_END_OF_OPTIONAL:
@@ -722,25 +723,30 @@ static struct xua_msg *sccp_to_xua_opt(struct msgb *msg, uint8_t *ptr_opt, struc
 		case SCCP_PNC_LONG_DATA:
 			/* two byte length field */
 			if (oneopt + 2 > msg->tail)
-				return NULL;
+				goto malformed;
 			opt_len16 = oneopt[1] << 8 | oneopt[2];
 			if (oneopt + 3 + opt_len16 > msg->tail)
-				return NULL;
+				goto malformed;
 			xua_msg_add_sccp_opt(xua, opt_type, opt_len16, oneopt+3);
 			oneopt += 3 + opt_len16;
 			break;
 		default:
 			/* one byte length field */
 			if (oneopt + 1 > msg->tail)
-				return NULL;
+				goto malformed;
 
 			opt_len = oneopt[1];
 			if (oneopt + 2 + opt_len > msg->tail)
-				return NULL;
+				goto malformed;
 			xua_msg_add_sccp_opt(xua, opt_type, opt_len, oneopt+2);
 			oneopt += 2 + opt_len;
 		}
 	}
+	LOGP(DLSUA, LOGL_ERROR, "Parameter %s not found\n", osmo_sccp_pnc_name(SCCP_PNC_END_OF_OPTIONAL));
+	return NULL;
+
+malformed:
+	LOGP(DLSUA, LOGL_ERROR, "Malformed parameter %s (%d)\n", osmo_sccp_pnc_name(opt_type), opt_type);
 	return NULL;
 }
 
