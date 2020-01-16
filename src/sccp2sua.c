@@ -998,6 +998,7 @@ static void store_local_ref(struct sccp_source_reference *local_ref, struct xua_
 	local_ref->octet3 = tmp32 & 0xff;
 }
 
+/*! \returns \ref xua in case of success, NULL on error (xua not freed!) */
 static struct xua_msg *sccp_to_xua_cr(struct msgb *msg, struct xua_msg *xua)
 {
 	struct sccp_connection_request *req = (struct sccp_connection_request *)msg->l2h;
@@ -1013,6 +1014,7 @@ static struct xua_msg *sccp_to_xua_cr(struct msgb *msg, struct xua_msg *xua)
 	return sccp_to_xua_opt(msg, &req->optional_start, xua);
 }
 
+/*! \returns \ref xua in case of success, NULL on error (xua not freed!) */
 static int sua_to_sccp_cr(struct msgb *msg, struct xua_msg *xua)
 {
 	struct sccp_connection_request *req;
@@ -1029,6 +1031,7 @@ static int sua_to_sccp_cr(struct msgb *msg, struct xua_msg *xua)
 	return xua_ies_to_sccp_opts(msg, &req->optional_start, req->type, xua);
 }
 
+/*! \returns \ref xua in case of success, NULL on error (xua not freed!) */
 static struct xua_msg *sccp_to_xua_cc(struct msgb *msg, struct xua_msg *xua)
 {
 	struct sccp_connection_confirm *cnf = (struct sccp_connection_confirm *)msg->l2h;
@@ -1041,6 +1044,7 @@ static struct xua_msg *sccp_to_xua_cc(struct msgb *msg, struct xua_msg *xua)
 	return sccp_to_xua_opt(msg, &cnf->optional_start, xua);
 }
 
+/*! \returns \ref xua in case of success, NULL on error (xua not freed!) */
 static int sua_to_sccp_cc(struct msgb *msg, struct xua_msg *xua)
 {
 	struct sccp_connection_confirm *cnf;
@@ -1055,6 +1059,7 @@ static int sua_to_sccp_cc(struct msgb *msg, struct xua_msg *xua)
 	return xua_ies_to_sccp_opts(msg, &cnf->optional_start, cnf->type, xua);
 }
 
+/*! \returns \ref xua in case of success, NULL on error (xua not freed!) */
 static struct xua_msg *sccp_to_xua_cref(struct msgb *msg, struct xua_msg *xua)
 {
 	struct sccp_connection_refused *ref = (struct sccp_connection_refused *)msg->l2h;
@@ -1066,6 +1071,7 @@ static struct xua_msg *sccp_to_xua_cref(struct msgb *msg, struct xua_msg *xua)
 	return sccp_to_xua_opt(msg, &ref->optional_start, xua);
 }
 
+/*! \returns \ref xua in case of success, NULL on error (xua not freed!) */
 static int sua_to_sccp_cref(struct msgb *msg, struct xua_msg *xua)
 {
 	struct sccp_connection_refused *ref;
@@ -1079,6 +1085,7 @@ static int sua_to_sccp_cref(struct msgb *msg, struct xua_msg *xua)
 	return xua_ies_to_sccp_opts(msg, &ref->optional_start, ref->type, xua);
 }
 
+/*! \returns \ref xua in case of success, NULL on error (xua not freed!) */
 static struct xua_msg *sccp_to_xua_rlsd(struct msgb *msg, struct xua_msg *xua)
 {
 	struct sccp_connection_released *rlsd = (struct sccp_connection_released *)msg->l2h;
@@ -1106,6 +1113,7 @@ static int sua_to_sccp_rlsd(struct msgb *msg, struct xua_msg *xua)
 	return xua_ies_to_sccp_opts(msg, &rlsd->optional_start, rlsd->type, xua);
 }
 
+/*! \returns \ref xua in case of success, NULL on error (xua not freed!) */
 static struct xua_msg *sccp_to_xua_rlc(struct msgb *msg, struct xua_msg *xua)
 {
 	struct sccp_connection_release_complete *rlc;
@@ -1129,6 +1137,7 @@ static int sua_to_sccp_rlc(struct msgb *msg, struct xua_msg *xua)
 	return 0;
 }
 
+/*! \returns \ref xua in case of success, NULL on error (xua not freed!) */
 static struct xua_msg *sccp_to_xua_dt1(struct msgb *msg, struct xua_msg *xua)
 {
 	struct sccp_data_form1 *dt1 = (struct sccp_data_form1 *) msg->l2h;
@@ -1157,6 +1166,7 @@ static int sua_to_sccp_dt1(struct msgb *msg, struct xua_msg *xua)
 	return 0;
 }
 
+/*! \returns \ref xua in case of success, NULL on error (xua not freed!) */
 static struct xua_msg *sccp_to_xua_udt(struct msgb *msg, struct xua_msg *xua)
 {
 	struct sccp_data_unitdata *udt = (struct sccp_data_unitdata *)msg->l2h;
@@ -1192,6 +1202,7 @@ static int sua_to_sccp_udt(struct msgb *msg, struct xua_msg *xua)
 	return 0;
 }
 
+/*! \returns \ref xua in case of success, NULL on error (xua not freed!) */
 static struct xua_msg *sccp_to_xua_udts(struct msgb *msg, struct xua_msg *xua)
 {
 	struct sccp_data_unitdata_service *udts;
@@ -1228,6 +1239,7 @@ static int sua_to_sccp_udts(struct msgb *msg, struct xua_msg *xua)
 	return 0;
 }
 
+/*! \returns \ref xua in case of success, NULL on error (xua not freed!) */
 static struct xua_msg *sccp_to_xua_it(struct msgb *msg, struct xua_msg *xua)
 {
 	struct sccp_data_it *it = (struct sccp_data_it *)msg->l2h;
@@ -1261,6 +1273,7 @@ static int sua_to_sccp_it(struct msgb *msg, struct xua_msg *xua)
 	return 0;
 }
 
+/*! \returns \ref xua in case of success, NULL on error (xua not freed!) */
 static struct xua_msg *sccp_to_xua_err(struct msgb *msg, struct xua_msg *xua)
 {
 	struct sccp_proto_err *err = (struct sccp_proto_err *)msg->l2h;
@@ -1302,34 +1315,54 @@ struct xua_msg *osmo_sccp_to_xua(struct msgb *msg)
 	switch (msg->l2h[0]) {
 	case SCCP_MSG_TYPE_CR:
 		xua->hdr = XUA_HDR(SUA_MSGC_CO, SUA_CO_CORE);
-		return sccp_to_xua_cr(msg, xua);
+		if (!sccp_to_xua_cr(msg, xua))
+			goto malformed;
+		return xua;
 	case SCCP_MSG_TYPE_CC:
 		xua->hdr = XUA_HDR(SUA_MSGC_CO, SUA_CO_COAK);
-		return sccp_to_xua_cc(msg, xua);
+		if (!sccp_to_xua_cc(msg, xua))
+			goto malformed;
+		return xua;
 	case SCCP_MSG_TYPE_CREF:
 		xua->hdr = XUA_HDR(SUA_MSGC_CO, SUA_CO_COREF);
-		return sccp_to_xua_cref(msg, xua);
+		if (!sccp_to_xua_cref(msg, xua))
+			goto malformed;
+		return xua;
 	case SCCP_MSG_TYPE_RLSD:
 		xua->hdr = XUA_HDR(SUA_MSGC_CO, SUA_CO_RELRE);
-		return sccp_to_xua_rlsd(msg, xua);
+		if (!sccp_to_xua_rlsd(msg, xua))
+			goto malformed;
+		return xua;
 	case SCCP_MSG_TYPE_RLC:
 		xua->hdr = XUA_HDR(SUA_MSGC_CO, SUA_CO_RELCO);
-		return sccp_to_xua_rlc(msg, xua);
+		if (!sccp_to_xua_rlc(msg, xua))
+			goto malformed;
+		return xua;
 	case SCCP_MSG_TYPE_DT1:
 		xua->hdr = XUA_HDR(SUA_MSGC_CO, SUA_CO_CODT);
-		return sccp_to_xua_dt1(msg, xua);
+		if (!sccp_to_xua_dt1(msg, xua))
+			goto malformed;
+		return xua;
 	case SCCP_MSG_TYPE_UDT:
 		xua->hdr = XUA_HDR(SUA_MSGC_CL, SUA_CL_CLDT);
-		return sccp_to_xua_udt(msg, xua);
+		if (!sccp_to_xua_udt(msg, xua))
+			goto malformed;
+		return xua;
 	case SCCP_MSG_TYPE_UDTS:
 		xua->hdr = XUA_HDR(SUA_MSGC_CL, SUA_CL_CLDR);
-		return sccp_to_xua_udts(msg, xua);
+		if (!sccp_to_xua_udts(msg, xua))
+			goto malformed;
+		return xua;
 	case SCCP_MSG_TYPE_IT:
 		xua->hdr = XUA_HDR(SUA_MSGC_CO, SUA_CO_COIT);
-		return sccp_to_xua_it(msg, xua);
+		if (!sccp_to_xua_it(msg, xua))
+			goto malformed;
+		return xua;
 	case SCCP_MSG_TYPE_ERR:
 		xua->hdr = XUA_HDR(SUA_MSGC_CO, SUA_CO_COERR);
-		return sccp_to_xua_err(msg, xua);
+		if (!sccp_to_xua_err(msg, xua))
+			goto malformed;
+		return xua;
 	/* Unsupported Message Types */
 	case SCCP_MSG_TYPE_DT2:
 	case SCCP_MSG_TYPE_AK:
@@ -1352,6 +1385,12 @@ struct xua_msg *osmo_sccp_to_xua(struct msgb *msg)
 		return NULL;
 	}
 
+	return NULL;
+
+malformed:
+	LOGP(DLSUA, LOGL_ERROR, "Malformed SCCP message %s\n",
+	     osmo_sccp_msg_type_name(msg->l2h[0]));
+	xua_msg_free(xua);
 	return NULL;
 }
 
