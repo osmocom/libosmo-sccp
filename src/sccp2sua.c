@@ -712,13 +712,14 @@ static struct xua_msg *sccp_to_xua_opt(struct msgb *msg, uint8_t *ptr_opt, struc
 	oneopt = opt_start;
 
 	while (oneopt < msg->tail) {
-		uint8_t opt_type = oneopt[0];
+		enum sccp_parameter_name_codes opt_type = oneopt[0];
+		uint8_t opt_len;
+		uint16_t opt_len16;
 
-		if (opt_type == SCCP_PNC_END_OF_OPTIONAL)
+		switch (opt_type) {
+		case SCCP_PNC_END_OF_OPTIONAL:
 			return xua;
-
-		if (opt_type == SCCP_PNC_LONG_DATA) {
-			uint16_t opt_len16;
+		case SCCP_PNC_LONG_DATA:
 			/* two byte length field */
 			if (oneopt + 2 > msg->tail)
 				return NULL;
@@ -727,8 +728,8 @@ static struct xua_msg *sccp_to_xua_opt(struct msgb *msg, uint8_t *ptr_opt, struc
 				return NULL;
 			xua_msg_add_sccp_opt(xua, opt_type, opt_len16, oneopt+3);
 			oneopt += 3 + opt_len16;
-		} else {
-			uint8_t opt_len;
+			break;
+		default:
 			/* one byte length field */
 			if (oneopt + 1 > msg->tail)
 				return NULL;
