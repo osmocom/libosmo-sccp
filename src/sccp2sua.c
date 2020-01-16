@@ -1341,6 +1341,10 @@ struct xua_msg *osmo_sccp_to_xua(struct msgb *msg)
 	case SCCP_MSG_TYPE_XUDTS:
 	case SCCP_MSG_TYPE_LUDT:
 	case SCCP_MSG_TYPE_LUDTS:
+		LOGP(DLSUA, LOGL_ERROR, "Unsupported SCCP message %s\n",
+			osmo_sccp_msg_type_name(msg->l2h[0]));
+		xua_msg_free(xua);
+		return NULL;
 	default:
 		LOGP(DLSUA, LOGL_ERROR, "Unsupported SCCP message type %u\n",
 			msg->l2h[0]);

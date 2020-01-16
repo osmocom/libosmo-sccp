@@ -26,6 +26,7 @@
 
 #include <stdint.h>
 #include <osmocom/core/endian.h>
+#include <osmocom/core/utils.h>
 
 /* Table 1/Q.713 - SCCP message types */
 enum sccp_message_types {
@@ -50,6 +51,10 @@ enum sccp_message_types {
 	SCCP_MSG_TYPE_LUDT	= 19,
 	SCCP_MSG_TYPE_LUDTS	= 20
 };
+
+extern const struct value_string osmo_sccp_msg_type_names[];
+static inline const char *osmo_sccp_msg_type_name(enum sccp_message_types val)
+{ return get_value_string(osmo_sccp_msg_type_names, val); }
 
 /* Table 2/Q.713 - SCCP parameter name codes */
 enum sccp_parameter_name_codes {
