@@ -1364,6 +1364,9 @@ void sccp_scoc_rx_scrc_rout_fail(struct osmo_sccp_instance *inst,
 	uint32_t conn_id;
 	struct sccp_connection *conn;
 
+	LOGP(DLSCCP, LOGL_NOTICE, "SCRC Routing Failure for message %s\n",
+	     xua_hdr_dump(xua, &xua_dialect_sua));
+
 	/* try to dispatch to connection FSM (if any) */
 	conn_id = xua_msg_get_u32(xua, SUA_IEI_DEST_REF);
 	conn = conn_find_by_id(inst, conn_id);
