@@ -1468,8 +1468,11 @@ struct msgb *osmo_sua_to_sccp(struct xua_msg *xua)
 		goto out_err;
 	}
 
-	if (rc < 0)
+	if (rc < 0)  {
+		LOGP(DLSUA, LOGL_ERROR, "Malformed SUA message %s\n",
+			xua_hdr_dump(xua, &xua_dialect_sua));
 		goto out_err;
+	}
 
 	return msg;
 
