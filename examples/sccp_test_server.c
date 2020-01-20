@@ -67,6 +67,11 @@ static int echo_prim_cb(struct osmo_prim_hdr *oph, void *_scu)
 				      &scu_prim->u.unitdata.calling_addr,
 				      data, data_len);
 		break;
+	case OSMO_PRIM(OSMO_SCU_PRIM_N_DISCONNECT, PRIM_OP_INDICATION):
+		LOGP(DMAIN, LOGL_INFO, "Got N-DISCONNECT.ind (local_ref=%u, cause=%u, importance=%u)\n",
+		     scu_prim->u.disconnect.conn_id, scu_prim->u.disconnect.cause,
+		     scu_prim->u.disconnect.importance);
+		break;
 	default:
 		LOGP(DMAIN, LOGL_NOTICE, "Unknown primitive %s\n",
 		     osmo_scu_prim_name(oph));
