@@ -30,8 +30,8 @@ static int refuser_prim_cb(struct osmo_prim_hdr *oph, void *_scu)
 				     23);
 		break;
 	default:
-		LOGP(DMAIN, LOGL_NOTICE, "Unknown primitive %u:%u\n",
-		     oph->primitive, oph->operation);
+		LOGP(DMAIN, LOGL_NOTICE, "Unknown primitive %s\n",
+		     osmo_scu_prim_name(oph));
 		break;
 	}
 	msgb_free(oph->msg);
@@ -68,8 +68,8 @@ static int echo_prim_cb(struct osmo_prim_hdr *oph, void *_scu)
 				      data, data_len);
 		break;
 	default:
-		LOGP(DMAIN, LOGL_NOTICE, "Unknown primitive %u:%u\n",
-		     oph->primitive, oph->operation);
+		LOGP(DMAIN, LOGL_NOTICE, "Unknown primitive %s\n",
+		     osmo_scu_prim_name(oph));
 		break;
 	}
 	msgb_free(oph->msg);
@@ -100,8 +100,8 @@ static int callback_prim_cb(struct osmo_prim_hdr *oph, void *_scu)
 				  data, data_len);
 		break;
 	default:
-		LOGP(DMAIN, LOGL_NOTICE, "Unknown primitive %u:%u\n",
-		     oph->primitive, oph->operation);
+		LOGP(DMAIN, LOGL_NOTICE, "Unknown primitive %s\n",
+		     osmo_scu_prim_name(oph));
 		break;
 	}
 	msgb_free(oph->msg);
