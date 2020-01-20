@@ -23,15 +23,15 @@ static int refuser_prim_cb(struct osmo_prim_hdr *oph, void *_scu)
 
 	switch (OSMO_PRIM_HDR(&scu_prim->oph)) {
 	case OSMO_PRIM(OSMO_SCU_PRIM_N_CONNECT, PRIM_OP_INDICATION):
-		printf("%s: refusing N-CONNECT.ind (local_ref=%u)\n",
-			__func__, scu_prim->u.connect.conn_id);
+		LOGP(DMAIN, LOGL_INFO, "refusing N-CONNECT.ind (local_ref=%u)\n",
+		     scu_prim->u.connect.conn_id);
 		osmo_sccp_tx_disconn(scu, scu_prim->u.connect.conn_id,
 				     &scu_prim->u.connect.called_addr,
 				     23);
 		break;
 	default:
-		printf("%s: Unknown primitive %u:%u\n", __func__,
-			oph->primitive, oph->operation);
+		LOGP(DMAIN, LOGL_NOTICE, "Unknown primitive %u:%u\n",
+		     oph->primitive, oph->operation);
 		break;
 	}
 	msgb_free(oph->msg);
@@ -49,27 +49,27 @@ static int echo_prim_cb(struct osmo_prim_hdr *oph, void *_scu)
 
 	switch (OSMO_PRIM_HDR(&scu_prim->oph)) {
 	case OSMO_PRIM(OSMO_SCU_PRIM_N_CONNECT, PRIM_OP_INDICATION):
-		printf("%s: Accepting N-CONNECT.ind (local_ref=%u)\n",
-			__func__, scu_prim->u.connect.conn_id);
+		LOGP(DMAIN, LOGL_INFO, "Accepting N-CONNECT.ind (local_ref=%u)\n",
+		     scu_prim->u.connect.conn_id);
 		osmo_sccp_tx_conn_resp(scu, scu_prim->u.connect.conn_id,
 				     &scu_prim->u.connect.called_addr,
 				     data, data_len);
 		break;
 	case OSMO_PRIM(OSMO_SCU_PRIM_N_DATA, PRIM_OP_INDICATION):
-		printf("%s: Echoing N-DATA.ind (local_ref=%u)\n",
-			__func__, scu_prim->u.data.conn_id);
+		LOGP(DMAIN, LOGL_INFO, "Echoing N-DATA.ind (local_ref=%u)\n",
+		    scu_prim->u.data.conn_id);
 		osmo_sccp_tx_data(scu, scu_prim->u.data.conn_id,
 				  data, data_len);
 		break;
 	case OSMO_PRIM(OSMO_SCU_PRIM_N_UNITDATA, PRIM_OP_INDICATION):
-		printf("%s: Echoing N-UNITDATA.ind\n", __func__);
+		LOGP(DMAIN, LOGL_INFO, "Echoing N-UNITDATA.ind\n");
 		osmo_sccp_tx_unitdata(scu, &scu_prim->u.unitdata.called_addr,
 				      &scu_prim->u.unitdata.calling_addr,
 				      data, data_len);
 		break;
 	default:
-		printf("%s: Unknown primitive %u:%u\n", __func__,
-			oph->primitive, oph->operation);
+		LOGP(DMAIN, LOGL_NOTICE, "Unknown primitive %u:%u\n",
+		     oph->primitive, oph->operation);
 		break;
 	}
 	msgb_free(oph->msg);
@@ -87,21 +87,21 @@ static int callback_prim_cb(struct osmo_prim_hdr *oph, void *_scu)
 
 	switch (OSMO_PRIM_HDR(&scu_prim->oph)) {
 	case OSMO_PRIM(OSMO_SCU_PRIM_N_UNITDATA, PRIM_OP_INDICATION):
-		printf("%s: N-UNITDATA.ind: Connecting back to sender\n", __func__);
+		LOGP(DMAIN, LOGL_INFO, "N-UNITDATA.ind: Connecting back to sender\n");
 		osmo_sccp_tx_conn_req(scu, conn_id++,
 				     &scu_prim->u.unitdata.called_addr,
 				     &scu_prim->u.unitdata.calling_addr,
 				     data, data_len);
 		break;
 	case OSMO_PRIM(OSMO_SCU_PRIM_N_DATA, PRIM_OP_INDICATION):
-		printf("%s: Echoing N-DATA.ind (local_ref=%u)\n",
-			__func__, scu_prim->u.data.conn_id);
+		LOGP(DMAIN, LOGL_INFO, "Echoing N-DATA.ind (local_ref=%u)\n",
+		     scu_prim->u.data.conn_id);
 		osmo_sccp_tx_data(scu, scu_prim->u.data.conn_id,
 				  data, data_len);
 		break;
 	default:
-		printf("%s: Unknown primitive %u:%u\n", __func__,
-			oph->primitive, oph->operation);
+		LOGP(DMAIN, LOGL_NOTICE, "Unknown primitive %u:%u\n",
+		     oph->primitive, oph->operation);
 		break;
 	}
 	msgb_free(oph->msg);

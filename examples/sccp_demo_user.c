@@ -58,6 +58,12 @@ static void signal_handler(int signal)
 }
 
 static const struct log_info_cat log_info_cat[] = {
+	[DMAIN] = {
+		.name = "DMAIN",
+		.description = "sccp_demo_user specific logging",
+		.color = "\033[1;31m",
+		.enabled = 1, .loglevel = LOGL_INFO,
+	},
 };
 
 static const struct log_info log_info = {
