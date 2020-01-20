@@ -691,7 +691,7 @@ osmo_sccp_simple_server(void *ctx, uint32_t pc,
 			enum osmo_ss7_asp_protocol prot, int local_port,
 			const char *local_ip)
 {
-	return osmo_sccp_simple_server_on_ss7_id(ctx, 1, pc, prot,
+	return osmo_sccp_simple_server_on_ss7_id(ctx, 0, pc, prot,
 					         local_port, local_ip);
 }
 
