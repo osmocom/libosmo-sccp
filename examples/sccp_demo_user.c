@@ -13,6 +13,8 @@
 #include <osmocom/core/fsm.h>
 #include <osmocom/vty/vty.h>
 #include <osmocom/vty/telnet_interface.h>
+#include <osmocom/vty/logging.h>
+#include <osmocom/vty/misc.h>
 
 #include <osmocom/sigtran/osmo_ss7.h>
 #include <osmocom/sigtran/sccp_sap.h>
@@ -21,6 +23,8 @@
 #include <osmocom/sigtran/protocol/m3ua.h>
 
 #include "internal.h"
+
+static const char *config_file;
 
 static struct osmo_sccp_instance *g_sccp;
 
@@ -71,11 +75,10 @@ static const struct log_info log_info = {
 	.num_cat = ARRAY_SIZE(log_info_cat),
 };
 
-static void init_logging(void)
+static void init_logging(void *tall_ctx)
 {
 	const int log_cats[] = { DLSS7, DLSUA, DLM3UA, DLSCCP, DLINP };
 	unsigned int i;
-	void *tall_ctx = talloc_named_const(NULL, 1, "example");
 	msgb_talloc_ctx_init(tall_ctx, 0);
 	osmo_init_logging2(tall_ctx, &log_info);
 	log_set_print_category(osmo_stderr_target, true);
@@ -177,7 +180,7 @@ int main(int argc, char **argv)
 	int remote_pc = DEFAULT_PC_CLIENT;
 	bool lflag = false, rflag = false, Lflag = false, Rflag = false;
 
-	while ((ch = getopt(argc, argv, "cl:r:L:R:")) != -1) {
+	while ((ch = getopt(argc, argv, "cl:r:L:R:C:")) != -1) {
 		switch (ch) {
 		case 'c':
 			client = true;
@@ -222,6 +225,9 @@ int main(int argc, char **argv)
 			remote_pc = atoi(optarg);
 			Rflag = true;
 			break;
+		case 'C':
+			config_file = optarg;
+			break;
 		default:
 			usage();
 		}
@@ -237,14 +243,30 @@ int main(int argc, char **argv)
 	signal(SIGUSR1, &signal_handler);
 	signal(SIGUSR2, &signal_handler);
 
-	init_logging();
+	void *tall_ctx = talloc_named_const(NULL, 1, "sccp_demo_user");
+	init_logging(tall_ctx);
 	OSMO_ASSERT(osmo_ss7_init() == 0);
 	osmo_fsm_log_addr(false);
+	vty_info.tall_ctx = tall_ctx;
 	vty_init(&vty_info);
+	logging_vty_add_cmds();
+	osmo_talloc_vty_add_cmds();
+	osmo_fsm_vty_add_cmds();
 	osmo_ss7_vty_init_asp(NULL);
 	osmo_sccp_vty_init();
 
-	rc = telnet_init_dynif(NULL, NULL, local_address, 2324+client);
+	/* Read the config if requested with -C */
+	if (config_file) {
+		rc = vty_read_config_file(config_file, NULL);
+		if (rc < 0) {
+			LOGP(DMAIN, LOGL_FATAL, "Failed to parse the config file: '%s'\n",
+			     config_file);
+			exit(1);
+		}
+	}
+
+	rc = telnet_init_dynif(NULL, NULL, config_file ? vty_get_bind_addr() : local_address,
+			       2324+client);
 	if (rc < 0) {
 		perror("Error binding VTY port");
 		exit(1);
