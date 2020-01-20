@@ -1081,6 +1081,8 @@ static void scoc_fsm_active(struct osmo_fsm_inst *fi, uint32_t event, void *data
 		osmo_fsm_inst_state_chg(fi, S_IDLE, 0, 0);
 		break;
 	case SCOC_E_T_IAR_EXP:
+		/* stop inact timers */
+		conn_stop_inact_timers(conn);
 		xua = xua_msg_alloc();
 		xua_msg_add_u32(xua, SUA_IEI_CAUSE,
 				SUA_CAUSE_T_RELEASE | SCCP_RELEASE_CAUSE_EXPIRATION_INACTIVE);
@@ -1091,6 +1093,7 @@ static void scoc_fsm_active(struct osmo_fsm_inst *fi, uint32_t event, void *data
 		talloc_free(xua);
 		/* Send RLSD to peer */
 		xua_gen_relre_and_send(conn, SCCP_RELEASE_CAUSE_EXPIRATION_INACTIVE, NULL);
+		/* start release timer */
 		conn_start_rel_timer(conn);
 		osmo_fsm_inst_state_chg(fi, S_DISCONN_PEND, 0, 0);
 		break;
