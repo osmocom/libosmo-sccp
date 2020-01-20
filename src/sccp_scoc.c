@@ -734,6 +734,7 @@ static void scu_gen_encode_and_send(struct sccp_connection *conn, uint32_t event
 		udisp = &scu_prim->u.disconnect;
 		udisp->conn_id = conn->conn_id;
 		udisp->responding_addr = conn->called_addr;
+		udisp->importance = conn->importance;
 		udisp->originator = OSMO_SCCP_ORIG_UNDEFINED;
 		//udisp->in_sequence_control;
 		if (xua) {
@@ -1080,9 +1081,14 @@ static void scoc_fsm_active(struct osmo_fsm_inst *fi, uint32_t event, void *data
 		osmo_fsm_inst_state_chg(fi, S_IDLE, 0, 0);
 		break;
 	case SCOC_E_T_IAR_EXP:
+		xua = xua_msg_alloc();
+		xua_msg_add_u32(xua, SUA_IEI_CAUSE,
+				SUA_CAUSE_T_RELEASE | SCCP_RELEASE_CAUSE_EXPIRATION_INACTIVE);
+		xua_msg_add_u32(xua, SUA_IEI_IMPORTANCE, conn->importance);
 		/* Send N-DISCONNECT.ind to local user */
-		scu_gen_encode_and_send(conn, event, NULL, OSMO_SCU_PRIM_N_DISCONNECT,
+		scu_gen_encode_and_send(conn, event, xua, OSMO_SCU_PRIM_N_DISCONNECT,
 					PRIM_OP_INDICATION);
+		talloc_free(xua);
 		/* Send RLSD to peer */
 		xua_gen_relre_and_send(conn, SCCP_RELEASE_CAUSE_EXPIRATION_INACTIVE, NULL);
 		conn_start_rel_timer(conn);
@@ -1120,14 +1126,20 @@ static void scoc_fsm_active(struct osmo_fsm_inst *fi, uint32_t event, void *data
 		if (xua_msg_get_u32(xua, SUA_IEI_SRC_REF) != conn->remote_ref ||
 		    xua_msg_get_u32(xua, SUA_IEI_PROTO_CLASS) != conn->sccp_class) {
 			/* Release connection */
-			/* send N-DISCONNECT.ind to user */
-			scu_gen_encode_and_send(conn, event, NULL,
-						OSMO_SCU_PRIM_N_DISCONNECT,
-						PRIM_OP_INDICATION);
 			/* Stop inactivity Timers */
 			conn_stop_inact_timers(conn);
+			xua = xua_msg_alloc();
+			xua_msg_add_u32(xua, SUA_IEI_CAUSE,
+					SUA_CAUSE_T_RELEASE | SCCP_RELEASE_CAUSE_INCONSISTENT_CONN_DATA);
+			xua_msg_add_u32(xua, SUA_IEI_IMPORTANCE, conn->importance);
+			/* send N-DISCONNECT.ind to user */
+			scu_gen_encode_and_send(conn, event, xua,
+						OSMO_SCU_PRIM_N_DISCONNECT,
+						PRIM_OP_INDICATION);
+			talloc_free(xua);
 			/* Send RLSD to SCRC */
 			xua_gen_relre_and_send(conn, SCCP_RELEASE_CAUSE_INCONSISTENT_CONN_DATA, NULL);
+			talloc_free(xua);
 			/* Start release timer */
 			conn_start_rel_timer(conn);
 			osmo_fsm_inst_state_chg(fi, S_DISCONN_PEND, 0, 0);
