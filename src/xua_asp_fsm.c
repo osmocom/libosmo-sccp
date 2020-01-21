@@ -34,7 +34,7 @@
 
 /* The general idea is:
  * * translate incoming SUA/M3UA msg_class/msg_type to xua_asp_event
- * * propagate state transitions to XUA_AS_FSM via _onenter functiosn
+ * * propagate state transitions to XUA_AS_FSM via _onenter functions
  * * notify the Layer Management of any relevant changes
  * *
  */
