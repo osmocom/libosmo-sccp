@@ -40,12 +40,7 @@
  */
 
 /* According to RFC3868 Section 8 */
-#define XUA_T_A_SEC	2
-#define XUA_T_R_SEC	2
 #define XUA_T_ACK_SEC	2
-#define XUA_T_BEAT_SEC	30
-#define SUA_T_IAS_SEC	(7*60)		/* SUA only */
-#define SUA_T_IAR_SEC	(15*60)		/* SUA only */
 
 static const struct value_string xua_asp_event_names[] = {
 	{ XUA_ASP_E_M_ASP_UP_REQ,	"M-ASP_UP.req" },
