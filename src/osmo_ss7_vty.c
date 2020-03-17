@@ -202,16 +202,21 @@ DEFUN(cs7_permit_dyn_rkm, cs7_permit_dyn_rkm_cmd,
 	return CMD_SUCCESS;
 }
 
-static void write_one_cs7(struct vty *vty, struct osmo_ss7_instance *inst);
+static void write_one_cs7(struct vty *vty, struct osmo_ss7_instance *inst, bool show_dyn_config);
 
-static int config_write_cs7(struct vty *vty)
+static int write_all_cs7(struct vty *vty, bool show_dyn_config)
 {
 	struct osmo_ss7_instance *inst;
 
 	llist_for_each_entry(inst, &osmo_ss7_instances, list)
-		write_one_cs7(vty, inst);
+		write_one_cs7(vty, inst, show_dyn_config);
 
 	return 0;
+}
+
+static int config_write_cs7(struct vty *vty)
+{
+	return write_all_cs7(vty, false);
 }
 
 DEFUN(show_cs7_user, show_cs7_user_cmd,
@@ -543,6 +548,14 @@ DEFUN(show_cs7_xua, show_cs7_xua_cmd,
 	return CMD_SUCCESS;
 }
 
+DEFUN(show_cs7_config, show_cs7_config_cmd,
+      "show cs7 config",
+      SHOW_STR CS7_STR "Currently running cs7 configuration")
+{
+	write_all_cs7(vty, true);
+	return CMD_SUCCESS;
+}
+
 
 /***********************************************************************
  * Application Server Process
@@ -728,11 +741,12 @@ DEFUN(show_cs7_asp, show_cs7_asp_cmd,
 	return CMD_SUCCESS;
 }
 
-static void write_one_asp(struct vty *vty, struct osmo_ss7_asp *asp)
+static void write_one_asp(struct vty *vty, struct osmo_ss7_asp *asp, bool show_dyn_config)
 {
 	int i;
 	/* skip any dynamically created ASPs (e.g. auto-created at connect time) */
-	if (asp->dyn_allocated || asp->simple_client_allocated)
+	if ((asp->dyn_allocated || asp->simple_client_allocated)
+	    && !show_dyn_config)
 		return;
 
 	vty_out(vty, " asp %s %u %u %s%s",
@@ -1025,13 +1039,14 @@ DEFUN(as_pc_patch_sccp, as_pc_patch_sccp_cmd,
 	return CMD_SUCCESS;
 }
 
-static void write_one_as(struct vty *vty, struct osmo_ss7_as *as)
+static void write_one_as(struct vty *vty, struct osmo_ss7_as *as, bool show_dyn_config)
 {
 	struct osmo_ss7_routing_key *rkey;
 	unsigned int i;
 
 	/* skip any dynamically allocated AS definitions */
-	if (as->rkm_dyn_allocated || as->simple_client_allocated)
+	if ((as->rkm_dyn_allocated || as->simple_client_allocated)
+	    && !show_dyn_config)
 		return;
 
 	vty_out(vty, " as %s %s%s", as->cfg.name,
@@ -1043,7 +1058,8 @@ static void write_one_as(struct vty *vty, struct osmo_ss7_as *as)
 		if (!asp)
 			continue;
 		/* skip any dynamically created ASPs (e.g. auto-created at connect time) */
-		if (asp->dyn_allocated || asp->simple_client_allocated)
+		if ((asp->dyn_allocated || asp->simple_client_allocated)
+		    && !show_dyn_config)
 			continue;
 		vty_out(vty, "  asp %s%s", asp->cfg.name, VTY_NEWLINE);
 	}
@@ -1700,7 +1716,7 @@ DEFUN(cs7_sccpaddr_gt_digits, cs7_sccpaddr_gt_digits_cmd,
  * Common
  ***********************************************************************/
 
-static void write_one_cs7(struct vty *vty, struct osmo_ss7_instance *inst)
+static void write_one_cs7(struct vty *vty, struct osmo_ss7_instance *inst, bool show_dyn_config)
 {
 	struct osmo_ss7_asp *asp;
 	struct osmo_ss7_as *as;
@@ -1741,11 +1757,11 @@ static void write_one_cs7(struct vty *vty, struct osmo_ss7_instance *inst)
 
 	/* first dump ASPs, as ASs reference them */
 	llist_for_each_entry(asp, &inst->asp_list, list)
-		write_one_asp(vty, asp);
+		write_one_asp(vty, asp, show_dyn_config);
 
 	/* then dump ASPs, as routes reference them */
 	llist_for_each_entry(as, &inst->as_list, list)
-		write_one_as(vty, as);
+		write_one_as(vty, as, show_dyn_config);
 
 	/* now dump everything that is relevent for the SG role */
 	if (cs7_role == CS7_ROLE_SG) {
@@ -1880,6 +1896,7 @@ static void vty_init_shared(void *ctx)
 
 	install_element_ve(&show_cs7_user_cmd);
 	install_element_ve(&show_cs7_xua_cmd);
+	install_element_ve(&show_cs7_config_cmd);
 
 	/* the mother of all VTY config nodes */
 	install_element(CONFIG_NODE, &cs7_instance_cmd);

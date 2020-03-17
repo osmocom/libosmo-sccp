@@ -2,6 +2,7 @@ ss7_asp_vty_test> list
 ... !show cs7
   show cs7 instance <0-15> users
   show cs7 (sua|m3ua|ipa) [<0-65534>]
+  show cs7 config
   show cs7 instance <0-15> asp
   show cs7 instance <0-15> as (active|all|m3ua|sua)
   show cs7 instance <0-15> sccp addressbook
@@ -16,6 +17,7 @@ ss7_asp_vty_test# list
 ... !show cs7
   show cs7 instance <0-15> users
   show cs7 (sua|m3ua|ipa) [<0-65534>]
+  show cs7 config
   show cs7 instance <0-15> asp
   show cs7 instance <0-15> as (active|all|m3ua|sua)
   show cs7 instance <0-15> sccp addressbook
@@ -35,6 +37,7 @@ ss7_asp_vty_test# show cs7 ?
   sua       SCCP User Adaptation
   m3ua      MTP3 User Adaptation
   ipa       IPA Multiplex (SCCP Lite)
+  config    Currently running cs7 configuration
 
 ss7_asp_vty_test# show cs7 m3ua ?
   [<0-65534>]  Port Number
