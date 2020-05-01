@@ -1,3 +1,9 @@
+libosmo-sccp (1.2.0-fw.1) unstable; urgency=medium
+
+  * relocated to master:f7129b44aed6a
+
+ -- Kirill Zakharenko <kirill.zakharenko@fairwaves.co>  Fri, 1 May 2020 18:23:29 +0300
+
 libosmo-sccp (1.2.0) unstable; urgency=medium
 
   [ Kira Obrezkova ]
@@ -339,7 +345,7 @@ libosmo-sccp (0.0.6.2+git2) precise; urgency=low
 
 libosmo-sccp (0.0.5) unstable; urgency=low
 
-  * New upstream release 0.0.5 
+  * New upstream release 0.0.5
 
  -- Harald Welte <laforge@gnumonks.org>  Tue, 10 May 2011 17:30:34 +0200
 
