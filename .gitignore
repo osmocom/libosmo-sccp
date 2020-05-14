@@ -83,3 +83,5 @@ doc/manuals/build
 doc/html.tar
 doc/libosmo-sigtran.tag
 doc/sigtran
+
+contrib/libosmo-sccp.spec
