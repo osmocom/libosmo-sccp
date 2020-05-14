@@ -39,6 +39,8 @@
 #include "xua_internal.h"
 
 /*! \brief Find a SCCP User registered for given PC+SSN or SSN only
+ * First search all users with a valid PC for a full PC+SSN match.
+ * If no such match was found, search all users with an invalid PC for an SSN-only match.
  *  \param[in] inst SCCP Instance in which to search
  *  \param[in] ssn Sub-System Number to search for
  *  \param[in] pc Point Code to search for
@@ -61,6 +63,20 @@ sccp_user_find(struct osmo_sccp_instance *inst, uint16_t ssn, uint32_t pc)
 	}
 
 	return NULL;
+}
+
+/*! Find a SCCP User registered for given PC+SSN or SSN only.
+ * First search all users with a valid PC for a full PC+SSN match.
+ * If no match was found, search all users with an invalid PC for an SSN-only match.
+ *  \param[in] inst SCCP Instance in which to search.
+ *  \param[in] ssn Sub-System Number to search for.
+ *  \param[in] pc Point Code to search for.
+ *  \returns Matching SCCP User; NULL if none found.
+ */
+struct osmo_sccp_user *
+osmo_sccp_user_find(struct osmo_sccp_instance *inst, uint16_t ssn, uint32_t pc)
+{
+	return sccp_user_find(inst, ssn, pc);
 }
 
 /*! \brief Bind a SCCP User to a given Point Code
