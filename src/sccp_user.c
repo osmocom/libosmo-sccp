@@ -50,10 +50,12 @@ sccp_user_find(struct osmo_sccp_instance *inst, uint16_t ssn, uint32_t pc)
 {
 	struct osmo_sccp_user *scu;
 
-	/* First try to find match for PC + SSN */
-	llist_for_each_entry(scu, &inst->users, list) {
-		if (osmo_ss7_pc_is_valid(scu->pc) && scu->pc == pc && scu->ssn == ssn)
-			return scu;
+	if (osmo_ss7_pc_is_valid(pc)) {
+		/* First try to find match for PC + SSN */
+		llist_for_each_entry(scu, &inst->users, list) {
+			if (osmo_ss7_pc_is_valid(scu->pc) && scu->pc == pc && scu->ssn == ssn)
+				return scu;
+		}
 	}
 
 	/* Then try to match on SSN only */
