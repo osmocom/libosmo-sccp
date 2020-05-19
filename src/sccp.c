@@ -29,6 +29,7 @@
 #include <osmocom/core/msgb.h>
 #include <osmocom/core/talloc.h>
 #include <osmocom/core/logging.h>
+#include <osmocom/core/endian.h>
 #include <osmocom/gsm/tlv.h>
 
 #include <osmocom/sccp/sccp.h>
