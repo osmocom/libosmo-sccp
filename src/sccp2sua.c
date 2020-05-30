@@ -109,7 +109,7 @@ int osmo_isup_party_encode(struct msgb *msg, const char *in_digits)
 	return num_octets;
 }
 
-/*! \brief Parse wire-encoded SCCP address into omso_sccp_addr
+/*! \brief Parse wire-encoded SCCP address into osmo_sccp_addr
  *  \param[out] out user-allocated output data structure
  *  \param[in] addr wire-encoded SCCP address
  *  \param[in] addrlen Size of \ref addr in bytes
