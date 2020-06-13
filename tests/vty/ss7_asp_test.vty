@@ -250,6 +250,7 @@ ss7_asp_vty_test(config-cs7-as)# list
   asp NAME
   no asp NAME
   traffic-mode (broadcast | loadshare | roundrobin | override)
+  no traffic-mode
   recovery-timeout <1-2000>
   qos-class <0-255>
   routing-key RCONTEXT DPC
@@ -271,7 +272,8 @@ ss7_asp_vty_test(config-cs7-as)# ?
   point-code        Point Code Specific Features
 
 ss7_asp_vty_test(config-cs7-as)# no ?
-  asp  Specify ASP to be removed from this AS
+  asp           Specify ASP to be removed from this AS
+  traffic-mode  Remove explicit traffic mode of operation of this AS
 
 ss7_asp_vty_test(config-cs7-as)# do show cs7 instance 0 as all
                           Routing    Routing Key                          Cic   Cic   Traffic

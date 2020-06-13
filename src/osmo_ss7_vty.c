@@ -878,6 +878,17 @@ DEFUN(as_traf_mode, as_traf_mode_cmd,
 	return CMD_SUCCESS;
 }
 
+DEFUN(as_no_traf_mode, as_no_traf_mode_cmd,
+	"no traffic-mode",
+	NO_STR "Remove explicit traffic mode of operation of this AS\n")
+{
+	struct osmo_ss7_as *as = vty->index;
+
+	as->cfg.mode = 0;
+	as->cfg.mode_set_by_vty = false;
+	return CMD_SUCCESS;
+}
+
 DEFUN(as_recov_tout, as_recov_tout_cmd,
 	"recovery-timeout <1-2000>",
 	"Specifies the recovery timeout value in milliseconds\n"
@@ -1931,6 +1942,7 @@ static void vty_init_shared(void *ctx)
 	install_element(L_CS7_AS_NODE, &as_asp_cmd);
 	install_element(L_CS7_AS_NODE, &as_no_asp_cmd);
 	install_element(L_CS7_AS_NODE, &as_traf_mode_cmd);
+	install_element(L_CS7_AS_NODE, &as_no_traf_mode_cmd);
 	install_element(L_CS7_AS_NODE, &as_recov_tout_cmd);
 	install_element(L_CS7_AS_NODE, &as_qos_class_cmd);
 	install_element(L_CS7_AS_NODE, &as_rout_key_cmd);
