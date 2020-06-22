@@ -177,7 +177,7 @@ make %{?_smp_mflags} check || (find . -name testsuite.log -exec cat {} +)
 %files -n osmo-stp
 %{_bindir}/osmo-stp
 %dir %{_sysconfdir}/osmocom
-%config %{_sysconfdir}/osmocom/osmo-stp.cfg
+%config(noreplace) %{_sysconfdir}/osmocom/osmo-stp.cfg
 %{_unitdir}/osmo-stp.service
 %dir %{_docdir}/%{name}
 %dir %{_docdir}/%{name}/examples
