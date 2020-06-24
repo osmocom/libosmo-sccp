@@ -1832,6 +1832,17 @@ static int xua_accept_cb(struct osmo_stream_srv_link *link, int fd)
 	if (asp) {
 		LOGP(DLSS7, LOGL_INFO, "%s: matched connection to ASP %s\n",
 			sock_name, asp->cfg.name);
+		/* we need to check if we already have a socket associated, and close it.  Otherwise it might
+		 * happen that both the listen-fd for this accept() and the old socket are marked 'readable'
+		 * during the same scheduling interval, and we're processing them in the "wrong" order, i.e.
+		 * we first see the accept of the new fd before we see the close on the old fd */
+		if (asp->server) {
+			LOGPASP(asp, DLSS7, LOGL_FATAL, "accept of new connection from %s before old was closed "
+				"-> close old one\n", sock_name);
+			osmo_stream_srv_set_data(asp->server, NULL);
+			osmo_stream_srv_destroy(asp->server);
+			asp->server = NULL;
+		}
 	} else {
 		if (!oxs->cfg.accept_dyn_reg) {
 			LOGP(DLSS7, LOGL_NOTICE, "%s: %s connection without matching "
@@ -1870,13 +1881,13 @@ static int xua_accept_cb(struct osmo_stream_srv_link *link, int fd)
 			talloc_free(sock_name);
 			return -1;
 		}
+		llist_add_tail(&asp->siblings, &oxs->asp_list);
 	}
 
 	/* update the ASP reference back to the server over which the
 	 * connection came in */
 	asp->server = srv;
 	asp->xua_server = oxs;
-	llist_add_tail(&asp->siblings, &oxs->asp_list);
 	/* update the ASP socket name */
 	if (asp->sock_name)
 		talloc_free(asp->sock_name);
