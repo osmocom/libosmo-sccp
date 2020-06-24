@@ -597,16 +597,16 @@ osmo_sccp_simple_client_on_ss7_id(void *ctx, uint32_t ss7_id, const char *name,
 			talloc_free(asp_name);
 
 		osmo_ss7_as_add_asp(as, asp->cfg.name);
-
-		/* Ensure that the ASP we use is set to client mode. */
-		asp->cfg.is_server = false;
-		asp->cfg.role = OSMO_SS7_ASP_ROLE_ASP;
-
-		/* Restart ASP */
-		if (prot != OSMO_SS7_ASP_PROT_IPA)
-			osmo_ss7_asp_use_default_lm(asp, LOGL_DEBUG);
-		osmo_ss7_asp_restart(asp);
 	}
+
+	/* Ensure that the ASP we use is set to client mode. */
+	asp->cfg.is_server = false;
+	asp->cfg.role = OSMO_SS7_ASP_ROLE_ASP;
+
+	/* Restart ASP */
+	if (prot != OSMO_SS7_ASP_PROT_IPA)
+		osmo_ss7_asp_use_default_lm(asp, LOGL_DEBUG);
+	osmo_ss7_asp_restart(asp);
 	LOGP(DLSCCP, LOGL_NOTICE, "%s: Using ASP instance %s\n", name,
 	     asp->cfg.name);
 
