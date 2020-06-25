@@ -25,6 +25,7 @@
 
 #include <stdbool.h>
 #include <string.h>
+#include <limits.h>
 
 #include <osmocom/core/linuxlist.h>
 #include <osmocom/core/logging.h>
@@ -574,13 +575,33 @@ osmo_sccp_simple_client_on_ss7_id(void *ctx, uint32_t ss7_id, const char *name,
 	 * we intend to use. */
 	asp = osmo_ss7_asp_find_by_proto(as, prot);
 	if (!asp) {
-		/* Check if the user has already created an ASP elsewhere under
-		 * the default asp name. */
-		asp_name = talloc_asprintf(ctx, "asp-clnt-%s", name);
-		asp = osmo_ss7_asp_find_by_name(ss7, asp_name);
+		/* Check if the user has created an ASP for this proto that is not added on any AS yet. */
+		struct osmo_ss7_asp *asp_i;
+		llist_for_each_entry(asp_i, &ss7->asp_list, list) {
+			struct osmo_ss7_as *as_i;
+			bool is_on_as = false;
+			if (asp_i->cfg.proto != prot)
+				continue;
+			llist_for_each_entry(as_i, &ss7->as_list, list) {
+				if (!osmo_ss7_as_has_asp(as_i, asp_i))
+					continue;
+				is_on_as = true;
+				break;
+			}
+			if (is_on_as) {
+				/* This ASP is already on another AS. If it was on this AS, we'd have found it above. */
+				continue;
+			}
+			/* This ASP matches the protocol and is not yet associated to any AS. Use it. */
+			asp = asp_i;
+			LOGP(DLSCCP, LOGL_NOTICE, "%s: ASP %s for %s is not associated with any AS, using it\n",
+			     name, asp->cfg.name, osmo_ss7_asp_protocol_name(prot));
+			break;
+		}
 		if (!asp) {
-			LOGP(DLSCCP, LOGL_NOTICE, "%s: Creating ASP instance\n",
-			     name);
+			asp_name = talloc_asprintf(ctx, "asp-clnt-%s", name);
+			LOGP(DLSCCP, LOGL_NOTICE, "%s: No unassociated ASP for %s, creating new ASP %s\n",
+			     name, osmo_ss7_asp_protocol_name(prot), asp_name);
 			asp =
 			    osmo_ss7_asp_find_or_create(ss7, asp_name,
 							default_remote_port,
@@ -593,8 +614,7 @@ osmo_sccp_simple_client_on_ss7_id(void *ctx, uint32_t ss7_id, const char *name,
 			osmo_ss7_asp_peer_set_hosts(&asp->cfg.local, asp, &default_local_ip, 1);
 			osmo_ss7_asp_peer_set_hosts(&asp->cfg.remote, asp, &default_remote_ip, 1);
 			asp->simple_client_allocated = true;
-		} else
-			talloc_free(asp_name);
+		}
 
 		osmo_ss7_as_add_asp(as, asp->cfg.name);
 	}
