@@ -1786,12 +1786,13 @@ static int xua_srv_conn_closed_cb(struct osmo_stream_srv *srv)
 	/* send M-SCTP_RELEASE.ind to Layer Manager */
 	xua_asp_send_xlm_prim_simple(asp, OSMO_XLM_PRIM_M_SCTP_RELEASE, PRIM_OP_INDICATION);
 
+	asp->server = NULL;
+
 	/* if we were dynamically allocated at accept_cb() time, let's
 	 * self-destruct now.  A new connection will re-create the ASP. */
 	if (asp->dyn_allocated) {
 		/* avoid re-entrance via osmo_stream_srv_destroy() which
 		 * called us */
-		asp->server = NULL;
 		osmo_ss7_asp_destroy(asp);
 	}
 
