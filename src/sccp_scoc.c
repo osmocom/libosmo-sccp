@@ -1649,8 +1649,8 @@ void sccp_scoc_rx_from_scrc(struct osmo_sccp_instance *inst,
 		conn_id = xua_msg_get_u32(xua, SUA_IEI_DEST_REF);
 		conn = conn_find_by_id(inst, conn_id);
 		if (!conn) {
-			LOGP(DLSCCP, LOGL_NOTICE, "Cannot find connection for "
-			     "local reference %u\n", conn_id);
+			LOGP(DLSCCP, LOGL_NOTICE, "Received %s: Cannot find connection for "
+			     "local reference %u\n", xua_hdr_dump(xua, &xua_dialect_sua), conn_id);
 			sccp_scoc_rx_unass_local_ref(inst, xua);
 			return;
 		}
