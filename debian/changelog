@@ -1,3 +1,77 @@
+libosmo-sccp (1.3.0) unstable; urgency=medium
+
+  [ Neels Hofmeyr ]
+  * fix memleaks in mtp_user_prim_cb()
+  * cs7 vty: add 'show cs7 config'
+  * big endian: add missing endian.h in sccp.c
+  * cosmetic: apply changes to match struct_endianess.py output
+  * add osmo_sccp_user_find() as public API
+  * sccp_user_find: optimize: search PC only for valid PC arg
+  * sccp_simple_client: only restart ASP if it was created
+  * osmo_sccp_simple_client_on_ss7_id(): do not care about ASP name
+
+  [ neels ]
+  * Revert "fix memleaks in mtp_user_prim_cb()"
+  * Revert "sccp_simple_client: only restart ASP if it was created"
+
+  [ Pau Espin Pedrol ]
+  * sua.c: Avoid double free in sua_rx_msg()->...->mtp_user_prim_cb()
+  * configure.ac: Check for sctp_recvmsg instead of sctp_send
+  * ss7: Return value from child function in osmo_ss7_xua_server_set_local_host
+  * ss7: Introduce APIs to manage asp_peer hosts
+  * ss7: Set ASP addresses using asp_peer APIs
+  * ss7: Fix sccp_simple_server rejecting connections
+  * ss7: Improve checks in osmo_ss7_asp_peer_add_host()
+  * sccp_demo_user: Bind VTY to -l local address cmdline arg
+  * sccp: Fix null ptr access on malformed or unsupported msg received
+  * sccp: Add value_string for SCCP message types
+  * sccp: Avoid memleak of xua_msg receiving malformed sccp message
+  * examples/sccp_test_server.c: Fix typo in log message
+  * examples/sccp_demo_user: log category name instead of its hex value
+  * sccp: Convert ifelse to switch statement
+  * sccp: Improve logging in sccp_to_xua_opt()
+  * sccp: Support receiving messages with no optional params
+  * sccp2sua.c: Log malformed SUA message
+  * sccp: Log missing user and router failure paths
+  * sccp: Fix wrong param type in osmo_sccp_pnc_name()
+  * example/sccp_demo_user: Use osmocom logging system instead of printf
+  * examples/sccp_demo_user: Support reading log/vty config from file
+  * osmo_sccp_simple_server(): use sccp instance index 0 instead of 1
+  * examples/sccp_test_server: Log primitive name instead of value
+  * examples/sccp_test_server: Log disconnect indication in echo service
+  * sccp_scoc: Deliver correct disconnect cause and importance to user on timer expiration
+  * sccp: Disarm inactivity timer upon T(iar) active->disconn_pend
+  * cosmetic: fix typo in comment
+  * xua_asp_fsm.c: Drop unused defines
+
+  [ Harald Welte ]
+  * sccp_demo_user: Change prompt to not include any '-' symbols
+  * don't use 'debug' log level in example configs
+  * sccp_internal.h: fix compilation with gcc-10
+  * Add "no traffic-mode" configuration to AS
+  * M3UA: Accept DATA without routing context IE if only a single AS in ASP
+  * libosmo-sccp.spec.in: Use %config(noreplace) to retain current config file
+  * Fix race during fast re-establishment of inbound M3UA connections
+  * osmo_ss7: remove use-after-free of stream_server after close_cb
+  * SCOC: log message type that was received for unknown local reference
+
+  [ Eric ]
+  * configure.ac: fix libtool issue  with clang and sanitizer
+
+  [ Philipp Maier ]
+  * doc: make sure all log categories are set to level notice
+
+  [ Oliver Smith ]
+  * contrib: import RPM spec
+  * contrib: integrate RPM spec
+  * Makefile.am: EXTRA_DIST: debian, contrib/*.spec.in
+  * RPM spec: fix "E: lto-no-text-in-archive"
+
+  [ Vadim Yanitskiy ]
+  * sccp2sua: fix typo: s/omso_sccp_addr/osmo_sccp_addr/
+
+ -- Harald Welte <laforge@osmocom.org>  Thu, 13 Aug 2020 11:45:44 +0200
+
 libosmo-sccp (1.2.0) unstable; urgency=medium
 
   [ Kira Obrezkova ]
