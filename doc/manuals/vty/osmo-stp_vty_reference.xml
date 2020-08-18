@@ -18,10 +18,11 @@
         <param name='terminal' doc='Write to terminal' />
       </params>
     </command>
-    <command id='write file'>
+    <command id='write file [PATH]'>
       <params>
         <param name='write' doc='Write running configuration to memory, network, or terminal' />
         <param name='file' doc='Write to configuration file' />
+        <param name='[PATH]' doc='Set file path to store the config, or replace if already exists' />
       </params>
     </command>
     <command id='write memory'>
@@ -249,6 +250,36 @@
         <param name='force-all' doc='Release any globally forced log level set with &apos;logging level force-all &lt;level&gt;&apos;' />
       </params>
     </command>
+    <command id='logp (lglobal|llapd|linp|lmux|lmi|lmib|lsms|lctrl|lgtp|lstats|lgsup|loap|lss7|lsccp|lsua|lm3ua|lmgcp|ljibuf|lrspro) (debug|info|notice|error|fatal) .LOGMESSAGE'>
+      <params>
+        <param name='logp' doc='Print a message on all log outputs; useful for placing markers in test logs' />
+        <param name='lglobal' doc='Library-internal global log family' />
+        <param name='llapd' doc='LAPD in libosmogsm' />
+        <param name='linp' doc='A-bis Intput Subsystem' />
+        <param name='lmux' doc='A-bis B-Subchannel TRAU Frame Multiplex' />
+        <param name='lmi' doc='A-bis Input Driver for Signalling' />
+        <param name='lmib' doc='A-bis Input Driver for B-Channels (voice)' />
+        <param name='lsms' doc='Layer3 Short Message Service (SMS)' />
+        <param name='lctrl' doc='Control Interface' />
+        <param name='lgtp' doc='GPRS GTP library' />
+        <param name='lstats' doc='Statistics messages and logging' />
+        <param name='lgsup' doc='Generic Subscriber Update Protocol' />
+        <param name='loap' doc='Osmocom Authentication Protocol' />
+        <param name='lss7' doc='libosmo-sigtran Signalling System 7' />
+        <param name='lsccp' doc='libosmo-sigtran SCCP Implementation' />
+        <param name='lsua' doc='libosmo-sigtran SCCP User Adaptation' />
+        <param name='lm3ua' doc='libosmo-sigtran MTP3 User Adaptation' />
+        <param name='lmgcp' doc='libosmo-mgcp Media Gateway Control Protocol' />
+        <param name='ljibuf' doc='libosmo-netif Jitter Buffer' />
+        <param name='lrspro' doc='Remote SIM protocol' />
+        <param name='debug' doc='Log debug messages and higher levels' />
+        <param name='info' doc='Log informational messages and higher levels' />
+        <param name='notice' doc='Log noticeable messages and higher levels' />
+        <param name='error' doc='Log error messages and higher levels' />
+        <param name='fatal' doc='Log only fatal messages' />
+        <param name='.LOGMESSAGE' doc='Arbitrary message to log on given category and log level' />
+      </params>
+    </command>
     <command id='show logging vty'>
       <params>
         <param name='show' doc='Show running system information' />
@@ -308,6 +339,13 @@
         <param name='m3ua' doc='MTP3 User Adaptation' />
         <param name='ipa' doc='IPA Multiplex (SCCP Lite)' />
         <param name='[&lt;0-65534&gt;]' doc='Port Number' />
+      </params>
+    </command>
+    <command id='show cs7 config'>
+      <params>
+        <param name='show' doc='Show running system information' />
+        <param name='cs7' doc='ITU-T Signaling System 7' />
+        <param name='config' doc='Currently running cs7 configuration' />
       </params>
     </command>
     <command id='show cs7 instance &lt;0-15&gt; asp'>
@@ -687,6 +725,36 @@
         <param name='force-all' doc='Release any globally forced log level set with &apos;logging level force-all &lt;level&gt;&apos;' />
       </params>
     </command>
+    <command id='logp (lglobal|llapd|linp|lmux|lmi|lmib|lsms|lctrl|lgtp|lstats|lgsup|loap|lss7|lsccp|lsua|lm3ua|lmgcp|ljibuf|lrspro) (debug|info|notice|error|fatal) .LOGMESSAGE'>
+      <params>
+        <param name='logp' doc='Print a message on all log outputs; useful for placing markers in test logs' />
+        <param name='lglobal' doc='Library-internal global log family' />
+        <param name='llapd' doc='LAPD in libosmogsm' />
+        <param name='linp' doc='A-bis Intput Subsystem' />
+        <param name='lmux' doc='A-bis B-Subchannel TRAU Frame Multiplex' />
+        <param name='lmi' doc='A-bis Input Driver for Signalling' />
+        <param name='lmib' doc='A-bis Input Driver for B-Channels (voice)' />
+        <param name='lsms' doc='Layer3 Short Message Service (SMS)' />
+        <param name='lctrl' doc='Control Interface' />
+        <param name='lgtp' doc='GPRS GTP library' />
+        <param name='lstats' doc='Statistics messages and logging' />
+        <param name='lgsup' doc='Generic Subscriber Update Protocol' />
+        <param name='loap' doc='Osmocom Authentication Protocol' />
+        <param name='lss7' doc='libosmo-sigtran Signalling System 7' />
+        <param name='lsccp' doc='libosmo-sigtran SCCP Implementation' />
+        <param name='lsua' doc='libosmo-sigtran SCCP User Adaptation' />
+        <param name='lm3ua' doc='libosmo-sigtran MTP3 User Adaptation' />
+        <param name='lmgcp' doc='libosmo-mgcp Media Gateway Control Protocol' />
+        <param name='ljibuf' doc='libosmo-netif Jitter Buffer' />
+        <param name='lrspro' doc='Remote SIM protocol' />
+        <param name='debug' doc='Log debug messages and higher levels' />
+        <param name='info' doc='Log informational messages and higher levels' />
+        <param name='notice' doc='Log noticeable messages and higher levels' />
+        <param name='error' doc='Log error messages and higher levels' />
+        <param name='fatal' doc='Log only fatal messages' />
+        <param name='.LOGMESSAGE' doc='Arbitrary message to log on given category and log level' />
+      </params>
+    </command>
     <command id='show logging vty'>
       <params>
         <param name='show' doc='Show running system information' />
@@ -729,6 +797,18 @@
         <param name='rate-counters' doc='Show all rate counters' />
       </params>
     </command>
+    <command id='stats report'>
+      <params>
+        <param name='stats' doc='Stats related commands' />
+        <param name='report' doc='Manurally trigger reporting of stats' />
+      </params>
+    </command>
+    <command id='stats reset'>
+      <params>
+        <param name='stats' doc='Stats related commands' />
+        <param name='reset' doc='Reset all stats' />
+      </params>
+    </command>
     <command id='show cs7 instance &lt;0-15&gt; users'>
       <params>
         <param name='show' doc='Show running system information' />
@@ -746,6 +826,13 @@
         <param name='m3ua' doc='MTP3 User Adaptation' />
         <param name='ipa' doc='IPA Multiplex (SCCP Lite)' />
         <param name='[&lt;0-65534&gt;]' doc='Port Number' />
+      </params>
+    </command>
+    <command id='show cs7 config'>
+      <params>
+        <param name='show' doc='Show running system information' />
+        <param name='cs7' doc='ITU-T Signaling System 7' />
+        <param name='config' doc='Currently running cs7 configuration' />
       </params>
     </command>
     <command id='show cs7 instance &lt;0-15&gt; asp'>
@@ -1119,11 +1206,11 @@
         <param name='log' doc='Report to the logger' />
       </params>
     </command>
-    <command id='stats interval &lt;1-65535&gt;'>
+    <command id='stats interval &lt;0-65535&gt;'>
       <params>
         <param name='stats' doc='Configure stats sub-system' />
         <param name='interval' doc='Set the reporting interval' />
-        <param name='&lt;1-65535&gt;' doc='Interval in seconds' />
+        <param name='&lt;0-65535&gt;' doc='Interval in seconds (0 disables the reporting interval)' />
       </params>
     </command>
     <command id='cs7 instance &lt;0-15&gt;'>
@@ -1339,6 +1426,12 @@
         <param name='disable' doc='Disable the reporter' />
       </params>
     </command>
+    <command id='flush-period &lt;0-65535&gt;'>
+      <params>
+        <param name='flush-period' doc='Configure stats sub-system' />
+        <param name='&lt;0-65535&gt;' doc='Send all stats even if they have not changed (i.e. force the flush)every N-th reporting interval. Set to 0 to disable regular flush (default).' />
+      </params>
+    </command>
   </node>
   <node id='config-line'>
     <name>config-line</name>
@@ -1535,6 +1628,12 @@
         <param name='override' doc='Override' />
       </params>
     </command>
+    <command id='no traffic-mode'>
+      <params>
+        <param name='no' doc='Negate a command or set its defaults' />
+        <param name='traffic-mode' doc='Remove explicit traffic mode of operation of this AS' />
+      </params>
+    </command>
     <command id='recovery-timeout &lt;1-2000&gt;'>
       <params>
         <param name='recovery-timeout' doc='Specifies the recovery timeout value in milliseconds' />
@@ -1605,6 +1704,15 @@
         <param name='PC' doc='Override Destination Point Code' />
       </params>
     </command>
+    <command id='point-code override patch-sccp (disabled|both)'>
+      <params>
+        <param name='point-code' doc='Point Code Specific Features' />
+        <param name='override' doc='Override (force) a point-code to hard-coded value' />
+        <param name='patch-sccp' doc='Patch point code values into SCCP called/calling address' />
+        <param name='disabled' doc='Don&apos;t patch any point codes into SCCP called/calling address' />
+        <param name='both' doc='Patch both origin and destination point codes into SCCP called/calling address' />
+      </params>
+    </command>
   </node>
   <node id='config-cs7-asp'>
     <name>config-cs7-asp</name>
@@ -1630,6 +1738,21 @@
       <params>
         <param name='qos-class' doc='Specify QoS Class of ASP' />
         <param name='&lt;0-255&gt;' doc='QoS Class of ASP' />
+      </params>
+    </command>
+    <command id='role (sg|asp|ipsp)'>
+      <params>
+        <param name='role' doc='Specify the xUA role for this ASP' />
+        <param name='sg' doc='SG (Signaling Gateway)' />
+        <param name='asp' doc='ASP (Application Server Process)' />
+        <param name='ipsp' doc='IPSP (IP Signalling Point)' />
+      </params>
+    </command>
+    <command id='sctp-role (client|server)'>
+      <params>
+        <param name='sctp-role' doc='Specify the SCTP role for this ASP' />
+        <param name='client' doc='Operate as SCTP client; connect to a server' />
+        <param name='server' doc='Operate as SCTP server; wait for client connections' />
       </params>
     </command>
     <command id='block'>
