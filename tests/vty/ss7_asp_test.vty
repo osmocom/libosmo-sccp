@@ -215,8 +215,8 @@ ss7_asp_vty_test(config-cs7)# asp my-asp 12345 54321 m3ua
 ss7_asp_vty_test(config-cs7-asp)# list
 ...
   description .TEXT
-  remote-ip A.B.C.D
-  local-ip A.B.C.D
+  remote-ip (A.B.C.D|X:X::X:X)
+  local-ip (A.B.C.D|X:X::X:X)
   qos-class <0-255>
   role (sg|asp|ipsp)
   sctp-role (client|server)

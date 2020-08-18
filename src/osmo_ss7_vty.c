@@ -470,9 +470,10 @@ DEFUN(no_cs7_xua, no_cs7_xua_cmd,
 }
 
 DEFUN(xua_local_ip, xua_local_ip_cmd,
-	"local-ip A.B.C.D",
+	"local-ip " VTY_IPV46_CMD,
 	"Configure the Local IP Address for xUA\n"
-	"IP Address to use for XUA\n")
+	"IPv4 Address to use for XUA\n"
+	"IPv6 Address to use for XUA\n")
 {
 	struct osmo_xua_server *xs = vty->index;
 
@@ -623,9 +624,10 @@ DEFUN(no_cs7_asp, no_cs7_asp_cmd,
 }
 
 DEFUN(asp_local_ip, asp_local_ip_cmd,
-	"local-ip A.B.C.D",
+	"local-ip " VTY_IPV46_CMD,
 	"Specify Local IP Address from which to contact ASP\n"
-	"Local IP Address from which to contact of ASP\n")
+	"Local IPv4 Address from which to contact of ASP\n"
+	"Local IPv6 Address from which to contact of ASP\n")
 {
 	struct osmo_ss7_asp *asp = vty->index;
 	osmo_ss7_asp_peer_add_host(&asp->cfg.local, asp, argv[0]);
@@ -633,9 +635,10 @@ DEFUN(asp_local_ip, asp_local_ip_cmd,
 }
 
 DEFUN(asp_remote_ip, asp_remote_ip_cmd,
-	"remote-ip A.B.C.D",
+	"remote-ip " VTY_IPV46_CMD,
 	"Specify Remote IP Address of ASP\n"
-	"Remote IP Address of ASP\n")
+	"Remote IPv4 Address of ASP\n"
+	"Remote IPv6 Address of ASP\n")
 {
 	struct osmo_ss7_asp *asp = vty->index;
 	osmo_ss7_asp_peer_add_host(&asp->cfg.remote, asp, argv[0]);
@@ -1806,10 +1809,10 @@ int osmo_ss7_vty_go_parent(struct vty *vty)
 		asp = vty->index;
 		/* If no local addr was set */
 		if (!asp->cfg.local.host_cnt)
-			osmo_ss7_asp_peer_add_host(&asp->cfg.local, asp, NULL);
+			osmo_ss7_asp_peer_add_host(&asp->cfg.local, asp, "localhost");
 		/* If no remote addr was set */
 		if (!asp->cfg.remote.host_cnt)
-			osmo_ss7_asp_peer_add_host(&asp->cfg.remote, asp, "127.0.0.1");
+			osmo_ss7_asp_peer_add_host(&asp->cfg.remote, asp, "localhost");
 		osmo_ss7_asp_restart(asp);
 		vty->node = L_CS7_NODE;
 		vty->index = asp->inst;
