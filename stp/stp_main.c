@@ -40,6 +40,7 @@
 #include <osmocom/vty/telnet_interface.h>
 #include <osmocom/vty/logging.h>
 #include <osmocom/vty/misc.h>
+#include <osmocom/vty/cpu_sched_vty.h>
 
 #include <osmocom/sigtran/osmo_ss7.h>
 #include <osmocom/sigtran/sccp_sap.h>
@@ -186,6 +187,7 @@ int main(int argc, char **argv)
 	osmo_stats_vty_add_cmds();
 	osmo_ss7_vty_init_sg(tall_stp_ctx);
 	osmo_sccp_vty_init();
+	osmo_cpu_sched_vty_init(tall_stp_ctx);
 	osmo_fsm_vty_add_cmds();
 	osmo_talloc_vty_add_cmds();
 

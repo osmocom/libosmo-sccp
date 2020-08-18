@@ -18,6 +18,8 @@ include::./common/chapters/vty.adoc[]
 
 include::./common/chapters/logging.adoc[]
 
+include::./common/chapters/vty_cpu_sched.adoc[]
+
 //include::./common/chapters/bts.adoc[]
 
 //include::../OsmoNITB/chapters/bts-examples.adoc[]
@@ -31,4 +33,3 @@ include::./common/chapters/bibliography.adoc[]
 include::./common/chapters/glossary.adoc[]
 
 include::./common/chapters/gfdl.adoc[]
-
