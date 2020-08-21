@@ -1198,6 +1198,26 @@ static uint16_t get_in_port(struct sockaddr *sa)
 	}
 }
 
+/* Converts string representation of v4-mappend-on-v6 IP addr to a pure IPv4 address.
+ * Example: ::ffff:172.18.19.200 => 172.18.19.200
+ */
+static void chop_v4_mapped_on_v6_prefix(char* buf)
+{
+	char *last_colon;
+	size_t len;
+	char *first_dot = strchr(buf, '.');
+
+	if (!first_dot)
+		return; /* Not an IPv4-mappend-on-v6 string representation, nothing to do */
+	last_colon = strrchr(buf, ':');
+	if (!last_colon)
+		return; /* pure IPv4 address, nothing to do */
+
+	len = strlen(last_colon + 1);
+	memmove(buf, last_colon + 1, len);
+	buf[len] = '\0';
+}
+
 /*! \brief Find an ASP definition matching the local+remote IP/PORT of given fd
  *  \param[in] fd socket descriptor of given socket
  *  \returns SS7 ASP in case a matching one is found; NULL otherwise */
@@ -1205,7 +1225,7 @@ static struct osmo_ss7_asp *
 osmo_ss7_asp_find_by_socket_addr(int fd)
 {
 	struct osmo_ss7_instance *inst;
-	struct sockaddr sa_l, sa_r;
+	struct sockaddr_storage sa_l, sa_r;
 	socklen_t sa_len_l = sizeof(sa_l);
 	socklen_t sa_len_r = sizeof(sa_r);
 	char hostbuf_l[64], hostbuf_r[64];
@@ -1215,23 +1235,32 @@ osmo_ss7_asp_find_by_socket_addr(int fd)
 
 	OSMO_ASSERT(ss7_initialized);
 	/* convert local and remote IP to string */
-	rc = getsockname(fd, &sa_l, &sa_len_l);
+	rc = getsockname(fd, (struct sockaddr*)&sa_l, &sa_len_l);
 	if (rc < 0)
 		return NULL;
-	rc = getnameinfo(&sa_l, sa_len_l, hostbuf_l, sizeof(hostbuf_l),
+	rc = getnameinfo((struct sockaddr*)&sa_l, sa_len_l,
+			 hostbuf_l, sizeof(hostbuf_l),
 			 NULL, 0, NI_NUMERICHOST);
 	if (rc < 0)
 		return NULL;
-	local_port = ntohs(get_in_port(&sa_l));
+	local_port = ntohs(get_in_port((struct sockaddr*)&sa_l));
 
-	rc = getpeername(fd, &sa_r, &sa_len_r);
+	rc = getpeername(fd, (struct sockaddr*)&sa_r, &sa_len_r);
 	if (rc < 0)
 		return NULL;
-	rc = getnameinfo(&sa_r, sa_len_r, hostbuf_r, sizeof(hostbuf_r),
+	rc = getnameinfo((struct sockaddr*)&sa_r, sa_len_r,
+			 hostbuf_r, sizeof(hostbuf_r),
 			 NULL, 0, NI_NUMERICHOST);
 	if (rc < 0)
 		return NULL;
-	remote_port = ntohs(get_in_port(&sa_r));
+	remote_port = ntohs(get_in_port((struct sockaddr*)&sa_r));
+
+	/* If multi-home is used with both IPv4 and IPv6, then the socket is
+	 * AF_INET6, and then returned IPv4 addresses are actually v6mapped ones.
+	 * We need to convert them to IPv4 before matching.
+	 */
+	chop_v4_mapped_on_v6_prefix(hostbuf_l);
+	chop_v4_mapped_on_v6_prefix(hostbuf_r);
 
 	/* check all instances for any ASP definition matching the
 	 * address combination of local/remote ip/port */
