@@ -1241,6 +1241,7 @@ osmo_ss7_asp_find_by_socket_addr(int fd)
 	socklen_t sa_len_r = sizeof(sa_r);
 	char hostbuf_l[64], hostbuf_r[64];
 	uint16_t local_port, remote_port;
+	bool loc_is_v6, rem_is_v6;
 	int rc;
 	int i;
 
@@ -1272,6 +1273,8 @@ osmo_ss7_asp_find_by_socket_addr(int fd)
 	 */
 	chop_v4_mapped_on_v6_prefix(hostbuf_l);
 	chop_v4_mapped_on_v6_prefix(hostbuf_r);
+	loc_is_v6 = osmo_ip_str_type(hostbuf_l) == AF_INET6;
+	rem_is_v6 = osmo_ip_str_type(hostbuf_r) == AF_INET6;
 
 	/* check all instances for any ASP definition matching the
 	 * address combination of local/remote ip/port */
@@ -1284,8 +1287,14 @@ osmo_ss7_asp_find_by_socket_addr(int fd)
 				continue;
 
 			for (i = 0; i < asp->cfg.local.host_cnt; i++) {
-				bool is_any = !asp->cfg.local.host[i] || !strcmp(asp->cfg.local.host[i], "0.0.0.0");
-				if (is_any || !strcmp(asp->cfg.local.host[i], hostbuf_l))
+				bool iter_is_v6 = osmo_ip_str_type(asp->cfg.local.host[i]) == AF_INET6;
+				bool iter_is_anyaddr = host_is_ip_anyaddr(asp->cfg.local.host[i], iter_is_v6);
+				/* "::" (v6) covers "0.0.0.0" (v4), but not otherwise */
+				if (iter_is_v6 != loc_is_v6 &&
+				    !(iter_is_v6 && iter_is_anyaddr))
+					continue;
+				if (iter_is_anyaddr ||
+				    !strcmp(asp->cfg.local.host[i], hostbuf_l))
 					break;
 			}
 			if (i == asp->cfg.local.host_cnt)
@@ -1294,7 +1303,14 @@ osmo_ss7_asp_find_by_socket_addr(int fd)
 			/* If no remote host was set, it's probably a server and hence we match any cli src */
 			if (asp->cfg.remote.host_cnt) {
 				for (i = 0; i < asp->cfg.remote.host_cnt; i++) {
-					if (!asp->cfg.remote.host[i] || !strcmp(asp->cfg.remote.host[i], hostbuf_r))
+					bool iter_is_v6 = osmo_ip_str_type(asp->cfg.remote.host[i]) == AF_INET6;
+					bool iter_is_anyaddr = host_is_ip_anyaddr(asp->cfg.remote.host[i], iter_is_v6);
+					/* "::" (v6) covers "0.0.0.0" (v4), but not otherwise */
+					if (iter_is_v6 != rem_is_v6 &&
+					    !(iter_is_v6 && iter_is_anyaddr))
+						continue;
+					if (iter_is_anyaddr ||
+					    !strcmp(asp->cfg.remote.host[i], hostbuf_r))
 						break;
 				}
 				if (i == asp->cfg.remote.host_cnt)
