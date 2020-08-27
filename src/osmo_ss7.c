@@ -41,6 +41,7 @@
 #include <osmocom/core/logging.h>
 #include <osmocom/core/msgb.h>
 #include <osmocom/core/socket.h>
+#include <osmocom/core/sockaddr_str.h>
 
 #include <osmocom/netif/stream.h>
 #include <osmocom/netif/ipa.h>
@@ -1137,6 +1138,16 @@ int osmo_ss7_asp_peer_set_hosts(struct osmo_ss7_asp_peer *peer, void *talloc_ctx
 	return 0;
 }
 
+/* Is string formatted IPv4/v6 addr considered IN(6)ADDR_ANY? */
+static inline bool host_is_ip_anyaddr(const char *host, bool is_v6)
+{
+	/* NULL addr is resolved as 0.0.0.0 (IPv4) by getaddrinfo(), most
+	 * probably for backward-compatibility reasons.
+	 */
+	return is_v6 ? (host && !strcmp(host, "::"))
+		     : (!host || !strcmp(host, "0.0.0.0"));
+}
+
 /*! \brief Append (copy) address to a given ASP peer. Previous addresses are kept.
  *  \param[in] peer Application Server Process peer the address is appened to.
  *  \param[in] talloc_ctx talloc context used to allocate new address.
@@ -1146,28 +1157,28 @@ int osmo_ss7_asp_peer_add_host(struct osmo_ss7_asp_peer *peer, void *talloc_ctx,
 
 {
 	int i;
-	bool new_is_any = !host || !strcmp(host, "0.0.0.0");
-	bool iter_is_any;
+	bool new_is_v6 = osmo_ip_str_type(host) == AF_INET6;
+	bool new_is_any = host_is_ip_anyaddr(host, new_is_v6);
+	bool iter_is_v6;
 
 	if (peer->host_cnt >= ARRAY_SIZE(peer->host))
 		return -EINVAL;
 
-	/* Makes no sense to have INET_ANY many times, or INET_ANY together with
-	   specific addresses: */
+	/* Makes no sense to have INET(6)_ANY many times, or INET(6)_ANY
+	   together with specific addresses, be it of same or different
+	   IP version:*/
 	if (new_is_any && peer->host_cnt != 0)
 		return -EINVAL;
 
-	/* Makes no sense to add specific address to set if INET_ANY is
-	   already set: */
 	if (!new_is_any) {
+		/* Makes no sense to add specific address to set if INET(6)_ANY
+		   is already set, be it from same or different IP version: */
 		for (i = 0; i < peer->host_cnt; i++) {
-				iter_is_any = !peer->host[i] ||
-					      !strcmp(peer->host[i], "0.0.0.0");
-				if (iter_is_any)
+				iter_is_v6 = osmo_ip_str_type(peer->host[i]) == AF_INET6;
+				if (host_is_ip_anyaddr(peer->host[i], iter_is_v6))
 					return -EINVAL;
 		}
 	}
-
 	osmo_talloc_replace_string(talloc_ctx, &peer->host[peer->host_cnt], host);
 	peer->host_cnt++;
 	return 0;
