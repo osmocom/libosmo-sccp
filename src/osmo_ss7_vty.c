@@ -628,7 +628,10 @@ DEFUN(asp_local_ip, asp_local_ip_cmd,
 	"Local IP Address from which to contact of ASP\n")
 {
 	struct osmo_ss7_asp *asp = vty->index;
-	osmo_ss7_asp_peer_add_host(&asp->cfg.local, asp, argv[0]);
+	if (osmo_ss7_asp_peer_add_host(&asp->cfg.local, asp, argv[0]) != 0) {
+		vty_out(vty, "%% Failed adding host '%s' to set%s", argv[0], VTY_NEWLINE);
+		return CMD_WARNING;
+	}
 	return CMD_SUCCESS;
 }
 
@@ -638,7 +641,10 @@ DEFUN(asp_remote_ip, asp_remote_ip_cmd,
 	"Remote IP Address of ASP\n")
 {
 	struct osmo_ss7_asp *asp = vty->index;
-	osmo_ss7_asp_peer_add_host(&asp->cfg.remote, asp, argv[0]);
+	if (osmo_ss7_asp_peer_add_host(&asp->cfg.remote, asp, argv[0]) != 0) {
+		vty_out(vty, "%% Failed adding host '%s' to set%s", argv[0], VTY_NEWLINE);
+		return CMD_WARNING;
+	}
 	return CMD_SUCCESS;
 }
 
