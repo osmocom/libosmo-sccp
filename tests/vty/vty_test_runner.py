@@ -111,7 +111,9 @@ class TestVTYSTP(TestVTYBase):
         # first check if STP is listening in required addresses:
         found = False
         for i in range(5):
-            if self.check_sctp_sock_local(['127.0.0.1', '127.0.0.2'], 2905):
+            if self.check_sctp_sock_local(['127.0.0.1', '127.0.0.2',
+                                           '0000:0000:0000:0000:0000:0000:0000:0001'],
+                                          2905):
                 found = True
                 break
             else:
@@ -122,6 +124,7 @@ class TestVTYSTP(TestVTYBase):
             proto = socket.IPPROTO_SCTP
         except AttributeError: # it seems to be not defined under python2?
             proto = 132
+        # IPv4:
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM, proto)
         s.bind(('127.0.0.3', 0))
         try:
@@ -129,7 +132,17 @@ class TestVTYSTP(TestVTYBase):
         except socket.error as msg:
             s.close()
             self.assertTrue(False)
-        print("Connected to STP through SCTP")
+        print("Connected to STP through SCTP (IPv4)")
+        s.close()
+        # IPv6:
+        s = socket.socket(socket.AF_INET6, socket.SOCK_STREAM, proto)
+        s.bind(('::1', 0))
+        try:
+            s.connect(('::1',2905))
+        except socket.error as msg:
+            s.close()
+            self.assertTrue(False)
+        print("Connected to STP through SCTP (IPv6)")
         s.close()
 
 if __name__ == '__main__':

@@ -1741,16 +1741,18 @@
         <param name='.TEXT' doc='Text until the end of the line' />
       </params>
     </command>
-    <command id='remote-ip A.B.C.D'>
+    <command id='remote-ip (A.B.C.D|X:X::X:X)'>
       <params>
         <param name='remote-ip' doc='Specify Remote IP Address of ASP' />
-        <param name='A.B.C.D' doc='Remote IP Address of ASP' />
+        <param name='A.B.C.D' doc='Remote IPv4 Address of ASP' />
+        <param name='X:X::X:X' doc='Remote IPv6 Address of ASP' />
       </params>
     </command>
-    <command id='local-ip A.B.C.D'>
+    <command id='local-ip (A.B.C.D|X:X::X:X)'>
       <params>
         <param name='local-ip' doc='Specify Local IP Address from which to contact ASP' />
-        <param name='A.B.C.D' doc='Local IP Address from which to contact of ASP' />
+        <param name='A.B.C.D' doc='Local IPv4 Address from which to contact of ASP' />
+        <param name='X:X::X:X' doc='Local IPv6 Address from which to contact of ASP' />
       </params>
     </command>
     <command id='qos-class &lt;0-255&gt;'>
@@ -1787,10 +1789,11 @@
   </node>
   <node id='config-cs7-listen'>
     <name>config-cs7-listen</name>
-    <command id='local-ip A.B.C.D'>
+    <command id='local-ip (A.B.C.D|X:X::X:X)'>
       <params>
         <param name='local-ip' doc='Configure the Local IP Address for xUA' />
-        <param name='A.B.C.D' doc='IP Address to use for XUA' />
+        <param name='A.B.C.D' doc='IPv4 Address to use for XUA' />
+        <param name='X:X::X:X' doc='IPv6 Address to use for XUA' />
       </params>
     </command>
     <command id='accept-asp-connections (pre-configured|dynamic-permitted)'>
