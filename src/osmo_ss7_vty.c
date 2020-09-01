@@ -1871,8 +1871,13 @@ int osmo_ss7_vty_go_parent(struct vty *vty)
 	case L_CS7_XUA_NODE:
 		oxs = vty->index;
 		/* If no local addr was set, or erased after _create(): */
-		if (!oxs->cfg.local.host_cnt)
-			osmo_ss7_xua_server_set_local_host(oxs, NULL);
+		if (!oxs->cfg.local.host_cnt) {
+			/* "::" Covers both IPv4 and IPv6 */
+			if (ipv6_sctp_supported("::", true))
+				osmo_ss7_xua_server_set_local_host(oxs, "::");
+			else
+				osmo_ss7_xua_server_set_local_host(oxs, "0.0.0.0");
+		}
 		if (osmo_ss7_xua_server_bind(oxs) < 0)
 			vty_out(vty, "%% Unable to bind xUA server to IP(s)%s", VTY_NEWLINE);
 		vty->node = L_CS7_NODE;
