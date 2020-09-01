@@ -29,6 +29,8 @@
 #include <netdb.h>
 #include <arpa/inet.h>
 
+#include <osmocom/core/sockaddr_str.h>
+
 #include <osmocom/vty/vty.h>
 #include <osmocom/vty/command.h>
 #include <osmocom/vty/logging.h>
@@ -1842,8 +1844,18 @@ int osmo_ss7_vty_go_parent(struct vty *vty)
 		asp = vty->index;
 		/* If no local addr was set */
 		if (!asp->cfg.local.host_cnt) {
-			/* "::" Covers both IPv4 and IPv6 */
-			if (ipv6_sctp_supported("::", true))
+			bool rem_has_v4 = false, rem_has_v6 = false;
+			int i;
+			for (i = 0; i < asp->cfg.remote.host_cnt; i++) {
+				if (osmo_ip_str_type(asp->cfg.remote.host[i]) == AF_INET6)
+					rem_has_v6 = true;
+				else
+					rem_has_v4 = true;
+			}
+			/* "::" Covers both IPv4 and IPv6, but if only IPv4
+			 * address are set on the remote side, IPv4 on the local
+			 * side must be set too */
+			if (ipv6_sctp_supported("::", true) && !(rem_has_v4 && !rem_has_v6))
 				osmo_ss7_asp_peer_add_host(&asp->cfg.local, asp, "::");
 			else
 				osmo_ss7_asp_peer_add_host(&asp->cfg.local, asp, "0.0.0.0");
