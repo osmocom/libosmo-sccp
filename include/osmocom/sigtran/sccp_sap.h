@@ -131,10 +131,13 @@ enum osmo_sccp_ssn {
 	OSMO_SCCP_SSN_PCAP		= 249,
 	OSMO_SCCP_SSN_BSC_BSSAP_LE	= 250,
 	OSMO_SCCP_SSN_MSC_BSSAP_LE	= 251,
-	OSMO_SCCP_SSN_SMLC_BSSAP	= 252,
+	OSMO_SCCP_SSN_SMLC_BSSAP_LE	= 252,
 	OSMO_SCCP_SSN_BSS_OAM		= 253,
 	OSMO_SCCP_SSN_BSSAP		= 254,
 };
+
+/* legacy shim for name change */
+#define OSMO_SCCP_SSN_SMLC_BSSAP OSMO_SCCP_SSN_SMLC_BSSAP_LE
 
 extern const struct value_string osmo_sccp_ssn_names[];
 static inline const char *osmo_sccp_ssn_name(enum osmo_sccp_ssn val)
