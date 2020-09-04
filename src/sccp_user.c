@@ -342,8 +342,8 @@ int osmo_sccp_gt_cmp(const struct osmo_sccp_gt *a, const struct osmo_sccp_gt *b)
  * The SCCP addresses' Routing Indicator is not compared, see osmo_sccp_addr_ri_cmp().
  * \param[in] a  left side.
  * \param[in] b  right side.
- * \param[in] presence_criteria  A bitmask of OSMO_SCCP_ADDR_T_* values, or 0xffffffff to compare all parts, except the
- *                               routing indicator.
+ * \param[in] presence_criteria  A bitmask of OSMO_SCCP_ADDR_T_* values, or OSMO_SCCP_ADDR_T_MASK to compare all parts,
+ *                               except the routing indicator.
  * \return -1 if a < b, 1 if a > b, and 0 if all checked values match.
  */
 int osmo_sccp_addr_cmp(const struct osmo_sccp_addr *a, const struct osmo_sccp_addr *b, uint32_t presence_criteria)

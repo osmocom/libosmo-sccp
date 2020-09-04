@@ -51,6 +51,7 @@ enum osmo_scu_prim_type {
 #define OSMO_SCCP_ADDR_T_SSN	0x0004 /* subsystem number */
 #define OSMO_SCCP_ADDR_T_IPv4	0x0008
 #define OSMO_SCCP_ADDR_T_IPv6	0x0010
+#define OSMO_SCCP_ADDR_T_MASK	0x001f
 
 /* Q.713 3.4.1 + RFC 3868 3.10.2.3 */
 enum osmo_sccp_routing_ind {
