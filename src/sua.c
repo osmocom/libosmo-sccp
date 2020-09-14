@@ -467,6 +467,13 @@ int sua_addr_parse_part(struct osmo_sccp_addr *out,
 			out->ip.v4.s_addr = *p32;
 			out->presence |= OSMO_SCCP_ADDR_T_IPv4;
 			break;
+		case SUA_IEI_IPv6:
+			if (par_datalen != 16)
+				goto subpar_fail;
+			/* no endian conversion, both network order */
+			memcpy(&out->ip.v6, par->data, 16);
+			out->presence |= OSMO_SCCP_ADDR_T_IPv6;
+			break;
 		default:
 			LOGP(DLSUA, LOGL_ERROR, "SUA IEI 0x%04x: Unknown subpart tag %hd\n",
 			     param->tag, par_tag);
@@ -739,4 +746,3 @@ out:
 
 	return rc;
 }
-
