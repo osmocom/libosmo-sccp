@@ -289,6 +289,7 @@ char *osmo_sccp_addr_dump(const struct osmo_sccp_addr *addr)
 {
 	static char buf[256];
 	bool comma = false;
+	char ipbuf[INET6_ADDRSTRLEN];
 
 	buf[0] = '\0';
 
@@ -299,7 +300,9 @@ char *osmo_sccp_addr_dump(const struct osmo_sccp_addr *addr)
 	if (addr->presence & OSMO_SCCP_ADDR_T_SSN)
 		append_to_buf(buf, sizeof(buf), &comma, "SSN=%u", addr->ssn);
 	if (addr->presence & OSMO_SCCP_ADDR_T_IPv4)
-		append_to_buf(buf, sizeof(buf), &comma, "IP=%s", inet_ntoa(addr->ip.v4));
+		append_to_buf(buf, sizeof(buf), &comma, "IP=%s", inet_ntop(AF_INET, &addr->ip.v4, ipbuf, sizeof(ipbuf)));
+	else if (addr->presence & OSMO_SCCP_ADDR_T_IPv6)
+		append_to_buf(buf, sizeof(buf), &comma, "IP=%s", inet_ntop(AF_INET6, &addr->ip.v6, ipbuf, sizeof(ipbuf)));
 	if (addr->gt.gti != OSMO_SCCP_GTI_NO_GT || addr->presence & OSMO_SCCP_ADDR_T_GT)
 		append_to_buf(buf, sizeof(buf), &comma, "GTI=%u", addr->gt.gti);
 	if (addr->presence & OSMO_SCCP_ADDR_T_GT)
@@ -313,6 +316,7 @@ char *osmo_sccp_addr_name(const struct osmo_ss7_instance *ss7, const struct osmo
 {
 	static char buf[256];
 	bool comma = false;
+	char ipbuf[INET6_ADDRSTRLEN];
 
 	buf[0] = '\0';
 
@@ -323,7 +327,9 @@ char *osmo_sccp_addr_name(const struct osmo_ss7_instance *ss7, const struct osmo
 	if (addr->presence & OSMO_SCCP_ADDR_T_SSN)
 		append_to_buf(buf, sizeof(buf), &comma, "SSN=%s", osmo_sccp_ssn_name(addr->ssn));
 	if (addr->presence & OSMO_SCCP_ADDR_T_IPv4)
-		append_to_buf(buf, sizeof(buf), &comma, "IP=%s", inet_ntoa(addr->ip.v4));
+		append_to_buf(buf, sizeof(buf), &comma, "IP=%s", inet_ntop(AF_INET, &addr->ip.v4, ipbuf, sizeof(ipbuf)));
+	else if (addr->presence & OSMO_SCCP_ADDR_T_IPv6)
+		append_to_buf(buf, sizeof(buf), &comma, "IP=%s", inet_ntop(AF_INET6, &addr->ip.v6, ipbuf, sizeof(ipbuf)));
 	if (addr->gt.gti != OSMO_SCCP_GTI_NO_GT || addr->presence & OSMO_SCCP_ADDR_T_GT)
 		append_to_buf(buf, sizeof(buf), &comma, "GTI=%s", osmo_sccp_gti_name(addr->gt.gti));
 	if (addr->presence & OSMO_SCCP_ADDR_T_GT)
