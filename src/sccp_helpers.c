@@ -311,34 +311,57 @@ char *osmo_sccp_addr_dump(const struct osmo_sccp_addr *addr)
 	return buf;
 }
 
-/* Like osmo_sccp_addr_dump() but print human readable representations instead of raw values. */
+int osmo_sccp_addr_to_str_buf(char *buf, size_t buf_len, const struct osmo_ss7_instance *ss7,
+			      const struct osmo_sccp_addr *addr)
+{
+	struct osmo_strbuf sb = { .buf = buf, .len = buf_len };
+	char ipbuf[INET6_ADDRSTRLEN];
+
+	OSMO_STRBUF_PRINTF(sb, "RI=%s", osmo_sccp_routing_ind_name(addr->ri));
+
+	if (addr->presence & OSMO_SCCP_ADDR_T_PC)
+		OSMO_STRBUF_PRINTF(sb, ",PC=%s", osmo_ss7_pointcode_print(ss7, addr->pc));
+	if (addr->presence & OSMO_SCCP_ADDR_T_SSN)
+		OSMO_STRBUF_PRINTF(sb, ",SSN=%s", osmo_sccp_ssn_name(addr->ssn));
+	if (addr->presence & OSMO_SCCP_ADDR_T_IPv4)
+		OSMO_STRBUF_PRINTF(sb, ",IP=%s", inet_ntop(AF_INET, &addr->ip.v4, ipbuf, sizeof(ipbuf)));
+	else if (addr->presence & OSMO_SCCP_ADDR_T_IPv6)
+		OSMO_STRBUF_PRINTF(sb, ",IP=%s", inet_ntop(AF_INET6, &addr->ip.v6, ipbuf, sizeof(ipbuf)));
+	if (addr->gt.gti != OSMO_SCCP_GTI_NO_GT || addr->presence & OSMO_SCCP_ADDR_T_GT)
+		OSMO_STRBUF_PRINTF(sb, ",GTI=%s", osmo_sccp_gti_name(addr->gt.gti));
+	if (addr->presence & OSMO_SCCP_ADDR_T_GT)
+		OSMO_STRBUF_PRINTF(sb, ",GT=(%s)", osmo_sccp_gt_dump(&addr->gt));
+
+	return sb.chars_needed;
+}
+
+char *osmo_sccp_addr_to_str_c(void *ctx, const struct osmo_ss7_instance *ss7, const struct osmo_sccp_addr *addr)
+{
+	OSMO_NAME_C_IMPL(ctx, 64, "ERROR", osmo_sccp_addr_to_str_buf, ss7, addr)
+}
+
+/* Rather use osmo_sccp_addr_to_str_buf() or osmo_sccp_addr_to_str_c() to not use a static buffer */
 char *osmo_sccp_addr_name(const struct osmo_ss7_instance *ss7, const struct osmo_sccp_addr *addr)
 {
 	static char buf[256];
-	bool comma = false;
-	char ipbuf[INET6_ADDRSTRLEN];
-
-	buf[0] = '\0';
-
-	append_to_buf(buf, sizeof(buf), &comma, "RI=%s", osmo_sccp_routing_ind_name(addr->ri));
-
-	if (addr->presence & OSMO_SCCP_ADDR_T_PC)
-		append_to_buf(buf, sizeof(buf), &comma, "PC=%s", osmo_ss7_pointcode_print(ss7, addr->pc));
-	if (addr->presence & OSMO_SCCP_ADDR_T_SSN)
-		append_to_buf(buf, sizeof(buf), &comma, "SSN=%s", osmo_sccp_ssn_name(addr->ssn));
-	if (addr->presence & OSMO_SCCP_ADDR_T_IPv4)
-		append_to_buf(buf, sizeof(buf), &comma, "IP=%s", inet_ntop(AF_INET, &addr->ip.v4, ipbuf, sizeof(ipbuf)));
-	else if (addr->presence & OSMO_SCCP_ADDR_T_IPv6)
-		append_to_buf(buf, sizeof(buf), &comma, "IP=%s", inet_ntop(AF_INET6, &addr->ip.v6, ipbuf, sizeof(ipbuf)));
-	if (addr->gt.gti != OSMO_SCCP_GTI_NO_GT || addr->presence & OSMO_SCCP_ADDR_T_GT)
-		append_to_buf(buf, sizeof(buf), &comma, "GTI=%s", osmo_sccp_gti_name(addr->gt.gti));
-	if (addr->presence & OSMO_SCCP_ADDR_T_GT)
-		append_to_buf(buf, sizeof(buf), &comma, "GT=(%s)", osmo_sccp_gt_dump(&addr->gt));
-
+	osmo_sccp_addr_to_str_buf(buf, sizeof(buf), ss7, addr);
 	return buf;
 }
 
-/* Derive ss7 from the sccp instance and call osmo_sccp_addr_name() with that.
+int osmo_sccp_inst_addr_to_str_buf(char *buf, size_t buf_len, const struct osmo_sccp_instance *sccp,
+				   const struct osmo_sccp_addr *addr)
+{
+	return osmo_sccp_addr_to_str_buf(buf, buf_len, sccp? sccp->ss7 : NULL, addr);
+}
+
+char *osmo_sccp_inst_addr_to_str_c(void *ctx, const struct osmo_sccp_instance *sccp,
+				   const struct osmo_sccp_addr *addr)
+{
+	OSMO_NAME_C_IMPL(ctx, 64, "ERROR", osmo_sccp_inst_addr_to_str_buf, sccp, addr);
+}
+
+/* Rather use osmo_sccp_inst_addr_to_str_buf() or osmo_sccp_inst_addr_to_str_c() to not use a static buffer.
+ * Derive ss7 from the sccp instance and call osmo_sccp_addr_name() with that.
  * If sccp is passed as NULL, simply use the default point code format. */
 char *osmo_sccp_inst_addr_name(const struct osmo_sccp_instance *sccp, const struct osmo_sccp_addr *addr)
 {
