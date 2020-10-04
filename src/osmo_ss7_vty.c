@@ -1933,85 +1933,85 @@ int osmo_ss7_is_config_node(struct vty *vty, int node)
 static void vty_init_addr(void)
 {
 	install_node(&sccpaddr_node, NULL);
-	install_element_ve(&cs7_show_sccpaddr_cmd);
-	install_element(L_CS7_NODE, &cs7_sccpaddr_cmd);
-	install_element(L_CS7_NODE, &cs7_sccpaddr_del_cmd);
-	install_element(L_CS7_SCCPADDR_NODE, &cs7_sccpaddr_pc_del_cmd);
-	install_element(L_CS7_SCCPADDR_NODE, &cs7_sccpaddr_ssn_del_cmd);
+	install_lib_element_ve(&cs7_show_sccpaddr_cmd);
+	install_lib_element(L_CS7_NODE, &cs7_sccpaddr_cmd);
+	install_lib_element(L_CS7_NODE, &cs7_sccpaddr_del_cmd);
+	install_lib_element(L_CS7_SCCPADDR_NODE, &cs7_sccpaddr_pc_del_cmd);
+	install_lib_element(L_CS7_SCCPADDR_NODE, &cs7_sccpaddr_ssn_del_cmd);
 #if 0
 	/* FIXME: IP-Address based SCCP-Routing is currently not supported,
 	 * so we leave the related VTY options out for now */
-	install_element(L_CS7_SCCPADDR_NODE, &cs7_sccpaddr_ip_del_cmd);
+	install_lib_element(L_CS7_SCCPADDR_NODE, &cs7_sccpaddr_ip_del_cmd);
 #endif
-	install_element(L_CS7_SCCPADDR_NODE, &cs7_sccpaddr_gt_del_cmd);
-	install_element(L_CS7_SCCPADDR_NODE, &cs7_sccpaddr_ri_cmd);
-	install_element(L_CS7_SCCPADDR_NODE, &cs7_sccpaddr_pc_cmd);
-	install_element(L_CS7_SCCPADDR_NODE, &cs7_sccpaddr_ssn_cmd);
+	install_lib_element(L_CS7_SCCPADDR_NODE, &cs7_sccpaddr_gt_del_cmd);
+	install_lib_element(L_CS7_SCCPADDR_NODE, &cs7_sccpaddr_ri_cmd);
+	install_lib_element(L_CS7_SCCPADDR_NODE, &cs7_sccpaddr_pc_cmd);
+	install_lib_element(L_CS7_SCCPADDR_NODE, &cs7_sccpaddr_ssn_cmd);
 #if 0
 	/* FIXME: IP-Address based SCCP-Routing is currently not supported,
 	 * so we leave the related VTY options out for now */
-	install_element(L_CS7_SCCPADDR_NODE, &cs7_sccpaddr_ipv4_cmd);
-	install_element(L_CS7_SCCPADDR_NODE, &cs7_sccpaddr_ipv6_cmd);
+	install_lib_element(L_CS7_SCCPADDR_NODE, &cs7_sccpaddr_ipv4_cmd);
+	install_lib_element(L_CS7_SCCPADDR_NODE, &cs7_sccpaddr_ipv6_cmd);
 #endif
-	install_element(L_CS7_SCCPADDR_NODE, &cs7_sccpaddr_gt_cmd);
+	install_lib_element(L_CS7_SCCPADDR_NODE, &cs7_sccpaddr_gt_cmd);
 	install_node(&sccpaddr_gt_node, NULL);
-	install_element(L_CS7_SCCPADDR_GT_NODE, &cs7_sccpaddr_gt_gti_cmd);
-	install_element(L_CS7_SCCPADDR_GT_NODE, &cs7_sccpaddr_gt_tt_cmd);
-	install_element(L_CS7_SCCPADDR_GT_NODE, &cs7_sccpaddr_gt_npi_cmd);
-	install_element(L_CS7_SCCPADDR_GT_NODE, &cs7_sccpaddr_gt_nai_cmd);
-	install_element(L_CS7_SCCPADDR_GT_NODE, &cs7_sccpaddr_gt_digits_cmd);
+	install_lib_element(L_CS7_SCCPADDR_GT_NODE, &cs7_sccpaddr_gt_gti_cmd);
+	install_lib_element(L_CS7_SCCPADDR_GT_NODE, &cs7_sccpaddr_gt_tt_cmd);
+	install_lib_element(L_CS7_SCCPADDR_GT_NODE, &cs7_sccpaddr_gt_npi_cmd);
+	install_lib_element(L_CS7_SCCPADDR_GT_NODE, &cs7_sccpaddr_gt_nai_cmd);
+	install_lib_element(L_CS7_SCCPADDR_GT_NODE, &cs7_sccpaddr_gt_digits_cmd);
 }
 
 static void vty_init_shared(void *ctx)
 {
 	g_ctx = ctx;
 
-	install_element_ve(&show_cs7_user_cmd);
-	install_element_ve(&show_cs7_xua_cmd);
-	install_element_ve(&show_cs7_config_cmd);
+	install_lib_element_ve(&show_cs7_user_cmd);
+	install_lib_element_ve(&show_cs7_xua_cmd);
+	install_lib_element_ve(&show_cs7_config_cmd);
 
 	/* the mother of all VTY config nodes */
-	install_element(CONFIG_NODE, &cs7_instance_cmd);
+	install_lib_element(CONFIG_NODE, &cs7_instance_cmd);
 
 	install_node(&cs7_node, config_write_cs7);
-	install_element(L_CS7_NODE, &cfg_description_cmd);
-	install_element(L_CS7_NODE, &cs7_net_ind_cmd);
-	install_element(L_CS7_NODE, &cs7_point_code_cmd);
-	install_element(L_CS7_NODE, &cs7_pc_format_cmd);
-	install_element(L_CS7_NODE, &cs7_pc_format_def_cmd);
-	install_element(L_CS7_NODE, &cs7_pc_delimiter_cmd);
-	install_element(L_CS7_NODE, &cs7_permit_dyn_rkm_cmd);
+	install_lib_element(L_CS7_NODE, &cfg_description_cmd);
+	install_lib_element(L_CS7_NODE, &cs7_net_ind_cmd);
+	install_lib_element(L_CS7_NODE, &cs7_point_code_cmd);
+	install_lib_element(L_CS7_NODE, &cs7_pc_format_cmd);
+	install_lib_element(L_CS7_NODE, &cs7_pc_format_def_cmd);
+	install_lib_element(L_CS7_NODE, &cs7_pc_delimiter_cmd);
+	install_lib_element(L_CS7_NODE, &cs7_permit_dyn_rkm_cmd);
 
 	install_node(&asp_node, NULL);
-	install_element_ve(&show_cs7_asp_cmd);
-	install_element(L_CS7_NODE, &cs7_asp_cmd);
-	install_element(L_CS7_NODE, &no_cs7_asp_cmd);
-	install_element(L_CS7_ASP_NODE, &cfg_description_cmd);
-	install_element(L_CS7_ASP_NODE, &asp_remote_ip_cmd);
-	install_element(L_CS7_ASP_NODE, &asp_local_ip_cmd);
-	install_element(L_CS7_ASP_NODE, &asp_qos_class_cmd);
-	install_element(L_CS7_ASP_NODE, &asp_role_cmd);
-	install_element(L_CS7_ASP_NODE, &asp_sctp_role_cmd);
-	install_element(L_CS7_ASP_NODE, &asp_block_cmd);
-	install_element(L_CS7_ASP_NODE, &asp_shutdown_cmd);
+	install_lib_element_ve(&show_cs7_asp_cmd);
+	install_lib_element(L_CS7_NODE, &cs7_asp_cmd);
+	install_lib_element(L_CS7_NODE, &no_cs7_asp_cmd);
+	install_lib_element(L_CS7_ASP_NODE, &cfg_description_cmd);
+	install_lib_element(L_CS7_ASP_NODE, &asp_remote_ip_cmd);
+	install_lib_element(L_CS7_ASP_NODE, &asp_local_ip_cmd);
+	install_lib_element(L_CS7_ASP_NODE, &asp_qos_class_cmd);
+	install_lib_element(L_CS7_ASP_NODE, &asp_role_cmd);
+	install_lib_element(L_CS7_ASP_NODE, &asp_sctp_role_cmd);
+	install_lib_element(L_CS7_ASP_NODE, &asp_block_cmd);
+	install_lib_element(L_CS7_ASP_NODE, &asp_shutdown_cmd);
 
 	install_node(&as_node, NULL);
-	install_element_ve(&show_cs7_as_cmd);
-	install_element(L_CS7_NODE, &cs7_as_cmd);
-	install_element(L_CS7_NODE, &no_cs7_as_cmd);
-	install_element(L_CS7_AS_NODE, &cfg_description_cmd);
-	install_element(L_CS7_AS_NODE, &as_asp_cmd);
-	install_element(L_CS7_AS_NODE, &as_no_asp_cmd);
-	install_element(L_CS7_AS_NODE, &as_traf_mode_cmd);
-	install_element(L_CS7_AS_NODE, &as_no_traf_mode_cmd);
-	install_element(L_CS7_AS_NODE, &as_recov_tout_cmd);
-	install_element(L_CS7_AS_NODE, &as_qos_class_cmd);
-	install_element(L_CS7_AS_NODE, &as_rout_key_cmd);
-	install_element(L_CS7_AS_NODE, &as_rout_key_si_cmd);
-	install_element(L_CS7_AS_NODE, &as_rout_key_ssn_cmd);
-	install_element(L_CS7_AS_NODE, &as_rout_key_si_ssn_cmd);
-	install_element(L_CS7_AS_NODE, &as_pc_override_cmd);
-	install_element(L_CS7_AS_NODE, &as_pc_patch_sccp_cmd);
+	install_lib_element_ve(&show_cs7_as_cmd);
+	install_lib_element(L_CS7_NODE, &cs7_as_cmd);
+	install_lib_element(L_CS7_NODE, &no_cs7_as_cmd);
+	install_lib_element(L_CS7_AS_NODE, &cfg_description_cmd);
+	install_lib_element(L_CS7_AS_NODE, &as_asp_cmd);
+	install_lib_element(L_CS7_AS_NODE, &as_no_asp_cmd);
+	install_lib_element(L_CS7_AS_NODE, &as_traf_mode_cmd);
+	install_lib_element(L_CS7_AS_NODE, &as_no_traf_mode_cmd);
+	install_lib_element(L_CS7_AS_NODE, &as_recov_tout_cmd);
+	install_lib_element(L_CS7_AS_NODE, &as_qos_class_cmd);
+	install_lib_element(L_CS7_AS_NODE, &as_rout_key_cmd);
+	install_lib_element(L_CS7_AS_NODE, &as_rout_key_si_cmd);
+	install_lib_element(L_CS7_AS_NODE, &as_rout_key_ssn_cmd);
+	install_lib_element(L_CS7_AS_NODE, &as_rout_key_si_ssn_cmd);
+	install_lib_element(L_CS7_AS_NODE, &as_pc_override_cmd);
+	install_lib_element(L_CS7_AS_NODE, &as_pc_patch_sccp_cmd);
 
 	vty_init_addr();
 }
@@ -2028,15 +2028,15 @@ void osmo_ss7_vty_init_sg(void *ctx)
 	vty_init_shared(ctx);
 
 	install_node(&rtable_node, NULL);
-	install_element_ve(&show_cs7_route_cmd);
-	install_element(L_CS7_NODE, &cs7_route_table_cmd);
-	install_element(L_CS7_RTABLE_NODE, &cfg_description_cmd);
-	install_element(L_CS7_RTABLE_NODE, &cs7_rt_upd_cmd);
-	install_element(L_CS7_RTABLE_NODE, &cs7_rt_rem_cmd);
+	install_lib_element_ve(&show_cs7_route_cmd);
+	install_lib_element(L_CS7_NODE, &cs7_route_table_cmd);
+	install_lib_element(L_CS7_RTABLE_NODE, &cfg_description_cmd);
+	install_lib_element(L_CS7_RTABLE_NODE, &cs7_rt_upd_cmd);
+	install_lib_element(L_CS7_RTABLE_NODE, &cs7_rt_rem_cmd);
 
 	install_node(&xua_node, NULL);
-	install_element(L_CS7_NODE, &cs7_xua_cmd);
-	install_element(L_CS7_NODE, &no_cs7_xua_cmd);
-	install_element(L_CS7_XUA_NODE, &xua_local_ip_cmd);
-	install_element(L_CS7_XUA_NODE, &xua_accept_dyn_asp_cmd);
+	install_lib_element(L_CS7_NODE, &cs7_xua_cmd);
+	install_lib_element(L_CS7_NODE, &no_cs7_xua_cmd);
+	install_lib_element(L_CS7_XUA_NODE, &xua_local_ip_cmd);
+	install_lib_element(L_CS7_XUA_NODE, &xua_accept_dyn_asp_cmd);
 }

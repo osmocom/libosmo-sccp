@@ -255,11 +255,11 @@ DEFUN(show_sccp_timers, show_sccp_timers_cmd,
 
 void osmo_sccp_vty_init(void)
 {
-	install_element_ve(&show_sccp_users_cmd);
-	install_element_ve(&show_sccp_user_ssn_cmd);
-	install_element_ve(&show_sccp_connections_cmd);
+	install_lib_element_ve(&show_sccp_users_cmd);
+	install_lib_element_ve(&show_sccp_user_ssn_cmd);
+	install_lib_element_ve(&show_sccp_connections_cmd);
 
-	install_element_ve(&show_sccp_timers_cmd);
+	install_lib_element_ve(&show_sccp_timers_cmd);
 	gen_sccp_timer_cmd_strs(&sccp_timer_cmd);
-	install_element(L_CS7_NODE, &sccp_timer_cmd);
+	install_lib_element(L_CS7_NODE, &sccp_timer_cmd);
 }
