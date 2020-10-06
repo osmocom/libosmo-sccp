@@ -68,10 +68,11 @@ static struct cmd_node cs7_node = {
 	1,
 };
 
-DEFUN(cs7_instance, cs7_instance_cmd,
-	"cs7 instance <0-15>",
-	CS7_STR "Configure a SS7 Instance\n" INST_STR
-	"Number of the instance\n")
+DEFUN_ATTR(cs7_instance, cs7_instance_cmd,
+	   "cs7 instance <0-15>",
+	   CS7_STR "Configure a SS7 Instance\n" INST_STR
+	   "Number of the instance\n",
+	   CMD_ATTR_IMMEDIATE)
 {
 	int id = atoi(argv[0]);
 	struct osmo_ss7_instance *inst;
@@ -98,13 +99,14 @@ static const struct value_string ss7_network_indicator_vals[] = {
 };
 
 /* cs7 network-indicator */
-DEFUN(cs7_net_ind, cs7_net_ind_cmd,
-	"network-indicator (international | national | reserved | spare)",
-	"Configure the Network Indicator\n"
-	"International Network\n"
-	"National Network\n"
-	"Reserved Network\n"
-	"Spare Network\n")
+DEFUN_ATTR(cs7_net_ind, cs7_net_ind_cmd,
+	   "network-indicator (international | national | reserved | spare)",
+	   "Configure the Network Indicator\n"
+	   "International Network\n"
+	   "National Network\n"
+	   "Reserved Network\n"
+	   "Spare Network\n",
+	   CMD_ATTR_IMMEDIATE)
 {
 	struct osmo_ss7_instance *inst = vty->index;
 	int ni = get_string_value(ss7_network_indicator_vals, argv[0]);
@@ -114,12 +116,13 @@ DEFUN(cs7_net_ind, cs7_net_ind_cmd,
 }
 
 /* TODO: cs7 point-code format */
-DEFUN(cs7_pc_format, cs7_pc_format_cmd,
-	"point-code format <1-24> [<1-23>] [<1-22>]",
-	PC_STR "Configure Point Code Format\n"
-	"Length of first PC component\n"
-	"Length of second PC component\n"
-	"Length of third PC component\n")
+DEFUN_ATTR(cs7_pc_format, cs7_pc_format_cmd,
+	   "point-code format <1-24> [<1-23>] [<1-22>]",
+	   PC_STR "Configure Point Code Format\n"
+	   "Length of first PC component\n"
+	   "Length of second PC component\n"
+	   "Length of third PC component\n",
+	   CMD_ATTR_IMMEDIATE)
 {
 	struct osmo_ss7_instance *inst = vty->index;
 	int argind = 0;
@@ -139,10 +142,11 @@ DEFUN(cs7_pc_format, cs7_pc_format_cmd,
 	return CMD_SUCCESS;
 }
 
-DEFUN(cs7_pc_format_def, cs7_pc_format_def_cmd,
-	"point-code format default",
-	PC_STR "Configure Point Code Format\n"
-	"Default Point Code Format (3.8.3)\n")
+DEFUN_ATTR(cs7_pc_format_def, cs7_pc_format_def_cmd,
+	   "point-code format default",
+	   PC_STR "Configure Point Code Format\n"
+	   "Default Point Code Format (3.8.3)\n",
+	   CMD_ATTR_IMMEDIATE)
 {
 	struct osmo_ss7_instance *inst = vty->index;
 	inst->cfg.pc_fmt.component_len[0] = 3;
@@ -153,11 +157,12 @@ DEFUN(cs7_pc_format_def, cs7_pc_format_def_cmd,
 
 
 /* cs7 point-code delimiter */
-DEFUN(cs7_pc_delimiter, cs7_pc_delimiter_cmd,
-	"point-code delimiter (default|dash)",
-	PC_STR "Configure Point Code Delimiter\n"
-	"Use dot as delimiter\n"
-	"User dash as delimiter\n")
+DEFUN_ATTR(cs7_pc_delimiter, cs7_pc_delimiter_cmd,
+	   "point-code delimiter (default|dash)",
+	   PC_STR "Configure Point Code Delimiter\n"
+	   "Use dot as delimiter\n"
+	   "User dash as delimiter\n",
+	   CMD_ATTR_IMMEDIATE)
 {
 	struct osmo_ss7_instance *inst = vty->index;
 
@@ -169,10 +174,11 @@ DEFUN(cs7_pc_delimiter, cs7_pc_delimiter_cmd,
 	return CMD_SUCCESS;
 }
 
-DEFUN(cs7_point_code, cs7_point_code_cmd,
-	"point-code POINT_CODE",
-	"Configure the local Point Code\n"
-	"Point Code\n")
+DEFUN_ATTR(cs7_point_code, cs7_point_code_cmd,
+	   "point-code POINT_CODE",
+	   "Configure the local Point Code\n"
+	   "Point Code\n",
+	   CMD_ATTR_IMMEDIATE)
 {
 	struct osmo_ss7_instance *inst = vty->index;
 	int pc = osmo_ss7_pointcode_parse(inst, argv[0]);
@@ -187,13 +193,13 @@ DEFUN(cs7_point_code, cs7_point_code_cmd,
 
 /* TODO: cs7 secondary-pc */
 /* TODO: cs7 capability-pc */
-
-DEFUN(cs7_permit_dyn_rkm, cs7_permit_dyn_rkm_cmd,
-	"xua rkm routing-key-allocation (static-only|dynamic-permitted)",
-	"SIGTRAN xxxUA related\n" "Routing Key Management\n"
-	"Routing Key Management Allocation Policy\n"
-	"Only static (pre-confgured) Routing Keys permitted\n"
-	"Dynamically allocate Routing Keys for what ASPs request\n")
+DEFUN_ATTR(cs7_permit_dyn_rkm, cs7_permit_dyn_rkm_cmd,
+	   "xua rkm routing-key-allocation (static-only|dynamic-permitted)",
+	   "SIGTRAN xxxUA related\n" "Routing Key Management\n"
+	   "Routing Key Management Allocation Policy\n"
+	   "Only static (pre-confgured) Routing Keys permitted\n"
+	   "Dynamically allocate Routing Keys for what ASPs request\n",
+	   CMD_ATTR_IMMEDIATE)
 {
 	struct osmo_ss7_instance *inst = vty->index;
 
@@ -258,10 +264,11 @@ static struct cmd_node rtable_node = {
 	1,
 };
 
-DEFUN(cs7_route_table, cs7_route_table_cmd,
-	"route-table system",
-	"Specify the name of the route table\n"
-	"Name of the route table\n")
+DEFUN_ATTR(cs7_route_table, cs7_route_table_cmd,
+	   "route-table system",
+	   "Specify the name of the route table\n"
+	   "Name of the route table\n",
+	   CMD_ATTR_IMMEDIATE)
 {
 	struct osmo_ss7_instance *inst = vty->index;
 	struct osmo_ss7_route_table *rtable;
@@ -274,20 +281,21 @@ DEFUN(cs7_route_table, cs7_route_table_cmd,
 	return CMD_SUCCESS;
 }
 
-DEFUN(cs7_rt_upd, cs7_rt_upd_cmd,
-	"update route POINT_CODE MASK linkset LS_NAME [priority PRIO] [qos-class (CLASS|default)]",
-	"Update the Route\n"
-	"Update the Route\n"
-	"Destination Point Code\n"
-	"Point Code Mask\n"
-	"Point Code Length\n"
-	"Specify Destination Linkset\n"
-	"Linkset Name\n"
-	"Specify Priority\n"
-	"Priority\n"
-	"Specify QoS Class\n"
-	"QoS Class\n"
-	"Default QoS Class\n")
+DEFUN_ATTR(cs7_rt_upd, cs7_rt_upd_cmd,
+	   "update route POINT_CODE MASK linkset LS_NAME [priority PRIO] [qos-class (CLASS|default)]",
+	   "Update the Route\n"
+	   "Update the Route\n"
+	   "Destination Point Code\n"
+	   "Point Code Mask\n"
+	   "Point Code Length\n"
+	   "Specify Destination Linkset\n"
+	   "Linkset Name\n"
+	   "Specify Priority\n"
+	   "Priority\n"
+	   "Specify QoS Class\n"
+	   "QoS Class\n"
+	   "Default QoS Class\n",
+	   CMD_ATTR_IMMEDIATE)
 {
 	struct osmo_ss7_route_table *rtable = vty->index;
 	struct osmo_ss7_route *rt;
@@ -327,13 +335,14 @@ DEFUN(cs7_rt_upd, cs7_rt_upd_cmd,
 	return CMD_SUCCESS;
 }
 
-DEFUN(cs7_rt_rem, cs7_rt_rem_cmd,
-	"remove route POINT_CODE MASK",
-	"Remove a Route\n"
-	"Remove a Route\n"
-	"Destination Point Code\n"
-	"Point Code Mask\n"
-	"Point Code Length\n")
+DEFUN_ATTR(cs7_rt_rem, cs7_rt_rem_cmd,
+	   "remove route POINT_CODE MASK",
+	   "Remove a Route\n"
+	   "Remove a Route\n"
+	   "Destination Point Code\n"
+	   "Point Code Mask\n"
+	   "Point Code Length\n",
+	   CMD_ATTR_IMMEDIATE)
 {
 	struct osmo_ss7_route_table *rtable = vty->index;
 	struct osmo_ss7_route *rt;
@@ -429,10 +438,11 @@ static struct cmd_node xua_node = {
 	1,
 };
 
-DEFUN(cs7_xua, cs7_xua_cmd,
-	"listen " XUA_VAR_STR " <0-65534>",
-	"Configure/Enable xUA Listener\n"
-	XUA_VAR_HELP_STR "SCTP Port number\n")
+DEFUN_ATTR(cs7_xua, cs7_xua_cmd,
+	   "listen " XUA_VAR_STR " <0-65534>",
+	   "Configure/Enable xUA Listener\n"
+	   XUA_VAR_HELP_STR "SCTP Port number\n",
+	   CMD_ATTR_IMMEDIATE)
 {
 	struct osmo_ss7_instance *inst = vty->index;
 	struct osmo_xua_server *xs;
@@ -453,10 +463,11 @@ DEFUN(cs7_xua, cs7_xua_cmd,
 	return CMD_SUCCESS;
 }
 
-DEFUN(no_cs7_xua, no_cs7_xua_cmd,
-	"no listen " XUA_VAR_STR " <0-65534>",
-	NO_STR "Disable xUA Listener on given SCTP Port\n"
-	XUA_VAR_HELP_STR "SCTP Port number\n")
+DEFUN_ATTR(no_cs7_xua, no_cs7_xua_cmd,
+	   "no listen " XUA_VAR_STR " <0-65534>",
+	   NO_STR "Disable xUA Listener on given SCTP Port\n"
+	   XUA_VAR_HELP_STR "SCTP Port number\n",
+	   CMD_ATTR_IMMEDIATE)
 {
 	struct osmo_ss7_instance *inst = vty->index;
 	struct osmo_xua_server *xs;
@@ -472,11 +483,12 @@ DEFUN(no_cs7_xua, no_cs7_xua_cmd,
 	return CMD_SUCCESS;
 }
 
-DEFUN(xua_local_ip, xua_local_ip_cmd,
-	"local-ip " VTY_IPV46_CMD,
-	"Configure the Local IP Address for xUA\n"
-	"IPv4 Address to use for XUA\n"
-	"IPv6 Address to use for XUA\n")
+DEFUN_ATTR(xua_local_ip, xua_local_ip_cmd,
+	   "local-ip " VTY_IPV46_CMD,
+	   "Configure the Local IP Address for xUA\n"
+	   "IPv4 Address to use for XUA\n"
+	   "IPv6 Address to use for XUA\n",
+	   CMD_ATTR_IMMEDIATE)
 {
 	struct osmo_xua_server *xs = vty->index;
 
@@ -485,11 +497,12 @@ DEFUN(xua_local_ip, xua_local_ip_cmd,
 	return CMD_SUCCESS;
 }
 
-DEFUN(xua_accept_dyn_asp, xua_accept_dyn_asp_cmd,
-	"accept-asp-connections (pre-configured|dynamic-permitted)",
-	"Define what kind of ASP connections to accept\n"
-	"Accept only pre-confiugred ASPs (source IP/prt)\n"
-	"Accept any connection and dynamically create an ASP definition\n")
+DEFUN_ATTR(xua_accept_dyn_asp, xua_accept_dyn_asp_cmd,
+	   "accept-asp-connections (pre-configured|dynamic-permitted)",
+	   "Define what kind of ASP connections to accept\n"
+	   "Accept only pre-confiugred ASPs (source IP/prt)\n"
+	   "Accept any connection and dynamically create an ASP definition\n",
+	   CMD_ATTR_IMMEDIATE)
 {
 	struct osmo_xua_server *xs = vty->index;
 
@@ -571,13 +584,14 @@ static struct cmd_node asp_node = {
 	1,
 };
 
-DEFUN(cs7_asp, cs7_asp_cmd,
-	"asp NAME <0-65535> <0-65535> " XUA_VAR_STR,
-	"Configure Application Server Process\n"
-	"Name of ASP\n"
-	"Remote SCTP port number\n"
-	"Local SCTP port number\n"
-	XUA_VAR_HELP_STR)
+DEFUN_ATTR(cs7_asp, cs7_asp_cmd,
+	   "asp NAME <0-65535> <0-65535> " XUA_VAR_STR,
+	   "Configure Application Server Process\n"
+	   "Name of ASP\n"
+	   "Remote SCTP port number\n"
+	   "Local SCTP port number\n"
+	   XUA_VAR_HELP_STR,
+	   CMD_ATTR_NODE_EXIT)
 {
 	struct osmo_ss7_instance *inst = vty->index;
 	const char *name = argv[0];
@@ -608,10 +622,11 @@ DEFUN(cs7_asp, cs7_asp_cmd,
 	return CMD_SUCCESS;
 }
 
-DEFUN(no_cs7_asp, no_cs7_asp_cmd,
-	"no asp NAME",
-	NO_STR "Disable Application Server Process\n"
-	"Name of ASP\n")
+DEFUN_ATTR(no_cs7_asp, no_cs7_asp_cmd,
+	   "no asp NAME",
+	   NO_STR "Disable Application Server Process\n"
+	   "Name of ASP\n",
+	   CMD_ATTR_IMMEDIATE)
 {
 	struct osmo_ss7_instance *inst = vty->index;
 	const char *name = argv[0];
@@ -626,11 +641,12 @@ DEFUN(no_cs7_asp, no_cs7_asp_cmd,
 	return CMD_SUCCESS;
 }
 
-DEFUN(asp_local_ip, asp_local_ip_cmd,
-	"local-ip " VTY_IPV46_CMD,
-	"Specify Local IP Address from which to contact ASP\n"
-	"Local IPv4 Address from which to contact of ASP\n"
-	"Local IPv6 Address from which to contact of ASP\n")
+DEFUN_ATTR(asp_local_ip, asp_local_ip_cmd,
+	   "local-ip " VTY_IPV46_CMD,
+	   "Specify Local IP Address from which to contact ASP\n"
+	   "Local IPv4 Address from which to contact of ASP\n"
+	   "Local IPv6 Address from which to contact of ASP\n",
+	   CMD_ATTR_NODE_EXIT)
 {
 	struct osmo_ss7_asp *asp = vty->index;
 	if (osmo_ss7_asp_peer_add_host(&asp->cfg.local, asp, argv[0]) != 0) {
@@ -640,11 +656,12 @@ DEFUN(asp_local_ip, asp_local_ip_cmd,
 	return CMD_SUCCESS;
 }
 
-DEFUN(asp_remote_ip, asp_remote_ip_cmd,
-	"remote-ip " VTY_IPV46_CMD,
-	"Specify Remote IP Address of ASP\n"
-	"Remote IPv4 Address of ASP\n"
-	"Remote IPv6 Address of ASP\n")
+DEFUN_ATTR(asp_remote_ip, asp_remote_ip_cmd,
+	   "remote-ip " VTY_IPV46_CMD,
+	   "Specify Remote IP Address of ASP\n"
+	   "Remote IPv4 Address of ASP\n"
+	   "Remote IPv6 Address of ASP\n",
+	   CMD_ATTR_NODE_EXIT)
 {
 	struct osmo_ss7_asp *asp = vty->index;
 	if (osmo_ss7_asp_peer_add_host(&asp->cfg.remote, asp, argv[0]) != 0) {
@@ -654,22 +671,24 @@ DEFUN(asp_remote_ip, asp_remote_ip_cmd,
 	return CMD_SUCCESS;
 }
 
-DEFUN(asp_qos_clas, asp_qos_class_cmd,
-	"qos-class <0-255>",
-	"Specify QoS Class of ASP\n"
-	"QoS Class of ASP\n")
+DEFUN_ATTR(asp_qos_clas, asp_qos_class_cmd,
+	   "qos-class <0-255>",
+	   "Specify QoS Class of ASP\n"
+	   "QoS Class of ASP\n",
+	   CMD_ATTR_NODE_EXIT)
 {
 	struct osmo_ss7_asp *asp = vty->index;
 	asp->cfg.qos_class = atoi(argv[0]);
 	return CMD_SUCCESS;
 }
 
-DEFUN(asp_role, asp_role_cmd,
-	"role (sg|asp|ipsp)",
-	"Specify the xUA role for this ASP\n"
-	"SG (Signaling Gateway)\n"
-	"ASP (Application Server Process)\n"
-	"IPSP (IP Signalling Point)\n")
+DEFUN_ATTR(asp_role, asp_role_cmd,
+	   "role (sg|asp|ipsp)",
+	   "Specify the xUA role for this ASP\n"
+	   "SG (Signaling Gateway)\n"
+	   "ASP (Application Server Process)\n"
+	   "IPSP (IP Signalling Point)\n",
+	   CMD_ATTR_NODE_EXIT)
 {
 	struct osmo_ss7_asp *asp = vty->index;
 
@@ -687,11 +706,12 @@ DEFUN(asp_role, asp_role_cmd,
 	return CMD_SUCCESS;
 }
 
-DEFUN(sctp_role, asp_sctp_role_cmd,
-	"sctp-role (client|server)",
-	"Specify the SCTP role for this ASP\n"
-	"Operate as SCTP client; connect to a server\n"
-	"Operate as SCTP server; wait for client connections\n")
+DEFUN_ATTR(sctp_role, asp_sctp_role_cmd,
+	   "sctp-role (client|server)",
+	   "Specify the SCTP role for this ASP\n"
+	   "Operate as SCTP client; connect to a server\n"
+	   "Operate as SCTP server; wait for client connections\n",
+	   CMD_ATTR_NODE_EXIT)
 {
 	struct osmo_ss7_asp *asp = vty->index;
 
@@ -705,18 +725,20 @@ DEFUN(sctp_role, asp_sctp_role_cmd,
 	return CMD_SUCCESS;
 }
 
-DEFUN(asp_block, asp_block_cmd,
-	"block",
-	"Allows a SCTP Association with ASP, but doesn't let it become active\n")
+DEFUN_ATTR(asp_block, asp_block_cmd,
+	   "block",
+	   "Allows a SCTP Association with ASP, but doesn't let it become active\n",
+	   CMD_ATTR_NODE_EXIT)
 {
 	/* TODO */
 	vty_out(vty, "Not supported yet%s", VTY_NEWLINE);
 	return CMD_WARNING;
 }
 
-DEFUN(asp_shutdown, asp_shutdown_cmd,
-	"shutdown",
-	"Terminates SCTP association; New associations will be rejected\n")
+DEFUN_ATTR(asp_shutdown, asp_shutdown_cmd,
+	   "shutdown",
+	   "Terminates SCTP association; New associations will be rejected\n",
+	   CMD_ATTR_NODE_EXIT)
 {
 	/* TODO */
 	vty_out(vty, "Not supported yet%s", VTY_NEWLINE);
@@ -795,11 +817,12 @@ static struct cmd_node as_node = {
 	1,
 };
 
-DEFUN(cs7_as, cs7_as_cmd,
-	"as NAME " XUA_VAR_STR,
-	"Configure an Application Server\n"
-	"Name of the Application Server\n"
-	XUA_VAR_HELP_STR)
+DEFUN_ATTR(cs7_as, cs7_as_cmd,
+	   "as NAME " XUA_VAR_STR,
+	   "Configure an Application Server\n"
+	   "Name of the Application Server\n"
+	   XUA_VAR_HELP_STR,
+	   CMD_ATTR_IMMEDIATE)
 {
 	struct osmo_ss7_instance *inst = vty->index;
 	struct osmo_ss7_as *as;
@@ -826,10 +849,11 @@ DEFUN(cs7_as, cs7_as_cmd,
 	return CMD_SUCCESS;
 }
 
-DEFUN(no_cs7_as, no_cs7_as_cmd,
-	"no as NAME",
-	NO_STR "Disable Application Server\n"
-	"Name of AS\n")
+DEFUN_ATTR(no_cs7_as, no_cs7_as_cmd,
+	   "no as NAME",
+	   NO_STR "Disable Application Server\n"
+	   "Name of AS\n",
+	   CMD_ATTR_IMMEDIATE)
 {
 	struct osmo_ss7_instance *inst = vty->index;
 	const char *name = argv[0];
@@ -845,10 +869,11 @@ DEFUN(no_cs7_as, no_cs7_as_cmd,
 }
 
 /* TODO: routing-key */
-DEFUN(as_asp, as_asp_cmd,
-	"asp NAME",
-	"Specify that a given ASP is part of this AS\n"
-	"Name of ASP to be added to AS\n")
+DEFUN_ATTR(as_asp, as_asp_cmd,
+	   "asp NAME",
+	   "Specify that a given ASP is part of this AS\n"
+	   "Name of ASP to be added to AS\n",
+	   CMD_ATTR_IMMEDIATE)
 {
 	struct osmo_ss7_as *as = vty->index;
 
@@ -860,10 +885,11 @@ DEFUN(as_asp, as_asp_cmd,
 	return CMD_SUCCESS;
 }
 
-DEFUN(as_no_asp, as_no_asp_cmd,
-	"no asp NAME",
-	NO_STR "Specify ASP to be removed from this AS\n"
-	"Name of ASP to be removed\n")
+DEFUN_ATTR(as_no_asp, as_no_asp_cmd,
+	   "no asp NAME",
+	   NO_STR "Specify ASP to be removed from this AS\n"
+	   "Name of ASP to be removed\n",
+	   CMD_ATTR_IMMEDIATE)
 {
 	struct osmo_ss7_as *as = vty->index;
 
@@ -875,13 +901,14 @@ DEFUN(as_no_asp, as_no_asp_cmd,
 	return CMD_SUCCESS;
 }
 
-DEFUN(as_traf_mode, as_traf_mode_cmd,
-	"traffic-mode (broadcast | loadshare | roundrobin | override)",
-	"Specifies traffic mode of operation of the ASP within the AS\n"
-	"Broadcast to all ASP within AS\n"
-	"Share Load among all ASP within AS\n"
-	"Round-Robin between all ASP within AS\n"
-	"Override\n")
+DEFUN_USRATTR(as_traf_mode, as_traf_mode_cmd,
+	      OSMO_SCCP_LIB_ATTR_RSTRT_ASP,
+	      "traffic-mode (broadcast | loadshare | roundrobin | override)",
+	      "Specifies traffic mode of operation of the ASP within the AS\n"
+	      "Broadcast to all ASP within AS\n"
+	      "Share Load among all ASP within AS\n"
+	      "Round-Robin between all ASP within AS\n"
+	      "Override\n")
 {
 	struct osmo_ss7_as *as = vty->index;
 
@@ -890,9 +917,10 @@ DEFUN(as_traf_mode, as_traf_mode_cmd,
 	return CMD_SUCCESS;
 }
 
-DEFUN(as_no_traf_mode, as_no_traf_mode_cmd,
-	"no traffic-mode",
-	NO_STR "Remove explicit traffic mode of operation of this AS\n")
+DEFUN_USRATTR(as_no_traf_mode, as_no_traf_mode_cmd,
+	      OSMO_SCCP_LIB_ATTR_RSTRT_ASP,
+	      "no traffic-mode",
+	      NO_STR "Remove explicit traffic mode of operation of this AS\n")
 {
 	struct osmo_ss7_as *as = vty->index;
 
@@ -901,20 +929,22 @@ DEFUN(as_no_traf_mode, as_no_traf_mode_cmd,
 	return CMD_SUCCESS;
 }
 
-DEFUN(as_recov_tout, as_recov_tout_cmd,
-	"recovery-timeout <1-2000>",
-	"Specifies the recovery timeout value in milliseconds\n"
-	"Recovery Timeout in Milliseconds\n")
+DEFUN_ATTR(as_recov_tout, as_recov_tout_cmd,
+	   "recovery-timeout <1-2000>",
+	   "Specifies the recovery timeout value in milliseconds\n"
+	   "Recovery Timeout in Milliseconds\n",
+	   CMD_ATTR_IMMEDIATE)
 {
 	struct osmo_ss7_as *as = vty->index;
 	as->cfg.recovery_timeout_msec = atoi(argv[0]);
 	return CMD_SUCCESS;
 }
 
-DEFUN(as_qos_clas, as_qos_class_cmd,
-	"qos-class <0-255>",
-	"Specity QoS Class of AS\n"
-	"QoS Class of AS\n")
+DEFUN_ATTR(as_qos_clas, as_qos_class_cmd,
+	   "qos-class <0-255>",
+	   "Specity QoS Class of AS\n"
+	   "QoS Class of AS\n",
+	   CMD_ATTR_IMMEDIATE)
 {
 	struct osmo_ss7_as *as = vty->index;
 	as->cfg.qos_class = atoi(argv[0]);
@@ -984,41 +1014,46 @@ static int _rout_key(struct vty *vty,
 	return CMD_SUCCESS;
 }
 
-DEFUN(as_rout_key, as_rout_key_cmd,
-      ROUTING_KEY_CMD,
-      ROUTING_KEY_CMD_STRS)
+DEFUN_ATTR(as_rout_key, as_rout_key_cmd,
+	   ROUTING_KEY_CMD,
+	   ROUTING_KEY_CMD_STRS,
+	   CMD_ATTR_IMMEDIATE)
 {
 	return _rout_key(vty, argv[0], argv[1], NULL, NULL);
 }
 
-DEFUN(as_rout_key_si, as_rout_key_si_cmd,
-      ROUTING_KEY_CMD      ROUTING_KEY_SI_ARG,
-      ROUTING_KEY_CMD_STRS ROUTING_KEY_SI_ARG_STRS)
+DEFUN_ATTR(as_rout_key_si, as_rout_key_si_cmd,
+	   ROUTING_KEY_CMD      ROUTING_KEY_SI_ARG,
+	   ROUTING_KEY_CMD_STRS ROUTING_KEY_SI_ARG_STRS,
+	   CMD_ATTR_IMMEDIATE)
 {
 	return _rout_key(vty, argv[0], argv[1], argv[2], NULL);
 }
 
-DEFUN(as_rout_key_ssn, as_rout_key_ssn_cmd,
-      ROUTING_KEY_CMD      ROUTING_KEY_SSN_ARG,
-      ROUTING_KEY_CMD_STRS ROUTING_KEY_SSN_ARG_STRS)
+DEFUN_ATTR(as_rout_key_ssn, as_rout_key_ssn_cmd,
+	   ROUTING_KEY_CMD      ROUTING_KEY_SSN_ARG,
+	   ROUTING_KEY_CMD_STRS ROUTING_KEY_SSN_ARG_STRS,
+	   CMD_ATTR_IMMEDIATE)
 {
 	return _rout_key(vty, argv[0], argv[1], NULL, argv[2]);
 }
 
-DEFUN(as_rout_key_si_ssn, as_rout_key_si_ssn_cmd,
-      ROUTING_KEY_CMD      ROUTING_KEY_SI_ARG      ROUTING_KEY_SSN_ARG,
-      ROUTING_KEY_CMD_STRS ROUTING_KEY_SI_ARG_STRS ROUTING_KEY_SSN_ARG_STRS)
+DEFUN_ATTR(as_rout_key_si_ssn, as_rout_key_si_ssn_cmd,
+	   ROUTING_KEY_CMD      ROUTING_KEY_SI_ARG      ROUTING_KEY_SSN_ARG,
+	   ROUTING_KEY_CMD_STRS ROUTING_KEY_SI_ARG_STRS ROUTING_KEY_SSN_ARG_STRS,
+	   CMD_ATTR_IMMEDIATE)
 {
 	return _rout_key(vty, argv[0], argv[1], argv[2], argv[3]);
 }
 
-DEFUN(as_pc_override, as_pc_override_cmd,
-	"point-code override dpc PC",
-	"Point Code Specific Features\n"
-	"Override (force) a point-code to hard-coded value\n"
-	"Override Source Point Code\n"
-	"Override Destination Point Code\n"
-	"New Point Code\n")
+DEFUN_ATTR(as_pc_override, as_pc_override_cmd,
+	   "point-code override dpc PC",
+	   "Point Code Specific Features\n"
+	   "Override (force) a point-code to hard-coded value\n"
+	   "Override Source Point Code\n"
+	   "Override Destination Point Code\n"
+	   "New Point Code\n",
+	   CMD_ATTR_IMMEDIATE)
 {
 	struct osmo_ss7_as *as = vty->index;
 	int pc = osmo_ss7_pointcode_parse(as->inst, argv[0]);
@@ -1038,13 +1073,14 @@ DEFUN(as_pc_override, as_pc_override_cmd,
 	return CMD_SUCCESS;
 }
 
-DEFUN(as_pc_patch_sccp, as_pc_patch_sccp_cmd,
-	"point-code override patch-sccp (disabled|both)",
-	"Point Code Specific Features\n"
-	"Override (force) a point-code to hard-coded value\n"
-	"Patch point code values into SCCP called/calling address\n"
-	"Don't patch any point codes into SCCP called/calling address\n"
-	"Patch both origin and destination point codes into SCCP called/calling address\n")
+DEFUN_ATTR(as_pc_patch_sccp, as_pc_patch_sccp_cmd,
+	   "point-code override patch-sccp (disabled|both)",
+	   "Point Code Specific Features\n"
+	   "Override (force) a point-code to hard-coded value\n"
+	   "Patch point code values into SCCP called/calling address\n"
+	   "Don't patch any point codes into SCCP called/calling address\n"
+	   "Patch both origin and destination point codes into SCCP called/calling address\n",
+	   CMD_ATTR_IMMEDIATE)
 {
 	struct osmo_ss7_as *as = vty->index;
 
@@ -1423,9 +1459,10 @@ DEFUN(cs7_show_sccpaddr, cs7_show_sccpaddr_cmd,
 }
 
 /* Create a new addressbook entry and switch nodes */
-DEFUN(cs7_sccpaddr, cs7_sccpaddr_cmd,
-      "sccp-address NAME",
-      "Create/Modify an SCCP addressbook entry\n" "Name of the SCCP Address\n")
+DEFUN_ATTR(cs7_sccpaddr, cs7_sccpaddr_cmd,
+	   "sccp-address NAME",
+	   "Create/Modify an SCCP addressbook entry\n" "Name of the SCCP Address\n",
+	   CMD_ATTR_IMMEDIATE)
 {
 	struct osmo_ss7_instance *inst = (struct osmo_ss7_instance *)vty->index;
 	struct osmo_sccp_addr_entry *entry;
@@ -1466,9 +1503,10 @@ DEFUN(cs7_sccpaddr, cs7_sccpaddr_cmd,
 	return CMD_SUCCESS;
 }
 
-DEFUN(cs7_sccpaddr_del, cs7_sccpaddr_del_cmd,
-      "no sccp-address NAME",
-      NO_STR "Delete an SCCP addressbook entry\n" "Name of the SCCP Address\n")
+DEFUN_ATTR(cs7_sccpaddr_del, cs7_sccpaddr_del_cmd,
+	   "no sccp-address NAME",
+	   NO_STR "Delete an SCCP addressbook entry\n" "Name of the SCCP Address\n",
+	   CMD_ATTR_IMMEDIATE)
 {
 	struct osmo_ss7_instance *inst = (struct osmo_ss7_instance *)vty->index;
 	struct osmo_sccp_addr_entry *entry;
@@ -1488,10 +1526,11 @@ DEFUN(cs7_sccpaddr_del, cs7_sccpaddr_del_cmd,
 }
 
 /* Set routing indicator of sccp address */
-DEFUN(cs7_sccpaddr_ri, cs7_sccpaddr_ri_cmd,
-      "routing-indicator (GT|PC|IP)",
-      "Add Routing Indicator\n"
-      "by global-title\n" "by point-code\n" "by ip-address\n")
+DEFUN_ATTR(cs7_sccpaddr_ri, cs7_sccpaddr_ri_cmd,
+	   "routing-indicator (GT|PC|IP)",
+	   "Add Routing Indicator\n"
+	   "by global-title\n" "by point-code\n" "by ip-address\n",
+	   CMD_ATTR_IMMEDIATE)
 {
 	struct osmo_sccp_addr_entry *entry =
 	    (struct osmo_sccp_addr_entry *)vty->index;
@@ -1511,8 +1550,9 @@ DEFUN(cs7_sccpaddr_ri, cs7_sccpaddr_ri_cmd,
 }
 
 /* Set point-code number of sccp address */
-DEFUN(cs7_sccpaddr_pc, cs7_sccpaddr_pc_cmd,
-      "point-code POINT_CODE", "Add point-code Number\n" "PC\n")
+DEFUN_ATTR(cs7_sccpaddr_pc, cs7_sccpaddr_pc_cmd,
+	   "point-code POINT_CODE", "Add point-code Number\n" "PC\n",
+	   CMD_ATTR_IMMEDIATE)
 {
 	int pc;
 	struct osmo_sccp_addr_entry *entry =
@@ -1533,8 +1573,9 @@ DEFUN(cs7_sccpaddr_pc, cs7_sccpaddr_pc_cmd,
 }
 
 /* Remove point-code number from sccp address */
-DEFUN(cs7_sccpaddr_pc_del, cs7_sccpaddr_pc_del_cmd,
-      "no point-code", NO_STR "Remove point-code Number\n")
+DEFUN_ATTR(cs7_sccpaddr_pc_del, cs7_sccpaddr_pc_del_cmd,
+	   "no point-code", NO_STR "Remove point-code Number\n",
+	   CMD_ATTR_IMMEDIATE)
 {
 	struct osmo_sccp_addr_entry *entry =
 	    (struct osmo_sccp_addr_entry *)vty->index;
@@ -1545,8 +1586,9 @@ DEFUN(cs7_sccpaddr_pc_del, cs7_sccpaddr_pc_del_cmd,
 }
 
 /* Set subsystem number of sccp address */
-DEFUN(cs7_sccpaddr_ssn, cs7_sccpaddr_ssn_cmd,
-      "subsystem-number <0-4294967295>", "Add Subsystem Number\n" "SSN\n")
+DEFUN_ATTR(cs7_sccpaddr_ssn, cs7_sccpaddr_ssn_cmd,
+	   "subsystem-number <0-4294967295>", "Add Subsystem Number\n" "SSN\n",
+	   CMD_ATTR_IMMEDIATE)
 {
 	struct osmo_sccp_addr_entry *entry =
 	    (struct osmo_sccp_addr_entry *)vty->index;
@@ -1557,8 +1599,9 @@ DEFUN(cs7_sccpaddr_ssn, cs7_sccpaddr_ssn_cmd,
 }
 
 /* Remove subsystem number from sccp address */
-DEFUN(cs7_sccpaddr_ssn_del, cs7_sccpaddr_ssn_del_cmd,
-      "no subsystem-number", NO_STR "Remove Subsystem Number\n")
+DEFUN_ATTR(cs7_sccpaddr_ssn_del, cs7_sccpaddr_ssn_del_cmd,
+	   "no subsystem-number", NO_STR "Remove Subsystem Number\n",
+	   CMD_ATTR_IMMEDIATE)
 {
 	struct osmo_sccp_addr_entry *entry =
 	    (struct osmo_sccp_addr_entry *)vty->index;
@@ -1573,9 +1616,10 @@ DEFUN(cs7_sccpaddr_ssn_del, cs7_sccpaddr_ssn_del_cmd,
  * so we leave the related VTY options out for now */
 
 /* Set IP Address (V4) of sccp address */
-DEFUN(cs7_sccpaddr_ipv4, cs7_sccpaddr_ipv4_cmd,
-      "ip-address V4 A.B.C.D",
-      "Add IP-Address\n" "Protocol version 4\n" "IP-Address digits\n")
+DEFUN_ATTR(cs7_sccpaddr_ipv4, cs7_sccpaddr_ipv4_cmd,
+	   "ip-address V4 A.B.C.D",
+	   "Add IP-Address\n" "Protocol version 4\n" "IP-Address digits\n",
+	   CMD_ATTR_IMMEDIATE)
 {
 	struct osmo_sccp_addr_entry *entry =
 	    (struct osmo_sccp_addr_entry *)vty->index;
@@ -1603,9 +1647,10 @@ DEFUN(cs7_sccpaddr_ipv4, cs7_sccpaddr_ipv4_cmd,
 }
 
 /* Set IP Address (V6) of sccp address */
-DEFUN(cs7_sccpaddr_ipv6, cs7_sccpaddr_ipv6_cmd,
-      "ip-address V6 A:B:C:D:E:F:G:H",
-      "Add IP-Address\n" "Protocol version 6\n" "IP-Address digits\n")
+DEFUN_ATTR(cs7_sccpaddr_ipv6, cs7_sccpaddr_ipv6_cmd,
+	   "ip-address V6 A:B:C:D:E:F:G:H",
+	   "Add IP-Address\n" "Protocol version 6\n" "IP-Address digits\n",
+	   CMD_ATTR_IMMEDIATE)
 {
 	struct osmo_sccp_addr_entry *entry =
 	    (struct osmo_sccp_addr_entry *)vty->index;
@@ -1633,8 +1678,9 @@ DEFUN(cs7_sccpaddr_ipv6, cs7_sccpaddr_ipv6_cmd,
 }
 
 /* Remove IP Address from sccp address */
-DEFUN(cs7_sccpaddr_ip_del, cs7_sccpaddr_ip_del_cmd,
-      "no ip-address", NO_STR "Remove IP-Address\n")
+DEFUN_ATTR(cs7_sccpaddr_ip_del, cs7_sccpaddr_ip_del_cmd,
+	   "no ip-address", NO_STR "Remove IP-Address\n",
+	   CMD_ATTR_IMMEDIATE)
 {
 	struct osmo_sccp_addr_entry *entry =
 	    (struct osmo_sccp_addr_entry *)vty->index;
@@ -1647,8 +1693,9 @@ DEFUN(cs7_sccpaddr_ip_del, cs7_sccpaddr_ip_del_cmd,
 #endif
 
 /* Configure global title and switch nodes */
-DEFUN(cs7_sccpaddr_gt, cs7_sccpaddr_gt_cmd,
-      "global-title", "Add/Modify Global Title\n")
+DEFUN_ATTR(cs7_sccpaddr_gt, cs7_sccpaddr_gt_cmd,
+	   "global-title", "Add/Modify Global Title\n",
+	   CMD_ATTR_IMMEDIATE)
 {
 	struct osmo_sccp_addr_entry *entry =
 	    (struct osmo_sccp_addr_entry *)vty->index;
@@ -1658,8 +1705,9 @@ DEFUN(cs7_sccpaddr_gt, cs7_sccpaddr_gt_cmd,
 }
 
 /* Remove global title from sccp address */
-DEFUN(cs7_sccpaddr_gt_del, cs7_sccpaddr_gt_del_cmd,
-      "no global-title", NO_STR "Remove Global Title\n")
+DEFUN_ATTR(cs7_sccpaddr_gt_del, cs7_sccpaddr_gt_del_cmd,
+	   "no global-title", NO_STR "Remove Global Title\n",
+	   CMD_ATTR_IMMEDIATE)
 {
 	struct osmo_sccp_addr_entry *entry =
 	    (struct osmo_sccp_addr_entry *)vty->index;
@@ -1670,8 +1718,9 @@ DEFUN(cs7_sccpaddr_gt_del, cs7_sccpaddr_gt_del_cmd,
 }
 
 /* Set global title inicator of the sccp address gt */
-DEFUN(cs7_sccpaddr_gt_gti, cs7_sccpaddr_gt_gti_cmd,
-      "global-title-indicator <0-15>", "Set Global Title Indicator\n" "GTI\n")
+DEFUN_ATTR(cs7_sccpaddr_gt_gti, cs7_sccpaddr_gt_gti_cmd,
+	   "global-title-indicator <0-15>", "Set Global Title Indicator\n" "GTI\n",
+	   CMD_ATTR_IMMEDIATE)
 {
 	struct osmo_sccp_addr_entry *entry =
 	    (struct osmo_sccp_addr_entry *)vty->index;
@@ -1681,8 +1730,9 @@ DEFUN(cs7_sccpaddr_gt_gti, cs7_sccpaddr_gt_gti_cmd,
 }
 
 /* Set global title translation type of the sccp address gt */
-DEFUN(cs7_sccpaddr_gt_tt, cs7_sccpaddr_gt_tt_cmd,
-      "translation-type <0-255>", "Set Global Title Translation Type\n" "TT\n")
+DEFUN_ATTR(cs7_sccpaddr_gt_tt, cs7_sccpaddr_gt_tt_cmd,
+	   "translation-type <0-255>", "Set Global Title Translation Type\n" "TT\n",
+	   CMD_ATTR_IMMEDIATE)
 {
 	struct osmo_sccp_addr_entry *entry =
 	    (struct osmo_sccp_addr_entry *)vty->index;
@@ -1692,9 +1742,10 @@ DEFUN(cs7_sccpaddr_gt_tt, cs7_sccpaddr_gt_tt_cmd,
 }
 
 /* Set global title numbering plan indicator of the sccp address gt */
-DEFUN(cs7_sccpaddr_gt_npi, cs7_sccpaddr_gt_npi_cmd,
-      "numbering-plan-indicator <0-15>",
-      "Set Global Title Numbering Plan Indicator\n" "NPI\n")
+DEFUN_ATTR(cs7_sccpaddr_gt_npi, cs7_sccpaddr_gt_npi_cmd,
+	   "numbering-plan-indicator <0-15>",
+	   "Set Global Title Numbering Plan Indicator\n" "NPI\n",
+	   CMD_ATTR_IMMEDIATE)
 {
 	struct osmo_sccp_addr_entry *entry =
 	    (struct osmo_sccp_addr_entry *)vty->index;
@@ -1704,9 +1755,10 @@ DEFUN(cs7_sccpaddr_gt_npi, cs7_sccpaddr_gt_npi_cmd,
 }
 
 /* Set global title nature of address indicator of the sccp address gt */
-DEFUN(cs7_sccpaddr_gt_nai, cs7_sccpaddr_gt_nai_cmd,
-      "nature-of-address-indicator <0-127>",
-      "Set Global Title Nature of Address Indicator\n" "NAI\n")
+DEFUN_ATTR(cs7_sccpaddr_gt_nai, cs7_sccpaddr_gt_nai_cmd,
+	   "nature-of-address-indicator <0-127>",
+	   "Set Global Title Nature of Address Indicator\n" "NAI\n",
+	   CMD_ATTR_IMMEDIATE)
 {
 	struct osmo_sccp_addr_entry *entry =
 	    (struct osmo_sccp_addr_entry *)vty->index;
@@ -1716,8 +1768,9 @@ DEFUN(cs7_sccpaddr_gt_nai, cs7_sccpaddr_gt_nai_cmd,
 }
 
 /* Set global title digits of the sccp address gt */
-DEFUN(cs7_sccpaddr_gt_digits, cs7_sccpaddr_gt_digits_cmd,
-      "digits DIGITS", "Set Global Title Digits\n" "Number digits\n")
+DEFUN_ATTR(cs7_sccpaddr_gt_digits, cs7_sccpaddr_gt_digits_cmd,
+	   "digits DIGITS", "Set Global Title Digits\n" "Number digits\n",
+	   CMD_ATTR_IMMEDIATE)
 {
 	struct osmo_sccp_addr_entry *entry =
 	    (struct osmo_sccp_addr_entry *)vty->index;

@@ -143,8 +143,8 @@ DEFUN(show_sccp_connections, show_sccp_connections_cmd,
 
 /* sccp-timer <name> <1-999999>
  * (cmdstr and doc are dynamically generated from osmo_sccp_timer_names.) */
-DEFUN(sccp_timer, sccp_timer_cmd,
-      NULL, NULL)
+DEFUN_ATTR(sccp_timer, sccp_timer_cmd,
+	   NULL, NULL, CMD_ATTR_IMMEDIATE)
 {
 	struct osmo_ss7_instance *ss7 = vty->index;
 	enum osmo_sccp_timer timer = get_string_value(osmo_sccp_timer_names, argv[0]);
