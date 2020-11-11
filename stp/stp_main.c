@@ -60,10 +60,10 @@ static const struct log_info log_info = {
 };
 
 static const char stp_copyright[] =
-	"Copyright (C) 2015-2017 by Harald Welte <laforge@gnumonks.org>\r\n"
-	"Contributions by Holger Freyther, Neels Hofmeyr\r\n"
+	"Copyright (C) 2015-2020 by Harald Welte <laforge@gnumonks.org>\r\n"
+	"Contributions by Holger Freyther, Neels Hofmeyr, Pau Espin, Vadim Yanitskiy\r\n"
 	"License GPLv2+: GNU GPL Version 2 or later <http://gnu.org/licenses/gpl-2.0.html>\r\n"
-	"This is free software: you are free ot change and redistribute it.\r\n"
+	"This is free software: you are free to change and redistribute it.\r\n"
 	"There is NO WARRANTY, to the extent permitted by law.\r\n\r\n"
 	"Free Software lives by contribution.  If you use this, please contribute!\r\n";
 
