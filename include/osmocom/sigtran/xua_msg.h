@@ -22,7 +22,10 @@
 #include <osmocom/core/linuxlist.h>
 #include <osmocom/sigtran/mtp_sap.h>
 
-#define XUA_HDR(class, type)	((struct xua_common_hdr) { .spare = 0, .msg_class = (class), .msg_type = (type) })
+/* GCC-4 errors with 'initializer element is not constant' if using XUA_HDR
+ * inside a const struct (OS#5004) */
+#define _XUA_HDR(class, type)	{ .spare = 0, .msg_class = (class), .msg_type = (type) }
+#define XUA_HDR(class, type)	((struct xua_common_hdr) _XUA_HDR(class, type))
 
 struct msgb;
 struct osmo_sccp_addr;

@@ -384,7 +384,7 @@ static const struct sccp2sua_testcase sccp2sua_testcases[] = {
 		.name = "BSSMAP-RESET",
 		.sccp = PANDSIZ(bssmap_reset),
 		.sua = {
-			.hdr = XUA_HDR(SUA_MSGC_CL, SUA_CL_CLDT),
+			.hdr = _XUA_HDR(SUA_MSGC_CL, SUA_CL_CLDT),
 			.parts = {
 				PARTU32(SUA_IEI_PROTO_CLASS, &sua_proto_class0),
 				PARTARR(SUA_IEI_DEST_ADDR, sua_addr_ssn_bssmap),
@@ -395,7 +395,7 @@ static const struct sccp2sua_testcase sccp2sua_testcases[] = {
 		.name = "BSSMAP-RESET-ACK",
 		.sccp = PANDSIZ(bssmap_reset_ack),
 		.sua = {
-			.hdr = XUA_HDR(SUA_MSGC_CL, SUA_CL_CLDT),
+			.hdr = _XUA_HDR(SUA_MSGC_CL, SUA_CL_CLDT),
 			.parts = {
 				PARTU32(SUA_IEI_PROTO_CLASS, &sua_proto_class0),
 				PARTARR(SUA_IEI_DEST_ADDR, sua_addr_ssn_bssmap_pc1),
@@ -406,7 +406,7 @@ static const struct sccp2sua_testcase sccp2sua_testcases[] = {
 		.name = "BSSMAP-PAGING",
 		.sccp = PANDSIZ(bssmap_paging),
 		.sua = {
-			.hdr = XUA_HDR(SUA_MSGC_CL, SUA_CL_CLDT),
+			.hdr = _XUA_HDR(SUA_MSGC_CL, SUA_CL_CLDT),
 			.parts = {
 				PARTU32(SUA_IEI_PROTO_CLASS, &sua_proto_class0),
 				PARTARR(SUA_IEI_DEST_ADDR, sua_addr_ssn_bssmap_pc1),
@@ -417,7 +417,7 @@ static const struct sccp2sua_testcase sccp2sua_testcases[] = {
 		.name = "BSSMAP-UDT",
 		.sccp = PANDSIZ(bssmap_udt),
 		.sua = {
-			.hdr = XUA_HDR(SUA_MSGC_CL, SUA_CL_CLDT),
+			.hdr = _XUA_HDR(SUA_MSGC_CL, SUA_CL_CLDT),
 			.parts = {
 				PARTU32(SUA_IEI_PROTO_CLASS, &sua_proto_class0),
 				PARTARR(SUA_IEI_DEST_ADDR, sua_addr_ssn_bssmap),
@@ -428,7 +428,7 @@ static const struct sccp2sua_testcase sccp2sua_testcases[] = {
 		.name = "BSSMAP-CR",
 		.sccp = PANDSIZ(bssmap_cr),
 		.sua = {
-			.hdr = XUA_HDR(SUA_MSGC_CO, SUA_CO_CORE),
+			.hdr = _XUA_HDR(SUA_MSGC_CO, SUA_CO_CORE),
 			.parts = {
 				PARTU32(SUA_IEI_PROTO_CLASS, &sua_proto_class2),
 				PARTU32(SUA_IEI_SRC_REF, &sua_loc_ref_bsc),
@@ -439,7 +439,7 @@ static const struct sccp2sua_testcase sccp2sua_testcases[] = {
 		.name = "BSSMAP-CC",
 		.sccp = PANDSIZ(bssmap_cc),
 		.sua = {
-			.hdr = XUA_HDR(SUA_MSGC_CO, SUA_CO_COAK),
+			.hdr = _XUA_HDR(SUA_MSGC_CO, SUA_CO_COAK),
 			.parts = {
 				PARTU32(SUA_IEI_PROTO_CLASS, &sua_proto_class2),
 				PARTU32(SUA_IEI_SRC_REF, &sua_loc_ref_msc),
@@ -450,7 +450,7 @@ static const struct sccp2sua_testcase sccp2sua_testcases[] = {
 		.name = "BSSMAP-DTAP",
 		.sccp = PANDSIZ(bssmap_dtap),
 		.sua = {
-			.hdr = XUA_HDR(SUA_MSGC_CO, SUA_CO_CODT),
+			.hdr = _XUA_HDR(SUA_MSGC_CO, SUA_CO_CODT),
 			.parts = {
 				PARTU32(SUA_IEI_SRC_REF, &sua_loc_ref_msc),
 			},
@@ -459,7 +459,7 @@ static const struct sccp2sua_testcase sccp2sua_testcases[] = {
 		.name = "BSSMAP-CLEAR",
 		.sccp = PANDSIZ(bssmap_clear),
 		.sua = {
-			.hdr = XUA_HDR(SUA_MSGC_CO, SUA_CO_CODT),
+			.hdr = _XUA_HDR(SUA_MSGC_CO, SUA_CO_CODT),
 			.parts = {
 				PARTU32(SUA_IEI_SRC_REF, &sua_loc_ref_msc),
 			},
@@ -468,7 +468,7 @@ static const struct sccp2sua_testcase sccp2sua_testcases[] = {
 		.name = "BSSMAP-RELEASED",
 		.sccp = PANDSIZ(bssmap_released),
 		.sua = {
-			.hdr = XUA_HDR(SUA_MSGC_CO, SUA_CO_RELRE),
+			.hdr = _XUA_HDR(SUA_MSGC_CO, SUA_CO_RELRE),
 			.parts = {
 				PARTU32(SUA_IEI_DEST_REF, &sua_loc_ref_msc),
 				PARTU32(SUA_IEI_SRC_REF, &sua_loc_ref_bsc),
@@ -479,7 +479,7 @@ static const struct sccp2sua_testcase sccp2sua_testcases[] = {
 		.name = "BSSMAP-RELEASE_COMPLETE",
 		.sccp = PANDSIZ(bssmap_release_complete),
 		.sua = {
-			.hdr = XUA_HDR(SUA_MSGC_CO, SUA_CO_RELCO),
+			.hdr = _XUA_HDR(SUA_MSGC_CO, SUA_CO_RELCO),
 			.parts = {
 				PARTU32(SUA_IEI_DEST_REF, &sua_loc_ref_bsc),
 				PARTU32(SUA_IEI_SRC_REF, &sua_loc_ref_msc),
@@ -489,7 +489,7 @@ static const struct sccp2sua_testcase sccp2sua_testcases[] = {
 		.name = "TCAP",
 		.sccp = PANDSIZ(tcap_global_title),
 		.sua = {
-			.hdr = XUA_HDR(SUA_MSGC_CL, SUA_CL_CLDT),
+			.hdr = _XUA_HDR(SUA_MSGC_CL, SUA_CL_CLDT),
 			.parts = {
 			},
 		},
