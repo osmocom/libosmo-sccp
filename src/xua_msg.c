@@ -59,7 +59,7 @@ void xua_msg_free(struct xua_msg *msg)
 }
 
 int xua_msg_add_data(struct xua_msg *msg, uint16_t tag,
-		      uint16_t len, uint8_t *dat)
+		      uint16_t len, const uint8_t *dat)
 {
 	struct xua_msg_part *part;
 
