@@ -1,6 +1,6 @@
 /* Minimal implementation of RFC 3868 - SCCP User Adaptation Layer */
 
-/* (C) 2015-2017 by Harald Welte <laforge@gnumonks.org>
+/* (C) 2015-2021 by Harald Welte <laforge@gnumonks.org>
  * All Rights Reserved
  *
  * SPDX-License-Identifier: GPL-2.0+
@@ -661,6 +661,8 @@ static int sua_rx_asp(struct osmo_ss7_asp *asp, struct xua_msg *xua)
 	return 0;
 }
 
+static int sua_rx_snm(struct osmo_ss7_asp *asp, struct xua_msg *xua);
+
 /*! \brief process SUA message received from socket
  *  \param[in] asp Application Server Process receiving \ref msg
  *  \param[in] msg received message buffer
@@ -736,6 +738,8 @@ int sua_rx_msg(struct osmo_ss7_asp *asp, struct msgb *msg)
 		rc = sua_rx_mgmt(asp, xua);
 		break;
 	case SUA_MSGC_SNM:
+		rc = sua_rx_snm(asp, xua);
+		break;
 	case SUA_MSGC_RKM:
 		/* FIXME */
 		LOGPASP(asp, DLSUA, LOGL_NOTICE, "Received unsupported SUA "
@@ -759,4 +763,152 @@ out:
 	xua_msg_free(xua);
 
 	return rc;
+}
+
+/***********************************************************************
+ * SSNM msg generation
+ ***********************************************************************/
+
+/* 3.4.1 Destination Unavailable (DUNA) */
+static struct xua_msg *sua_encode_duna(const uint32_t *rctx, unsigned int num_rctx,
+					const uint32_t *aff_pc, unsigned int num_aff_pc,
+					const uint32_t *ssn, const uint32_t *smi, const char *info_string)
+{
+	struct xua_msg *xua = xua_msg_alloc();
+
+	xua->hdr = XUA_HDR(SUA_MSGC_SNM, SUA_SNM_DUNA);
+	xua->hdr.version = SUA_VERSION;
+	if (rctx)
+		xua_msg_add_data(xua, SUA_IEI_ROUTE_CTX, num_rctx * 4, (const uint8_t *)rctx);
+
+	xua_msg_add_data(xua, SUA_IEI_AFFECTED_PC, num_aff_pc * 4, (const uint8_t *) aff_pc);
+
+	if (ssn)
+		xua_msg_add_u32(xua, SUA_IEI_SSN, *ssn);
+
+	if (smi)
+		xua_msg_add_u32(xua, SUA_IEI_SSN, *smi);
+
+	if (info_string) {
+		xua_msg_add_data(xua, SUA_IEI_INFO_STRING,
+				 strlen(info_string)+1,
+				 (const uint8_t *) info_string);
+	}
+	return xua;
+}
+
+/* 3.4.2 Destination Available (DAVA) */
+static struct xua_msg *sua_encode_dava(const uint32_t *rctx, unsigned int num_rctx,
+					const uint32_t *aff_pc, unsigned int num_aff_pc,
+					const uint32_t *ssn, const uint32_t *smi, const char *info_string)
+{
+	/* encoding is exactly identical to DUNA */
+	struct xua_msg *xua = sua_encode_duna(rctx, num_rctx, aff_pc, num_aff_pc, ssn, smi, info_string);
+	if (xua)
+		xua->hdr.msg_type = SUA_SNM_DAVA;
+	return xua;
+}
+
+#if 0 /* not used so far */
+/* 3.4.3 Destination Available (DAUD) */
+static struct xua_msg *sua_encode_daud(const uint32_t *rctx, unsigned int num_rctx,
+					const uint32_t *aff_pc, unsigned int num_aff_pc,
+					const uint32_t *ssn, const uint32_t *smi, const char *info_string)
+{
+	/* encoding is exactly identical to DUNA */
+	struct xua_msg *xua = sua_encode_duna(rctx, num_rctx, aff_pc, num_aff_pc, ssn, smi, info_string);
+	if (xua)
+		xua->hdr.msg_type = SUA_SNM_DAUD;
+	return xua;
+}
+#endif
+
+
+/*! Transmit SSNM DUNA/DAVA message indicating [un]availability of certain point code[s]
+ *  \param[in] asp ASP through whihc to transmit message. Must be ACTIVE.
+ *  \param[in] rctx array of Routing Contexts in network byte order.
+ *  \param[in] num_rctx number of rctx
+ *  \param[in] aff_pc array of 'Affected Point Code' in network byte order.
+ *  \param[in] num_aff_pc number of aff_pc
+ *  \param[in] aff_ssn affected SSN (optional)
+ *  \param[in] smi subsystem multiplicity indicator (optional)
+ *  \param[in] info_string optional information strng (can be NULL).
+ *  \param[in] available are aff_pc now available (true) or unavailable (false) */
+void sua_tx_snm_available(struct osmo_ss7_asp *asp, const uint32_t *rctx, unsigned int num_rctx,
+			  const uint32_t *aff_pc, unsigned int num_aff_pc, const uint32_t *aff_ssn,
+			  const uint32_t *smi, const char *info_string, bool available)
+{
+	struct xua_msg *xua;
+
+	if (available)
+		xua = sua_encode_dava(rctx, num_rctx, aff_pc, num_aff_pc, aff_ssn, smi, info_string);
+	else
+		xua = sua_encode_duna(rctx, num_rctx, aff_pc, num_aff_pc, aff_ssn, smi, info_string);
+
+	sua_tx_xua_asp(asp, xua);
+}
+
+/* received SNM message on ASP side */
+static int sua_rx_snm_asp(struct osmo_ss7_asp *asp, struct xua_msg *xua)
+{
+	struct osmo_ss7_as *as = NULL;
+	struct xua_msg_part *rctx_ie = xua_msg_find_tag(xua, SUA_IEI_ROUTE_CTX);
+	int rc;
+
+	rc = xua_find_as_for_asp(&as, asp, rctx_ie);
+	if (rc)
+		return rc;
+
+	switch (xua->hdr.msg_type) {
+	case SUA_SNM_DUNA:
+		xua_snm_rx_duna(asp, as, xua);
+		break;
+	case SUA_SNM_DAVA:
+		xua_snm_rx_dava(asp, as, xua);
+		break;
+	case SUA_SNM_DUPU:
+	case SUA_SNM_SCON:
+	case SUA_SNM_DRST:
+		LOGPASP(asp, DLSUA, LOGL_NOTICE, "Received unsupported SUA SNM message type %u\n",
+			xua->hdr.msg_type);
+		/* silently ignore those to not confuse the sender */
+		break;
+	default:
+		return SUA_ERR_UNSUPP_MSG_TYPE;
+	}
+
+	return 0;
+}
+
+/* received SNM message on SG side */
+static int sua_rx_snm_sg(struct osmo_ss7_asp *asp, struct xua_msg *xua)
+{
+	switch (xua->hdr.msg_type) {
+	case SUA_SNM_DAUD:	/* Audit: ASP inquires about availability of Point Codes */
+		xua_snm_rx_daud(asp, xua);
+		break;
+	default:
+		return SUA_ERR_UNSUPP_MSG_TYPE;
+	}
+
+	return 0;
+}
+
+static int sua_rx_snm(struct osmo_ss7_asp *asp, struct xua_msg *xua)
+{
+	/* SNM only permitted in ACTIVE state */
+	if (asp->fi->state != XUA_ASP_S_ACTIVE) {
+		LOGPASP(asp, DLSUA, LOGL_NOTICE, "Received M3UA SNM while ASP in state %s\n",
+			osmo_fsm_inst_state_name(asp->fi));
+		return SUA_ERR_UNEXPECTED_MSG;
+	}
+
+	switch (asp->cfg.role) {
+	case OSMO_SS7_ASP_ROLE_SG:
+		return sua_rx_snm_sg(asp, xua);
+	case OSMO_SS7_ASP_ROLE_ASP:
+		return sua_rx_snm_asp(asp, xua);
+	default:
+		return SUA_ERR_UNSUPP_MSG_CLASS;
+	}
 }

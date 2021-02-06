@@ -31,7 +31,7 @@ libosmo_sigtran_la_SOURCES = sccp_sap.c sua.c m3ua.c xua_msg.c sccp_helpers.c \
 			     sccp2sua.c sccp_scrc.c sccp_sclc.c sccp_scoc.c \
 			     sccp_user.c sccp_types.c xua_rkm.c xua_shared.c xua_default_lm_fsm.c \
 			     osmo_ss7.c osmo_ss7_hmrt.c xua_asp_fsm.c xua_as_fsm.c \
-			     osmo_ss7_vty.c sccp_vty.c ipa.c
+			     xua_snm.c osmo_ss7_vty.c sccp_vty.c ipa.c
 libosmo_sigtran_la_LDFLAGS = -version-info $(LIBVERSION) -no-undefined -export-symbols-regex '^osmo_'
 libosmo_sigtran_la_LIBADD = $(LIBOSMOCORE_LIBS) $(LIBOSMOGSM_LIBS) $(LIBOSMOVTY_LIBS) \
 			    $(LIBOSMONETIF_LIBS) $(LIBSCTP_LIBS)

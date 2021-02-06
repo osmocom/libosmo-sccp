@@ -75,6 +75,26 @@ static int as_notify_all_asp(struct osmo_ss7_as *as, struct osmo_xlm_prim_notify
 	return sent;
 }
 
+/* determine which role (SG/ASP/IPSP) we operate in */
+static int get_local_role(struct osmo_ss7_as *as)
+{
+	unsigned int i;
+
+	/* this is a bit tricky. "osmo_ss7_as" has no configuation of a role,
+	 * only the ASPs have.  As they all must be of the same role, let's simply
+	 * find the first one and return its role */
+	for (i = 0; i < ARRAY_SIZE(as->cfg.asps); i++) {
+		struct osmo_ss7_asp *asp = as->cfg.asps[i];
+
+		if (!asp)
+			continue;
+
+		return asp->cfg.role;
+	}
+	/* we don't have any ASPs in this AS? Strange */
+	return -1;
+}
+
 static struct osmo_ss7_asp *xua_as_select_asp_override(struct osmo_ss7_as *as)
 {
 	struct osmo_ss7_asp *asp;
@@ -318,6 +338,17 @@ static void xua_as_fsm_onenter(struct osmo_fsm_inst *fi, uint32_t old_state)
 	/* TODO: ASP-Id of ASP triggering this state change */
 
 	as_notify_all_asp(xafp->as, &npar);
+
+	/* only if we are the SG, we must start broadcasting availability information
+	 * to everyone else */
+	if (get_local_role(xafp->as) == OSMO_SS7_ASP_ROLE_SG) {
+		/* advertise availability of the routing key to others */
+		uint32_t aff_pc = htonl(as->cfg.routing_key.pc);
+		if (old_state != XUA_AS_S_ACTIVE && fi->state == XUA_AS_S_ACTIVE)
+			xua_snm_pc_available(as, &aff_pc, 1, NULL, true);
+		else if (old_state == XUA_AS_S_ACTIVE && fi->state != XUA_AS_S_ACTIVE)
+			xua_snm_pc_available(as, &aff_pc, 1, NULL, false);
+	}
 };
 
 static void xua_as_fsm_inactive(struct osmo_fsm_inst *fi, uint32_t event, void *data)

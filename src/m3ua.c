@@ -677,6 +677,8 @@ static int m3ua_rx_asp(struct osmo_ss7_asp *asp, struct xua_msg *xua)
 	return 0;
 }
 
+static int m3ua_rx_snm(struct osmo_ss7_asp *asp, struct xua_msg *xua);
+
 /*! \brief process M3UA message received from socket
  *  \param[in] asp Application Server Process receiving \ref msg
  *  \param[in] msg received message buffer
@@ -737,10 +739,7 @@ int m3ua_rx_msg(struct osmo_ss7_asp *asp, struct msgb *msg)
 		rc = m3ua_rx_rkm(asp, xua);
 		break;
 	case M3UA_MSGC_SNM:
-		/* FIXME */
-		LOGPASP(asp, DLM3UA, LOGL_NOTICE, "Received unsupported M3UA "
-			"Message Class %u\n", xua->hdr.msg_class);
-		err = m3ua_gen_error_msg(M3UA_ERR_UNSUPP_MSG_CLASS, msg);
+		rc = m3ua_rx_snm(asp, xua);
 		break;
 	default:
 		LOGPASP(asp, DLM3UA, LOGL_NOTICE, "Received unknown M3UA "
@@ -759,4 +758,147 @@ out:
 	xua_msg_free(xua);
 
 	return rc;
+}
+
+/***********************************************************************
+ * SSNM msg generation
+ ***********************************************************************/
+
+/* 3.4.1 Destination Unavailable (DUNA) */
+static struct xua_msg *m3ua_encode_duna(const uint32_t *rctx, unsigned int num_rctx,
+					const uint32_t *aff_pc, unsigned int num_aff_pc,
+					const char *info_string)
+{
+	struct xua_msg *xua = xua_msg_alloc();
+
+	xua->hdr = XUA_HDR(M3UA_MSGC_SNM, M3UA_SNM_DUNA);
+	xua->hdr.version = M3UA_VERSION;
+	if (rctx)
+		xua_msg_add_data(xua, M3UA_IEI_ROUTE_CTX, num_rctx * sizeof(*rctx), (const uint8_t *)rctx);
+
+	xua_msg_add_data(xua, M3UA_IEI_AFFECTED_PC, num_aff_pc * sizeof(*aff_pc), (const uint8_t *) aff_pc);
+
+	if (info_string) {
+		xua_msg_add_data(xua, M3UA_IEI_INFO_STRING,
+				 strlen(info_string)+1,
+				 (const uint8_t *) info_string);
+	}
+	return xua;
+}
+
+/* 3.4.2 Destination Available (DAVA) */
+static struct xua_msg *m3ua_encode_dava(const uint32_t *rctx, unsigned int num_rctx,
+					const uint32_t *aff_pc, unsigned int num_aff_pc,
+					const char *info_string)
+{
+	/* encoding is exactly identical to DUNA */
+	struct xua_msg *xua = m3ua_encode_duna(rctx, num_rctx, aff_pc, num_aff_pc, info_string);
+	if (xua)
+		xua->hdr.msg_type = M3UA_SNM_DAVA;
+	return xua;
+}
+
+#if 0 /* not used so far */
+/* 3.4.3 Destination Available (DAUD) */
+static struct xua_msg *m3ua_encode_daud(const uint32_t *rctx, unsigned int num_rctx,
+					const uint32_t *aff_pc, unsigned int num_aff_pc,
+					const char *info_string)
+{
+	/* encoding is exactly identical to DUNA */
+	struct xua_msg *xua = m3ua_encode_duna(rctx, num_rctx, aff_pc, num_aff_pc, info_string);
+	if (xua)
+		xua->hdr.msg_type = M3UA_SNM_DAUD;
+	return xua;
+}
+#endif
+
+
+/* TODO: 3.4.5 Destination User Part Unavailable (DUPU) */
+
+/*! Transmit SSNM DUNA/DAVA message indicating [un]availability of certain point code[s]
+ *  \param[in] asp ASP through which to transmit message. Must be ACTIVE.
+ *  \param[in] rctx array of Routing Contexts in network byte order.
+ *  \param[in] num_rctx number of rctx
+ *  \param[in] aff_pc array of 'Affected Point Code' in network byte order.
+ *  \param[in] num_aff_pc number of aff_pc
+ *  \param[in] info_string optional information string (can be NULL).
+ *  \param[in] available are aff_pc now available (true) or unavailable (false) */
+void m3ua_tx_snm_available(struct osmo_ss7_asp *asp, const uint32_t *rctx, unsigned int num_rctx,
+			   const uint32_t *aff_pc, unsigned int num_aff_pc,
+			   const char *info_string, bool available)
+{
+	struct xua_msg *xua;
+
+	if (available)
+		xua = m3ua_encode_dava(rctx, num_rctx, aff_pc, num_aff_pc, info_string);
+	else
+		xua = m3ua_encode_duna(rctx, num_rctx, aff_pc, num_aff_pc, info_string);
+
+	m3ua_tx_xua_asp(asp, xua);
+}
+
+/* received SNM message on ASP side */
+static int m3ua_rx_snm_asp(struct osmo_ss7_asp *asp, struct xua_msg *xua)
+{
+	struct osmo_ss7_as *as = NULL;
+	struct xua_msg_part *rctx_ie = xua_msg_find_tag(xua, M3UA_IEI_ROUTE_CTX);
+	int rc;
+
+	rc = xua_find_as_for_asp(&as, asp, rctx_ie);
+	if (rc)
+		return rc;
+
+	/* report those up the stack so both other ASPs and local SCCP users can be notified */
+	switch (xua->hdr.msg_type) {
+	case M3UA_SNM_DUNA:
+		xua_snm_rx_duna(asp, as, xua);
+		break;
+	case M3UA_SNM_DAVA:
+		xua_snm_rx_dava(asp, as, xua);
+		break;
+	case M3UA_SNM_DUPU:
+	case M3UA_SNM_SCON:
+	case M3UA_SNM_DRST:
+		LOGPASP(asp, DLM3UA, LOGL_NOTICE, "Received unsupported M3UA SNM message type %u\n",
+			xua->hdr.msg_type);
+		/* silently ignore those to not confuse the sender */
+		break;
+	default:
+		return M3UA_ERR_UNSUPP_MSG_TYPE;
+	}
+
+	return 0;
+}
+
+/* received SNM message on SG side */
+static int m3ua_rx_snm_sg(struct osmo_ss7_asp *asp, struct xua_msg *xua)
+{
+	switch (xua->hdr.msg_type) {
+	case M3UA_SNM_DAUD:	/* Audit: ASP inquires about availability of Point Codes */
+		xua_snm_rx_daud(asp, xua);
+		break;
+	default:
+		return M3UA_ERR_UNSUPP_MSG_TYPE;
+	}
+
+	return 0;
+}
+
+static int m3ua_rx_snm(struct osmo_ss7_asp *asp, struct xua_msg *xua)
+{
+	/* SNM only permitted in ACTIVE state */
+	if (asp->fi->state != XUA_ASP_S_ACTIVE) {
+		LOGPASP(asp, DLM3UA, LOGL_NOTICE, "Received M3UA SNM while ASP in state %s\n",
+			osmo_fsm_inst_state_name(asp->fi));
+		return M3UA_ERR_UNEXPECTED_MSG;
+	}
+
+	switch (asp->cfg.role) {
+	case OSMO_SS7_ASP_ROLE_SG:
+		return m3ua_rx_snm_sg(asp, xua);
+	case OSMO_SS7_ASP_ROLE_ASP:
+		return m3ua_rx_snm_asp(asp, xua);
+	default:
+		return M3UA_ERR_UNSUPP_MSG_CLASS;
+	}
 }
