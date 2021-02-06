@@ -31,6 +31,7 @@
 #include <osmocom/sigtran/protocol/sua.h>
 
 #include "xua_internal.h"
+#include "sccp_internal.h"
 
 /* we can share this code between M3UA and SUA as the below conditions are true */
 osmo_static_assert(M3UA_SNM_DUNA == SUA_SNM_DUNA, _sa_duna);
@@ -98,6 +99,37 @@ static void xua_tx_snm_available(struct osmo_ss7_asp *asp, const uint32_t *rctx,
 	}
 }
 
+/* generate MTP-PAUSE / MTP-RESUME towards local SCCP users */
+static void xua_snm_pc_available_to_sccp(struct osmo_sccp_instance *sccp,
+					 const uint32_t *aff_pc, unsigned int num_aff_pc,
+					 bool available)
+{
+	int i;
+	for (i = 0; i < num_aff_pc; i++) {
+		uint32_t _aff_pc = ntohl(aff_pc[i]);
+		uint32_t pc = _aff_pc & 0xffffff;
+		uint8_t mask = _aff_pc >> 24;
+
+		if (!mask) {
+			if (available)
+				sccp_scmg_rx_mtp_resume(sccp, pc);
+			else
+				sccp_scmg_rx_mtp_pause(sccp, pc);
+		} else {
+			/* we have to send one MTP primitive for each individual point
+			 * code within that mask */
+			uint32_t maskbits = (1 << mask) - 1;
+			uint32_t fullpc;
+			for (fullpc = (pc & ~maskbits); fullpc <= (pc | maskbits); fullpc++) {
+				if (available)
+					sccp_scmg_rx_mtp_resume(sccp, pc);
+				else
+					sccp_scmg_rx_mtp_pause(sccp, pc);
+			}
+		}
+	}
+}
+
 /* advertise availability of point codes (with masks) */
 void xua_snm_pc_available(struct osmo_ss7_as *as, const uint32_t *aff_pc,
 			  unsigned int num_aff_pc, const char *info_str, bool available)
@@ -107,6 +139,11 @@ void xua_snm_pc_available(struct osmo_ss7_as *as, const uint32_t *aff_pc,
 	uint32_t rctx[32];
 	unsigned int num_rctx;
 
+	/* inform local users via a MTP-{PAUSE, RESUME} primitive */
+	if (s7i->sccp)
+		xua_snm_pc_available_to_sccp(s7i->sccp, aff_pc, num_aff_pc, available);
+
+	/* inform remote ASPs via DUNA/DAVA */
 	llist_for_each_entry(asp, &s7i->asp_list, list) {
 		/* SSNM is only permitted for ASPs in ACTIVE state */
 		if (!osmo_ss7_asp_active(asp))

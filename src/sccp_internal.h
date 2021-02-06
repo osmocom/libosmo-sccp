@@ -129,3 +129,13 @@ const struct osmo_sccp_timer_val *osmo_sccp_timer_get(const struct osmo_sccp_ins
 						      bool default_if_unset);
 
 void osmo_sccp_vty_write_cs7_node(struct vty *vty, const char *indent, struct osmo_sccp_instance *inst);
+
+/* Local Broadcast (LBCS) */
+void sccp_lbcs_local_bcast_pcstate(struct osmo_sccp_instance *inst,
+				   const struct osmo_scu_pcstate_param *pcstate);
+void sccp_lbcs_local_bcast_state(struct osmo_sccp_instance *inst,
+				   const struct osmo_scu_state_param *state);
+
+/* SCCP Management (SCMG) */
+void sccp_scmg_rx_mtp_pause(struct osmo_sccp_instance *inst, uint32_t dpc);
+void sccp_scmg_rx_mtp_resume(struct osmo_sccp_instance *inst, uint32_t dpc);

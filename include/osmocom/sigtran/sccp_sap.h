@@ -137,6 +137,21 @@ enum osmo_sccp_ssn {
 	OSMO_SCCP_SSN_BSSAP		= 254,
 };
 
+/* Q.711 6.3.2.2.5 Signalling point status */
+enum osmo_sccp_sp_status {
+	OSMO_SCCP_SP_S_INACCESSIBLE	= 1,
+	OSMO_SCCP_SP_S_CONGESTED	= 2,
+	OSMO_SCCP_SP_S_ACCESSIBLE	= 3,
+};
+/* Q.711 6.3.2.2.6 Remote SCCP status */
+enum osmo_sccp_rem_sccp_status {
+	OSMO_SCCP_REM_SCCP_S_AVAILABLE 			= 1,
+	OSMO_SCCP_REM_SCCP_S_UNAVAILABLE_UNKNOWN	= 2,
+	OSMO_SCCP_REM_SCCP_S_UNEQUIPPED			= 3,
+	OSMO_SCCP_REM_SCCP_S_INACCESSIBLE		= 4,
+	OSMO_SCCP_REM_SCCP_S_CONGESTED			= 5,
+};
+
 /* legacy shim for name change */
 #define OSMO_SCCP_SSN_SMLC_BSSAP OSMO_SCCP_SSN_SMLC_BSSAP_LE
 
@@ -226,6 +241,22 @@ struct osmo_scu_notice_param {
 	/* user data */
 };
 
+/* OSMO_SCU_PRIM_N_STATE */
+struct osmo_scu_state_param {
+	uint32_t affected_pc;
+	uint32_t affected_ssn;
+	bool user_in_service; /* true: UIS; false: UOS */
+	uint32_t ssn_multiplicity_ind;
+};
+
+/* OSMO_ASCU_PRIM_N_PCSTATE */
+struct osmo_scu_pcstate_param {
+	uint32_t affected_pc;
+	uint32_t restricted_importance_level;
+	enum osmo_sccp_sp_status sp_status;
+	enum osmo_sccp_rem_sccp_status remote_sccp_status;
+};
+
 struct osmo_scu_prim {
 	struct osmo_prim_hdr oph;
 	union {
@@ -235,6 +266,8 @@ struct osmo_scu_prim {
 		struct osmo_scu_reset_param reset;
 		struct osmo_scu_unitdata_param unitdata;
 		struct osmo_scu_notice_param notice;
+		struct osmo_scu_state_param state;
+		struct osmo_scu_pcstate_param pcstate;
 	} u;
 };
 
