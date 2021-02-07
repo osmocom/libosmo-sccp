@@ -532,60 +532,6 @@ struct m3ua_data_hdr *data_hdr_from_m3ua(struct xua_msg *xua)
 	return data_hdr;
 }
 
-/* if given ASP only has one AS, return that AS */
-static struct osmo_ss7_as *find_single_as_for_asp(const struct osmo_ss7_asp *asp)
-{
-	struct osmo_ss7_as *as, *as_found = NULL;
-
-	llist_for_each_entry(as, &asp->inst->as_list, list) {
-		if (!osmo_ss7_as_has_asp(as, asp))
-			continue;
-		/* check if we already had found another AS within this ASP -> not unique */
-		if (as_found)
-			return NULL;
-		as_found = as;
-	}
-
-	return as_found;
-}
-
-static int find_as_for_asp(struct osmo_ss7_as **as, const struct osmo_ss7_asp *asp,
-			   const struct xua_msg_part *rctx_ie)
-{
-	*as = NULL;
-
-	if (rctx_ie) {
-		uint32_t rctx = xua_msg_part_get_u32(rctx_ie);
-		/* Use routing context IE to look up the AS for which the
-		 * message was received. */
-		*as = osmo_ss7_as_find_by_rctx(asp->inst, rctx);
-		if (!*as) {
-			LOGPASP(asp, DLM3UA, LOGL_ERROR, "%s(): invalid routing context: %u\n",
-				__func__, rctx);
-			return M3UA_ERR_INVAL_ROUT_CTX;
-		}
-
-		/* Verify that this ASP is part of the AS. */
-		if (!osmo_ss7_as_has_asp(*as, asp)) {
-			LOGPASP(asp, DLM3UA, LOGL_ERROR,
-				"%s(): This Application Server Process is not part of the AS %s "
-				"resolved by routing context %u\n", __func__, (*as)->cfg.name, rctx);
-			return M3UA_ERR_NO_CONFGD_AS_FOR_ASP;
-		}
-	} else {
-		/* no explicit routing context; this only works if there is only one AS in the ASP */
-		*as = find_single_as_for_asp(asp);
-		if (!*as) {
-			LOGPASP(asp, DLM3UA, LOGL_ERROR,
-				"%s(): ASP sent M3UA without Routing Context IE but unable to uniquely "
-				"identify the AS for this message\n", __func__);
-			return M3UA_ERR_INVAL_ROUT_CTX;
-		}
-	}
-
-	return 0;
-}
-
 static int m3ua_rx_xfer(struct osmo_ss7_asp *asp, struct xua_msg *xua)
 {
 	struct xua_msg_part *rctx_ie = xua_msg_find_tag(xua, M3UA_IEI_ROUTE_CTX);
@@ -603,7 +549,7 @@ static int m3ua_rx_xfer(struct osmo_ss7_asp *asp, struct xua_msg *xua)
 		return M3UA_ERR_UNSUPP_MSG_TYPE;
 	}
 
-	rc = find_as_for_asp(&as, asp, rctx_ie);
+	rc = xua_find_as_for_asp(&as, asp, rctx_ie);
 	if (rc)
 		return rc;
 
