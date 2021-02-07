@@ -283,13 +283,13 @@ int xua_msg_add_u32(struct xua_msg *xua, uint16_t iei, uint32_t val)
 	return xua_msg_add_data(xua, iei, sizeof(val_n), (uint8_t *) &val_n);
 }
 
-uint32_t xua_msg_part_get_u32(struct xua_msg_part *part)
+uint32_t xua_msg_part_get_u32(const struct xua_msg_part *part)
 {
 	OSMO_ASSERT(part->len >= 4);
 	return ntohl(*(uint32_t *)part->dat);
 }
 
-uint32_t xua_msg_get_u32(struct xua_msg *xua, uint16_t iei)
+uint32_t xua_msg_get_u32(const struct xua_msg *xua, uint16_t iei)
 {
 	struct xua_msg_part *part = xua_msg_find_tag(xua, iei);
 	if (!part)
