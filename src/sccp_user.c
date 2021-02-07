@@ -220,6 +220,7 @@ struct osmo_sccp_instance *
 osmo_sccp_instance_create(struct osmo_ss7_instance *ss7, void *priv)
 {
 	struct osmo_sccp_instance *inst;
+	int rc;
 
 	inst = talloc_zero(ss7, struct osmo_sccp_instance);
 	if (!inst)
@@ -234,6 +235,12 @@ osmo_sccp_instance_create(struct osmo_ss7_instance *ss7, void *priv)
 	inst->ss7_user.name = "SCCP";
 	inst->ss7_user.prim_cb = mtp_user_prim_cb;
 	inst->ss7_user.priv = inst;
+
+	rc = sccp_scmg_init(inst);
+	if (rc < 0) {
+		talloc_free(inst);
+		return NULL;
+	}
 
 	osmo_ss7_user_register(ss7, MTP_SI_SCCP, &inst->ss7_user);
 

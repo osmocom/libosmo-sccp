@@ -139,3 +139,4 @@ void sccp_lbcs_local_bcast_state(struct osmo_sccp_instance *inst,
 /* SCCP Management (SCMG) */
 void sccp_scmg_rx_mtp_pause(struct osmo_sccp_instance *inst, uint32_t dpc);
 void sccp_scmg_rx_mtp_resume(struct osmo_sccp_instance *inst, uint32_t dpc);
+int sccp_scmg_init(struct osmo_sccp_instance *inst);

@@ -30,6 +30,7 @@
 
 #include <osmocom/sigtran/sccp_sap.h>
 #include <osmocom/sigtran/protocol/sua.h>
+#include <osmocom/sigtran/protocol/sccp_scmg.h>
 #include <osmocom/sccp/sccp_types.h>
 
 #include "xua_internal.h"
@@ -80,4 +81,134 @@ void sccp_scmg_rx_mtp_resume(struct osmo_sccp_instance *inst, uint32_t dpc)
 
 	/* 8) local broadcast of "user-in-service"
 	 * [this would require us to track SSNs at each PC, which we don't] */
+}
+
+const struct value_string sccp_scmg_msgt_names[] = {
+	{ SCCP_SCMG_MSGT_SSA, "SSA (Subsystem Allowed)" },
+	{ SCCP_SCMG_MSGT_SSP, "SSP (Subsystem Prohibited)" },
+	{ SCCP_SCMG_MSGT_SST, "SST (Subsystem Status Test)" },
+	{ SCCP_SCMG_MSGT_SOR, "SOR (Subsystem Out-of-service Request)" },
+	{ SCCP_SCMG_MSGT_SOG, "SOG (Subsystem Out-of-service Grant)" },
+	{ SCCP_SCMG_MSGT_SSC, "SSC (Subsystem Congested)" },
+	{ 0, NULL }
+};
+
+static int sccp_scmg_tx(struct osmo_sccp_user *scu, const struct osmo_sccp_addr *calling_addr,
+			const struct osmo_sccp_addr *called_addr,
+			uint8_t msg_type, uint8_t ssn, uint16_t pc, uint8_t smi, uint8_t *ssc_cong_lvl)
+{
+	struct msgb *msg = sccp_msgb_alloc(__func__);
+	struct osmo_scu_prim *prim;
+	struct osmo_scu_unitdata_param *param;
+	struct sccp_scmg_msg *scmg;
+
+	/* fill primitive header */
+	prim = (struct osmo_scu_prim *) msgb_put(msg, sizeof(*prim));
+	param = &prim->u.unitdata;
+	memcpy(&param->calling_addr, calling_addr, sizeof(*calling_addr));
+	memcpy(&param->called_addr, called_addr, sizeof(*called_addr));
+	osmo_prim_init(&prim->oph, SCCP_SAP_USER, OSMO_SCU_PRIM_N_UNITDATA, PRIM_OP_REQUEST, msg);
+
+	/* Fill the actual SCMG message */
+	msg->l2h = msgb_put(msg, sizeof(*scmg));
+	scmg = (struct sccp_scmg_msg *) msg->l2h;
+	scmg->msg_type = msg_type;
+	scmg->affected_ssn = ssn;
+	scmg->affected_pc = pc;
+	scmg->smi = smi;
+
+	/* add congestion level in case of SSC message */
+	if (msg_type == SCCP_SCMG_MSGT_SSC) {
+		msgb_put(msg, 1);
+		OSMO_ASSERT(ssc_cong_lvl);
+		scmg->ssc_congestion_lvl[1] = *ssc_cong_lvl;
+	}
+
+	return osmo_sccp_user_sap_down(scu, &prim->oph);
+}
+
+
+/* Subsystem Test received */
+static int scmg_rx_sst(struct osmo_sccp_user *scu, const struct osmo_sccp_addr *calling_addr,
+			const struct osmo_sccp_addr *called_addr, const struct sccp_scmg_msg *sst)
+{
+	/* Q.714 5.3.4.3 Actions at the receiving side (of SST) */
+
+	/* check "ignore subsystem status test" and bail out */
+	/* check if SSN in question is available. If yes, return SSA. If not, ignore */
+	scu = sccp_user_find(scu->inst, sst->affected_ssn, sst->affected_pc);
+	if (!scu)
+		return 0;
+
+	/* is subsystem available? */
+	if (0 /* !subsys_available(scu) */)
+		return 0;
+
+	return sccp_scmg_tx(scu, called_addr, calling_addr, SCCP_SCMG_MSGT_SSA,
+			    sst->affected_ssn, sst->affected_pc, 0, NULL);
+}
+
+static int scmg_rx(struct osmo_sccp_user *scu, const struct osmo_sccp_addr *calling_addr,
+		   const struct osmo_sccp_addr *called_addr, const struct sccp_scmg_msg *scmg)
+{
+	switch (scmg->msg_type) {
+	case SCCP_SCMG_MSGT_SST:
+		return scmg_rx_sst(scu, calling_addr, called_addr, scmg);
+	case SCCP_SCMG_MSGT_SSP:
+	case SCCP_SCMG_MSGT_SSA:
+	case SCCP_SCMG_MSGT_SOR:
+	case SCCP_SCMG_MSGT_SOG:
+	case SCCP_SCMG_MSGT_SSC:
+	default:
+		LOGP(DLSCCP, LOGL_NOTICE, "Rx unsupported SCCP SCMG %s, ignoring",
+			sccp_scmg_msgt_name(scmg->msg_type));
+		break;
+	}
+	return 0;
+}
+
+/* main entry point for SCCP user primitives from SCRC/SCOC */
+static int scmg_prim_cb(struct osmo_prim_hdr *oph, void *_scu)
+{
+	struct osmo_sccp_user *scu = _scu;
+	struct osmo_scu_prim *prim = (struct osmo_scu_prim *) oph;
+	struct osmo_scu_unitdata_param *param;
+	struct sccp_scmg_msg *scmg;
+	int rc = 0;
+
+	switch (OSMO_PRIM_HDR(oph)) {
+	case OSMO_PRIM(OSMO_SCU_PRIM_N_UNITDATA, PRIM_OP_INDICATION):
+		param = &prim->u.unitdata;
+		scmg = msgb_l2(oph->msg);
+		/* ensure minimum length based on message type */
+		if (msgb_l2len(oph->msg) < sizeof(*scmg)) {
+			rc = -1;
+			break;
+		}
+		if (scmg->msg_type == SCCP_SCMG_MSGT_SSC && msgb_l2len(oph->msg) < sizeof(*scmg)+1) {
+			rc = -1;
+			break;
+		}
+		/* interestingly, PC is specified to be encoded in little endian ?!? */
+		scmg->affected_pc = osmo_load16le(&scmg->affected_pc);
+		rc = scmg_rx(scu, &param->calling_addr, &param->called_addr, scmg);
+		break;
+	default:
+		LOGP(DLSCCP, LOGL_ERROR, "unsupported SCCP user primitive %s\n",
+			osmo_scu_prim_name(oph));
+		break;
+	}
+
+	msgb_free(oph->msg);
+	return rc;
+}
+
+/* register SCMG as SCCP user for SSN=1 */
+int sccp_scmg_init(struct osmo_sccp_instance *inst)
+{
+	struct osmo_sccp_user *scu;
+	scu = osmo_sccp_user_bind(inst, "SCCP Maangement", scmg_prim_cb, SCCP_SSN_MANAGEMENT);
+	if (!scu)
+		return -1;
+	return 0;
 }
