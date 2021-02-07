@@ -2258,6 +2258,19 @@ int ss7_asp_rx_unknown(struct osmo_ss7_asp *asp, int ppid_mux, struct msgb *msg)
 	return 0;
 }
 
+/*! Get the logging subsystem for a given ASP. Used by generic code. */
+int osmo_ss7_asp_get_log_subsys(const struct osmo_ss7_asp *asp)
+{
+	switch (asp->cfg.proto) {
+	case OSMO_SS7_ASP_PROT_M3UA:
+		return DLM3UA;
+	case OSMO_SS7_ASP_PROT_SUA:
+		return DLSUA;
+	default:
+		return DLSS7;
+	}
+}
+
 /*! Register a call-back function for unknown SCTP PPID / IPA Stream ID */
 void osmo_ss7_register_rx_unknown_cb(osmo_ss7_asp_rx_unknown_cb *cb)
 {
