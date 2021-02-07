@@ -510,9 +510,16 @@ int sua_addr_parse(struct osmo_sccp_addr *out, struct xua_msg *xua, uint16_t iei
 /* connectionless messages received from socket */
 static int sua_rx_cl(struct osmo_ss7_asp *asp, struct xua_msg *xua)
 {
+	struct xua_msg_part *rctx_ie = xua_msg_find_tag(xua, SUA_IEI_ROUTE_CTX);
 	struct osmo_sccp_instance *inst = asp->inst->sccp;
+	struct osmo_ss7_as *as;
+	int rc;
 
 	OSMO_ASSERT(xua->hdr.msg_class == SUA_MSGC_CL);
+
+	rc = xua_find_as_for_asp(&as, asp, rctx_ie);
+	if (rc)
+		return rc;
 
 	switch (xua->hdr.msg_type) {
 	case 0: /* Reserved, permitted by ETSI TS 101 592 5.2.3.2 */
@@ -531,9 +538,16 @@ static int sua_rx_cl(struct osmo_ss7_asp *asp, struct xua_msg *xua)
 /* connection-oriented messages received from socket */
 static int sua_rx_co(struct osmo_ss7_asp *asp, struct xua_msg *xua)
 {
+	struct xua_msg_part *rctx_ie = xua_msg_find_tag(xua, SUA_IEI_ROUTE_CTX);
 	struct osmo_sccp_instance *inst = asp->inst->sccp;
+	struct osmo_ss7_as *as;
+	int rc;
 
 	OSMO_ASSERT(xua->hdr.msg_class == SUA_MSGC_CO);
+
+	rc = xua_find_as_for_asp(&as, asp, rctx_ie);
+	if (rc)
+		return rc;
 
 	switch (xua->hdr.msg_type) {
 	case 0: /* Reserved, permitted by ETSI TS 101 592 5.2.3.2 */
