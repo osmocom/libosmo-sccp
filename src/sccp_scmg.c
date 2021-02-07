@@ -167,6 +167,33 @@ static int sccp_scmg_tx(struct osmo_sccp_user *scu, const struct osmo_sccp_addr 
 }
 
 
+/* Subsystem Allowed received */
+static int scmg_rx_ssa(struct osmo_sccp_user *scu, const struct osmo_sccp_addr *calling_addr,
+			const struct osmo_sccp_addr *called_addr, const struct sccp_scmg_msg *ssa)
+{
+	/* Q.714 5.3.3 */
+	if (ssa->affected_ssn == SCCP_SSN_MANAGEMENT)
+		return 0;
+
+	/* if the SSN is not marked as prohibited, ignore */
+
+	/* Q.714 5.3.2.2 a) */
+	sccp_scmg_rx_ssn_allowed(scu->inst, ssa->affected_pc, ssa->affected_ssn, ssa->smi);
+
+	/* If the remote SCCP, at which the subsystem reported in the SSA message resides, is marked
+	 * inaccessible, then the message is treated as an implicit indication of SCCP restart */
+	return 0;
+}
+
+/* Subsystem Prohibited received */
+static int scmg_rx_ssp(struct osmo_sccp_user *scu, const struct osmo_sccp_addr *calling_addr,
+			const struct osmo_sccp_addr *called_addr, const struct sccp_scmg_msg *ssp)
+{
+	/* Q.714 5.3.2.2 a) */
+	sccp_scmg_rx_ssn_prohibited(scu->inst, ssp->affected_pc, ssp->affected_ssn, ssp->smi);
+	return 0;
+}
+
 /* Subsystem Test received */
 static int scmg_rx_sst(struct osmo_sccp_user *scu, const struct osmo_sccp_addr *calling_addr,
 			const struct osmo_sccp_addr *called_addr, const struct sccp_scmg_msg *sst)
@@ -191,10 +218,12 @@ static int scmg_rx(struct osmo_sccp_user *scu, const struct osmo_sccp_addr *call
 		   const struct osmo_sccp_addr *called_addr, const struct sccp_scmg_msg *scmg)
 {
 	switch (scmg->msg_type) {
+	case SCCP_SCMG_MSGT_SSA:
+		return scmg_rx_ssa(scu, calling_addr, called_addr, scmg);
+	case SCCP_SCMG_MSGT_SSP:
+		return scmg_rx_ssp(scu, calling_addr, called_addr, scmg);
 	case SCCP_SCMG_MSGT_SST:
 		return scmg_rx_sst(scu, calling_addr, called_addr, scmg);
-	case SCCP_SCMG_MSGT_SSP:
-	case SCCP_SCMG_MSGT_SSA:
 	case SCCP_SCMG_MSGT_SOR:
 	case SCCP_SCMG_MSGT_SOG:
 	case SCCP_SCMG_MSGT_SSC:
