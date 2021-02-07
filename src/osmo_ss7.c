@@ -1056,8 +1056,8 @@ void osmo_ss7_as_destroy(struct osmo_ss7_as *as)
  *  \param[in] as Application Server in which to look for \ref asp
  *  \param[in] asp Application Server Process to look for in \ref as
  *  \returns true in case \ref asp is part of \ref as; false otherwise */
-bool osmo_ss7_as_has_asp(struct osmo_ss7_as *as,
-			 struct osmo_ss7_asp *asp)
+bool osmo_ss7_as_has_asp(const struct osmo_ss7_as *as,
+			 const struct osmo_ss7_asp *asp)
 {
 	unsigned int i;
 
