@@ -297,6 +297,29 @@ uint32_t xua_msg_get_u32(const struct xua_msg *xua, uint16_t iei)
 	return xua_msg_part_get_u32(part);
 }
 
+const char *xua_msg_part_get_str(const struct xua_msg_part *part)
+{
+	static char __thread buf[256];
+
+	if (part->len == 0)
+		return "";
+	/* RFC3868 3.9.4: Length of the INFO String parameter is from 0 to 255 octets */
+	if (part->len > 255)
+		return "<invalid-string-len>";
+
+	memcpy(buf, part->dat, part->len);
+	buf[part->len] = '\0';
+	return buf;
+}
+
+const char *xua_msg_get_str(const struct xua_msg *xua, uint16_t iei)
+{
+	struct xua_msg_part *part = xua_msg_find_tag(xua, iei);
+	if (!part)
+		return NULL;
+	return xua_msg_part_get_str(part);
+}
+
 void xua_part_add_gt(struct msgb *msg, const struct osmo_sccp_gt *gt)
 {
 	uint16_t *len_ptr;
