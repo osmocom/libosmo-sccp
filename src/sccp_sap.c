@@ -37,7 +37,7 @@ const struct value_string osmo_scu_prim_names[] = {
 	/* management */
 	{ OSMO_SCU_PRIM_N_COORD,		"N-COORD" },
 	{ OSMO_SCU_PRIM_N_STATE,		"N-STATE" },
-	{ OSMO_SCU_PRIM_N_PCSTATE,		"N-PCSATE" },
+	{ OSMO_SCU_PRIM_N_PCSTATE,		"N-PCSTATE" },
 	{ 0, NULL }
 };
 
