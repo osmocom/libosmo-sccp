@@ -823,6 +823,28 @@ static struct xua_msg *sua_encode_daud(const uint32_t *rctx, unsigned int num_rc
 }
 #endif
 
+/* 3.4.5 Destination User Part Unavailable (DUPU) */
+static struct xua_msg *sua_encode_dupu(const uint32_t *rctx, unsigned int num_rctx,
+					uint32_t dpc, uint16_t user, uint16_t cause,
+					const char *info_string)
+{
+	struct xua_msg *xua = xua_msg_alloc();
+	uint32_t user_cause = (user << 16) | cause;
+
+	xua->hdr = XUA_HDR(SUA_MSGC_SNM, SUA_SNM_DUNA);
+	xua->hdr.version = SUA_VERSION;
+	if (rctx)
+		xua_msg_add_data(xua, SUA_IEI_ROUTE_CTX, num_rctx * sizeof(*rctx), (const uint8_t *)rctx);
+
+	xua_msg_add_u32(xua, SUA_IEI_AFFECTED_PC, dpc);
+	xua_msg_add_u32(xua, SUA_IEI_USER_CAUSE, user_cause);
+
+	if (info_string) {
+		xua_msg_add_data(xua, SUA_IEI_INFO_STRING, strlen(info_string)+1,
+				 (const uint8_t *) info_string);
+	}
+	return xua;
+}
 
 /*! Transmit SSNM DUNA/DAVA message indicating [un]availability of certain point code[s]
  *  \param[in] asp ASP through whihc to transmit message. Must be ACTIVE.
@@ -848,6 +870,21 @@ void sua_tx_snm_available(struct osmo_ss7_asp *asp, const uint32_t *rctx, unsign
 	sua_tx_xua_asp(asp, xua);
 }
 
+/*! Transmit SSNM DUPU message indicating user unavailability.
+ *  \param[in] asp ASP through which to transmit message. Must be ACTIVE.
+ *  \param[in] rctx array of Routing Contexts in network byte order.
+ *  \param[in] num_rctx number of rctx
+ *  \param[in] dpc affected point code
+ *  \param[in] user the user (SI) that is unavailable
+ *  \param[in] cause the cause of the user unavailability
+ *  \param[in] info_string optional information string (can be NULL). */
+void sua_tx_dupu(struct osmo_ss7_asp *asp, const uint32_t *rctx, unsigned int num_rctx,
+		 uint32_t dpc, uint16_t user, uint16_t cause, const char *info_str)
+{
+	struct xua_msg *xua = sua_encode_dupu(rctx, num_rctx, dpc, user, cause, info_str);
+	sua_tx_xua_asp(asp, xua);
+}
+
 /* received SNM message on ASP side */
 static int sua_rx_snm_asp(struct osmo_ss7_asp *asp, struct xua_msg *xua)
 {
@@ -867,6 +904,8 @@ static int sua_rx_snm_asp(struct osmo_ss7_asp *asp, struct xua_msg *xua)
 		xua_snm_rx_dava(asp, as, xua);
 		break;
 	case SUA_SNM_DUPU:
+		xua_snm_rx_dupu(asp, as, xua);
+		break;
 	case SUA_SNM_SCON:
 	case SUA_SNM_DRST:
 		LOGPASP(asp, DLSUA, LOGL_NOTICE, "Received unsupported SUA SNM message type %u\n",

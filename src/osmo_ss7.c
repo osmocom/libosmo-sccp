@@ -59,6 +59,13 @@ LLIST_HEAD(osmo_ss7_instances);
 static int32_t next_rctx = 1;
 static int32_t next_l_rk_id = 1;
 
+const struct value_string mtp_unavail_cause_vals[] = {
+	{ MTP_UNAVAIL_C_UNKNOWN,		"unknown" },
+	{ MTP_UNAVAIL_C_UNEQUIP_REM_USER,	"unequipped-remote-user" },
+	{ MTP_UNAVAIL_C_INACC_REM_USER,		"inaccessible-remote-user" },
+	{ 0, NULL }
+};
+
 struct value_string osmo_ss7_as_traffic_mode_vals[] = {
 	{ OSMO_SS7_AS_TMOD_BCAST,	"broadcast" },
 	{ OSMO_SS7_AS_TMOD_LOADSHARE,	"loadshare" },

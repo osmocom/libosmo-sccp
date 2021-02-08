@@ -22,3 +22,18 @@ enum mtp_si_ni00 {
 };
 
 extern const struct value_string mtp_si_vals[];
+
+
+/* Chapter 15.17.5 of Q.705 */
+enum mtp_unavail_cause {
+	MTP_UNAVAIL_C_UNKNOWN		= 0x0,
+	MTP_UNAVAIL_C_UNEQUIP_REM_USER	= 0x1,
+	MTP_UNAVAIL_C_INACC_REM_USER	= 0x2,
+	/* reserved */
+};
+
+extern const struct value_string mtp_unavail_cause_vals[];
+
+static inline const char *mtp_unavail_cause_str(enum mtp_unavail_cause cs) {
+	return get_value_string(mtp_unavail_cause_vals, cs);
+}

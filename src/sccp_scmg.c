@@ -122,6 +122,39 @@ void sccp_scmg_rx_mtp_resume(struct osmo_sccp_instance *inst, uint32_t dpc)
 	 * [this would require us to track SSNs at each PC, which we don't] */
 }
 
+void sccp_scmg_rx_mtp_status(struct osmo_sccp_instance *inst, uint32_t dpc, enum mtp_unavail_cause cause)
+{
+	struct osmo_scu_pcstate_param pcstate;
+	/* 1) Informs the translation function to update the translation tables. */
+	/* 2) In the case where the SCCP has received an MTP-STATUS indication primitive relating to
+	      Mark the status of the SCCP and each SSN for the relevant destination to "prohibited"
+	      and initiates a subsystem status test with SSN = 1. If the cause in the MTP-STATUS
+	      indication primitive indicates "unequipped user", then no subsystem status test is
+	      initiated. */
+	/* 3) Discontinues all subsystem status tests (including SSN = 1) if an MTP-STATUS
+	      indication primitive is received with a cause of "unequipped SCCP". The SCCP
+	      discontinues all subsystem status tests, except for SSN = 1, if an MTP-STATUS
+	      indication primitive is received with a cause of either "unknown" or "inaccessible" */
+	switch (cause) {
+	case MTP_UNAVAIL_C_UNKNOWN:
+	case MTP_UNAVAIL_C_UNEQUIP_REM_USER:
+	case MTP_UNAVAIL_C_INACC_REM_USER:
+		break;
+	}
+
+	/* 4) local broadcast of "user-out-of-service" for each SSN at that dest
+	 * [this would require us to track SSNs at each PC, which we don't] */
+
+	/* 6) local broadcast of "remote SCCP unavailable" */
+	pcstate = (struct osmo_scu_pcstate_param) {
+		.affected_pc = dpc,
+		.restricted_importance_level = 0,
+		.sp_status = OSMO_SCCP_SP_S_ACCESSIBLE,
+		.remote_sccp_status = OSMO_SCCP_REM_SCCP_S_UNAVAILABLE_UNKNOWN,
+	};
+	sccp_lbcs_local_bcast_pcstate(inst, &pcstate);
+}
+
 const struct value_string sccp_scmg_msgt_names[] = {
 	{ SCCP_SCMG_MSGT_SSA, "SSA (Subsystem Allowed)" },
 	{ SCCP_SCMG_MSGT_SSP, "SSP (Subsystem Prohibited)" },

@@ -29,6 +29,7 @@
 #include <osmocom/sigtran/osmo_ss7.h>
 #include <osmocom/sigtran/protocol/m3ua.h>
 #include <osmocom/sigtran/protocol/sua.h>
+#include <osmocom/sigtran/protocol/mtp.h>
 
 #include "xua_internal.h"
 #include "sccp_internal.h"
@@ -98,6 +99,22 @@ static void xua_tx_snm_available(struct osmo_ss7_asp *asp, const uint32_t *rctx,
 		break;
 	}
 }
+
+static void xua_tx_upu(struct osmo_ss7_asp *asp, const uint32_t *rctx, unsigned int num_rctx,
+			uint32_t dpc, uint16_t user, uint16_t cause, const char *info_str)
+{
+	switch (asp->cfg.proto) {
+	case OSMO_SS7_ASP_PROT_M3UA:
+		m3ua_tx_dupu(asp, rctx, num_rctx, dpc, user, cause, info_str);
+		break;
+	case OSMO_SS7_ASP_PROT_SUA:
+		sua_tx_dupu(asp, rctx, num_rctx, dpc, user, cause, info_str);
+		break;
+	default:
+		break;
+	}
+}
+
 
 /* generate MTP-PAUSE / MTP-RESUME towards local SCCP users */
 static void xua_snm_pc_available_to_sccp(struct osmo_sccp_instance *sccp,
@@ -208,6 +225,37 @@ static void sua_snm_ssn_available(struct osmo_ss7_as *as, uint32_t aff_pc, uint3
 	}
 }
 
+static void xua_snm_upu(struct osmo_ss7_as *as, uint32_t dpc, uint16_t user, uint16_t cause,
+			const char *info_str)
+{
+	struct osmo_ss7_instance *s7i = as->inst;
+	struct osmo_ss7_asp *asp;
+	uint32_t rctx[32];
+	unsigned int num_rctx;
+
+	/* Translate to MTP-STATUS.ind towards SCCP (will create N-PCSTATE.ind to SCU) */
+	if (s7i->sccp && user == MTP_SI_SCCP)
+		sccp_scmg_rx_mtp_status(s7i->sccp, dpc, cause);
+
+	/* inform remote ASPs via DUPU */
+	llist_for_each_entry(asp, &s7i->asp_list, list) {
+		/* SSNM is only permitted for ASPs in ACTIVE state */
+		if (!osmo_ss7_asp_active(asp))
+			continue;
+
+		/* only send DAVA/DUNA if we locally are the SG and the remote is ASP */
+		if (asp->cfg.role != OSMO_SS7_ASP_ROLE_SG)
+			continue;
+
+		num_rctx = get_all_rctx_for_asp(rctx, ARRAY_SIZE(rctx), asp, as);
+		/* this can happen if the given ASP is only in the AS that reports the change,
+		 * which shall be excluded */
+		if (num_rctx == 0)
+			continue;
+
+		xua_tx_upu(asp, rctx, num_rctx, dpc, user, cause, info_str);
+	}
+}
 
 /* receive DAUD from ASP; pc is 'affected PC' IE with mask in network byte order! */
 void xua_snm_rx_daud(struct osmo_ss7_asp *asp, struct xua_msg *xua)
@@ -322,4 +370,38 @@ void xua_snm_rx_dava(struct osmo_ss7_asp *asp, struct osmo_ss7_as *as, struct xu
 		xua_snm_pc_available(as, (const uint32_t *)ie_aff_pc->dat,
 				     ie_aff_pc->len / sizeof(uint32_t), info_str, true);
 	}
+}
+
+/* an incoming SUA/M3UA DUPU was received from a remote SG */
+void xua_snm_rx_dupu(struct osmo_ss7_asp *asp, struct osmo_ss7_as *as, struct xua_msg *xua)
+{
+	uint32_t aff_pc = xua_msg_get_u32(xua, SUA_IEI_AFFECTED_PC);
+	const char *info_str = xua_msg_get_str(xua, SUA_IEI_INFO_STRING);
+	/* TODO: should our processing depend on the RCTX included? I somehow don't think so */
+	//struct xua_msg_part *ie_rctx = xua_msg_find_tag(xua, SUA_IEI_ROUTE_CTX);
+	int log_ss = osmo_ss7_asp_get_log_subsys(asp);
+	uint32_t cause_user;
+	uint16_t cause, user;
+
+	if (asp->cfg.role != OSMO_SS7_ASP_ROLE_ASP)
+		return;
+
+	switch (asp->cfg.proto) {
+	case OSMO_SS7_ASP_PROT_M3UA:
+		cause_user = xua_msg_get_u32(xua, M3UA_IEI_USER_CAUSE);
+		break;
+	case OSMO_SS7_ASP_PROT_SUA:
+		cause_user = xua_msg_get_u32(xua, SUA_IEI_USER_CAUSE);
+		break;
+	default:
+		return;
+	}
+
+	cause = cause_user >> 16;
+	user = cause_user & 0xffff;
+	LOGPASP(asp, log_ss, LOGL_NOTICE, "Rx DUPU(%s) for %s User %s, cause %u\n",
+		info_str ? info_str : "", osmo_ss7_pointcode_print(asp->inst, aff_pc),
+		get_value_string(mtp_si_vals, user), cause);
+
+	xua_snm_upu(as, aff_pc, user, cause, info_str);
 }
