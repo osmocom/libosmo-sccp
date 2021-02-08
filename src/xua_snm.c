@@ -162,6 +162,53 @@ void xua_snm_pc_available(struct osmo_ss7_as *as, const uint32_t *aff_pc,
 	}
 }
 
+/* generate SS-PROHIBITED / SS-ALLOWED towards local SCCP users */
+static void sua_snm_ssn_available_to_sccp(struct osmo_sccp_instance *sccp, uint32_t aff_pc,
+					  uint32_t aff_ssn, uint32_t smi, bool available)
+{
+	if (available)
+		sccp_scmg_rx_ssn_allowed(sccp, aff_pc, aff_ssn, smi);
+	else
+		sccp_scmg_rx_ssn_prohibited(sccp, aff_pc, aff_ssn, smi);
+}
+
+/* advertise availability of a single subsystem */
+static void sua_snm_ssn_available(struct osmo_ss7_as *as, uint32_t aff_pc, uint32_t aff_ssn,
+				  const uint32_t *smi, const char *info_str, bool available)
+{
+	struct osmo_ss7_instance *s7i = as->inst;
+	struct osmo_ss7_asp *asp;
+	uint32_t rctx[32];
+	unsigned int num_rctx;
+	uint32_t _smi = smi ? *smi : 0; /* 0 == reserved/unknown in SUA */
+
+	if (s7i->sccp)
+		sua_snm_ssn_available_to_sccp(s7i->sccp, aff_pc, aff_ssn, _smi, available);
+
+	/* inform remote SUA ASPs via DUNA/DAVA */
+	llist_for_each_entry(asp, &s7i->asp_list, list) {
+		/* SSNM is only permitted for ASPs in ACTIVE state */
+		if (!osmo_ss7_asp_active(asp))
+			continue;
+
+		/* only send DAVA/DUNA if we locally are the SG and the remote is ASP */
+		if (asp->cfg.role != OSMO_SS7_ASP_ROLE_SG)
+			continue;
+
+		/* DUNA/DAVA for SSN only exists in SUA */
+		if (asp->cfg.proto != OSMO_SS7_ASP_PROT_SUA)
+			continue;
+
+		num_rctx = get_all_rctx_for_asp(rctx, ARRAY_SIZE(rctx), asp, as);
+		/* this can happen if the given ASP is only in the AS that reports the change,
+		 * which shall be excluded */
+		if (num_rctx == 0)
+			continue;
+		sua_tx_snm_available(asp, rctx, num_rctx, &aff_pc, 1, &aff_ssn, smi, info_str, available);
+	}
+}
+
+
 /* receive DAUD from ASP; pc is 'affected PC' IE with mask in network byte order! */
 void xua_snm_rx_daud(struct osmo_ss7_asp *asp, struct xua_msg *xua)
 {
@@ -211,6 +258,7 @@ void xua_snm_rx_daud(struct osmo_ss7_asp *asp, struct xua_msg *xua)
 void xua_snm_rx_duna(struct osmo_ss7_asp *asp, struct osmo_ss7_as *as, struct xua_msg *xua)
 {
 	struct xua_msg_part *ie_aff_pc = xua_msg_find_tag(xua, M3UA_IEI_AFFECTED_PC);
+	struct xua_msg_part *ie_ssn = xua_msg_find_tag(xua, SUA_IEI_SSN);
 	const char *info_str = xua_msg_get_str(xua, M3UA_IEI_INFO_STRING);
 	/* TODO: should our processing depend on the RCTX included? I somehow don't think so */
 	//struct xua_msg_part *ie_rctx = xua_msg_find_tag(xua, M3UA_IEI_ROUTE_CTX);
@@ -224,13 +272,28 @@ void xua_snm_rx_duna(struct osmo_ss7_asp *asp, struct osmo_ss7_as *as, struct xu
 	LOGPASP(asp, log_ss, LOGL_NOTICE, "Rx DUNA(%s) for %s\n", info_str ? info_str : "",
 		format_affected_pcs_c(xua, asp->inst, ie_aff_pc));
 
-	xua_snm_pc_available(as, (const uint32_t *)ie_aff_pc->dat, ie_aff_pc->len/4, info_str, false);
+	if (asp->cfg.proto == OSMO_SS7_ASP_PROT_SUA && ie_ssn) {
+		/* when the SSN is included, DUNA corresponds to the SCCP N-STATE primitive */
+		uint32_t ssn = xua_msg_part_get_u32(ie_ssn);
+		const uint32_t *aff_pc = (const uint32_t *)ie_aff_pc->dat;
+		uint32_t pc, smi;
+		/* The Affected Point Code can only contain one point code when SSN is present */
+		if (ie_aff_pc->len/sizeof(uint32_t) != 1)
+			return;
+		pc = ntohl(aff_pc[0]) & 0xffffff;
+		sua_snm_ssn_available(as, pc, ssn, xua_msg_get_u32p(xua, SUA_IEI_SMI, &smi), info_str, false);
+	} else {
+		/* when the SSN is not included, DUNA corresponds to the SCCP N-PCSTATE primitive */
+		xua_snm_pc_available(as, (const uint32_t *)ie_aff_pc->dat,
+				     ie_aff_pc->len / sizeof(uint32_t), info_str, false);
+	}
 }
 
 /* an incoming xUA DAVA was received from a remote SG */
 void xua_snm_rx_dava(struct osmo_ss7_asp *asp, struct osmo_ss7_as *as, struct xua_msg *xua)
 {
 	struct xua_msg_part *ie_aff_pc = xua_msg_find_tag(xua, M3UA_IEI_AFFECTED_PC);
+	struct xua_msg_part *ie_ssn = xua_msg_find_tag(xua, SUA_IEI_SSN);
 	const char *info_str = xua_msg_get_str(xua, M3UA_IEI_INFO_STRING);
 	/* TODO: should our processing depend on the RCTX included? I somehow don't think so */
 	//struct xua_msg_part *ie_rctx = xua_msg_find_tag(xua, M3UA_IEI_ROUTE_CTX);
@@ -244,5 +307,19 @@ void xua_snm_rx_dava(struct osmo_ss7_asp *asp, struct osmo_ss7_as *as, struct xu
 	LOGPASP(asp, log_ss, LOGL_NOTICE, "Rx DAVA(%s) for %s\n", info_str ? info_str : "",
 		format_affected_pcs_c(xua, asp->inst, ie_aff_pc));
 
-	xua_snm_pc_available(as, (const uint32_t *)ie_aff_pc->dat, ie_aff_pc->len/4, info_str, true);
+	if (asp->cfg.proto == OSMO_SS7_ASP_PROT_SUA && ie_ssn) {
+		/* when the SSN is included, DAVA corresponds to the SCCP N-STATE primitive */
+		uint32_t ssn = xua_msg_part_get_u32(ie_ssn);
+		const uint32_t *aff_pc = (const uint32_t *)ie_aff_pc->dat;
+		uint32_t pc, smi;
+		/* The Affected Point Code can only contain one point code when SSN is present */
+		if (ie_aff_pc->len/sizeof(uint32_t) != 1)
+			return;
+		pc = ntohl(aff_pc[0]) & 0xffffff;
+		sua_snm_ssn_available(as, pc, ssn, xua_msg_get_u32p(xua, SUA_IEI_SMI, &smi), info_str, true);
+	} else {
+		/* when the SSN is not included, DAVA corresponds to the SCCP N-PCSTATE primitive */
+		xua_snm_pc_available(as, (const uint32_t *)ie_aff_pc->dat,
+				     ie_aff_pc->len / sizeof(uint32_t), info_str, true);
+	}
 }

@@ -137,6 +137,8 @@ void sccp_lbcs_local_bcast_state(struct osmo_sccp_instance *inst,
 				   const struct osmo_scu_state_param *state);
 
 /* SCCP Management (SCMG) */
+void sccp_scmg_rx_ssn_allowed(struct osmo_sccp_instance *inst, uint32_t dpc, uint32_t ssn, uint32_t smi);
+void sccp_scmg_rx_ssn_prohibited(struct osmo_sccp_instance *inst, uint32_t dpc, uint32_t ssn, uint32_t smi);
 void sccp_scmg_rx_mtp_pause(struct osmo_sccp_instance *inst, uint32_t dpc);
 void sccp_scmg_rx_mtp_resume(struct osmo_sccp_instance *inst, uint32_t dpc);
 int sccp_scmg_init(struct osmo_sccp_instance *inst);

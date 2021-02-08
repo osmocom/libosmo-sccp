@@ -36,6 +36,45 @@
 #include "xua_internal.h"
 #include "sccp_internal.h"
 
+/* ITU-T Q.714 5.3.3 Subsystem allowed */
+void sccp_scmg_rx_ssn_allowed(struct osmo_sccp_instance *inst, uint32_t dpc, uint32_t ssn, uint32_t smi)
+{
+	struct osmo_scu_state_param state;
+	/* 1) Instruct the translation function to update the translation tables */
+	/* 2) Mark as "allowed" the status of that subsystem. */
+	/* 3) Initiate a local broadcast of "User-in-service" information for the allowed subsystem */
+	state = (struct osmo_scu_state_param) {
+		.affected_pc = dpc,
+		.affected_ssn = ssn,
+		.user_in_service = true,
+		.ssn_multiplicity_ind = smi,
+	};
+	sccp_lbcs_local_bcast_state(inst, &state);
+	/* 4) Discontinue the subsystem status test if such a test was in progress */
+	/* 5) Initiate a broadcast of Subsystem-Allowed messages to concerned signalling points. */
+}
+
+/* ITU-T Q.714 5.3.2 Subsystem prohibited */
+void sccp_scmg_rx_ssn_prohibited(struct osmo_sccp_instance *inst, uint32_t dpc, uint32_t ssn, uint32_t smi)
+{
+	struct osmo_scu_state_param state;
+	/* 1) instruct the translation function to update the translation tables */
+	/* 2) mark as "prohibited" the status of that subsystem */
+	/* 3) initiate a local broadcast of "User-out-of-service" information */
+	state = (struct osmo_scu_state_param) {
+		.affected_pc = dpc,
+		.affected_ssn = ssn,
+		.user_in_service = false,
+		.ssn_multiplicity_ind = smi,
+	};
+	sccp_lbcs_local_bcast_state(inst, &state);
+
+	/* 4) initiate the subsystem status test procedure if the prohibited subsystem is not local */
+	/* 5) initiate a broadcast of Subsystem-Prohibited messages to concerned SP */
+	/* 6) cancel "ignore subsystem status test" and the associated timer if in progress and if
+	 *    the newly prohibited subsystem resides at the local node. */
+}
+
 /*! brief MTP -> SNM (MTP-PAUSE.ind) - inability to providing MTP service Q.714 5.2.2 */
 void sccp_scmg_rx_mtp_pause(struct osmo_sccp_instance *inst, uint32_t dpc)
 {
