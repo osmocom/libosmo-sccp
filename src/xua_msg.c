@@ -297,6 +297,16 @@ uint32_t xua_msg_get_u32(const struct xua_msg *xua, uint16_t iei)
 	return xua_msg_part_get_u32(part);
 }
 
+/* get a U32 IE in host-byte-order, returning whether it exists (!= NULL) or not (== NULL) */
+const uint32_t *xua_msg_get_u32p(const struct xua_msg *xua, uint16_t iei, uint32_t *out)
+{
+	struct xua_msg_part *part = xua_msg_find_tag(xua, iei);
+	if (!part)
+		return NULL;
+	*out = xua_msg_part_get_u32(part);
+	return out;
+}
+
 const char *xua_msg_part_get_str(const struct xua_msg_part *part)
 {
 	static char __thread buf[256];
