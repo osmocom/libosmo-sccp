@@ -290,7 +290,7 @@ static void init_logging(void)
 	msgb_talloc_ctx_init(tall_ctx, 0);
 	osmo_init_logging2(tall_ctx, &log_info);
 
-	log_set_print_filename(osmo_stderr_target, 0);
+	log_set_print_filename2(osmo_stderr_target, LOG_FILENAME_NONE);
 
 	for (i = 0; i < ARRAY_SIZE(log_cats); i++)
 		log_set_category_filter(osmo_stderr_target, log_cats[i], 1, LOGL_DEBUG);
