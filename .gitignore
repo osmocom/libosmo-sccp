@@ -13,6 +13,7 @@ bsc_msc_ip
 bsc_mgcp
 *.*~
 *.sw?
+*~
 
 #configure
 aclocal.m4
