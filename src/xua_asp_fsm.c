@@ -1010,8 +1010,9 @@ static void ipa_asp_fsm_wait_id_ack(struct osmo_fsm_inst *fi, uint32_t event, vo
 	}
 }
 
-static void ipa_asp_fsm_del_route(struct ipa_asp_fsm_priv *iafp)
+static void ipa_asp_fsm_del_route(struct osmo_fsm_inst *fi)
 {
+	struct ipa_asp_fsm_priv *iafp = fi->priv;
 	struct osmo_ss7_asp *asp = iafp->asp;
 	struct osmo_ss7_instance *inst = asp->inst;
 	/* We use routing-context '0' here, as that's the only one we support in IPA */
@@ -1023,11 +1024,20 @@ static void ipa_asp_fsm_del_route(struct ipa_asp_fsm_priv *iafp)
 	/* find the route which we have created if we ever reached ipa_asp_fsm_wait_id_ack2 */
 	rt = osmo_ss7_route_find_dpc_mask(inst->rtable_system, as->cfg.routing_key.pc, 0xffffff);
 	/* no route found, bail out */
-	if (!rt)
+	if (!rt) {
+		LOGPFSML(fi, LOGL_NOTICE, "Attempting to delete route for this IPA ASP, but cannot "
+			 "find route for DPC %s. Did you manually delete it?\n",
+			 osmo_ss7_pointcode_print(inst, as->cfg.routing_key.pc));
 		return;
+	}
+
 	/* route points to different AS, bail out */
-	if (rt->dest.as != as)
+	if (rt->dest.as != as) {
+		LOGPFSML(fi, LOGL_NOTICE, "Attempting to delete route for this IPA ASP, but found "
+			 "route for DPC %s points to different AS (%s)\n",
+			 osmo_ss7_pointcode_print(inst, as->cfg.routing_key.pc), rt->dest.as->cfg.name);
 		return;
+	}
 
 	osmo_ss7_route_destroy(rt);
 	/* FIXME: Why don't we also delete this timer if we return early above?
@@ -1041,7 +1051,7 @@ static void ipa_asp_fsm_active(struct osmo_fsm_inst *fi, uint32_t event, void *d
 	switch (event) {
 	case XUA_ASP_E_M_ASP_DOWN_REQ:
 	case XUA_ASP_E_M_ASP_INACTIVE_REQ:
-		ipa_asp_fsm_del_route(fi->priv);
+		ipa_asp_fsm_del_route(fi);
 		osmo_fsm_inst_state_chg(fi, IPA_ASP_S_DOWN, 0, 0);
 		break;
 	}
@@ -1051,7 +1061,7 @@ static void ipa_asp_fsm_inactive(struct osmo_fsm_inst *fi, uint32_t event, void 
 {
 	switch (event) {
 	case XUA_ASP_E_M_ASP_DOWN_REQ:
-		ipa_asp_fsm_del_route(fi->priv);
+		ipa_asp_fsm_del_route(fi);
 		osmo_fsm_inst_state_chg(fi, IPA_ASP_S_DOWN, 0, 0);
 		break;
 	}
@@ -1178,7 +1188,7 @@ static const struct osmo_fsm_state ipa_asp_states[] = {
 
 static void ipa_asp_fsm_cleanup(struct osmo_fsm_inst *fi, enum osmo_fsm_term_cause cause)
 {
-	ipa_asp_fsm_del_route(fi->priv);
+	ipa_asp_fsm_del_route(fi);
 }
 
 struct osmo_fsm ipa_asp_fsm = {
