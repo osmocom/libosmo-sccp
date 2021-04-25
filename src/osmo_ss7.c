@@ -1834,8 +1834,7 @@ static int xua_srv_conn_closed_cb(struct osmo_stream_srv *srv)
 {
 	struct osmo_ss7_asp *asp = osmo_stream_srv_get_data(srv);
 
-	LOGP(DLSS7, LOGL_INFO, "%s: SCTP connection closed\n",
-		asp ? asp->cfg.name : "?");
+	LOGP(DLSS7, LOGL_INFO, "%s: connection closed\n", asp ? asp->cfg.name : "?");
 
 	if (!asp)
 		return 0;
