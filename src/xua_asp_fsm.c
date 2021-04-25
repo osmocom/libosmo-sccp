@@ -29,6 +29,7 @@
 
 #include "xua_asp_fsm.h"
 #include "xua_as_fsm.h"
+#include "xua_internal.h"
 
 #define S(x)	(1 << (x))
 
@@ -941,9 +942,9 @@ static void ipa_asp_fsm_wait_id_ack2(struct osmo_fsm_inst *fi, uint32_t event, v
 	struct ipa_asp_fsm_priv *iafp = fi->priv;
 	struct osmo_ss7_asp *asp = iafp->asp;
 	struct osmo_ss7_instance *inst = asp->inst;
-	/* We use routing-context '0' here, as that's the only one we support in IPA */
-	struct osmo_ss7_as *as = osmo_ss7_as_find_by_rctx(inst, 0);
+	struct osmo_ss7_as *as;
 
+	xua_find_as_for_asp(&as, asp, NULL);
 	OSMO_ASSERT(as);
 
 	switch (event) {
@@ -1015,10 +1016,10 @@ static void ipa_asp_fsm_del_route(struct osmo_fsm_inst *fi)
 	struct ipa_asp_fsm_priv *iafp = fi->priv;
 	struct osmo_ss7_asp *asp = iafp->asp;
 	struct osmo_ss7_instance *inst = asp->inst;
-	/* We use routing-context '0' here, as that's the only one we support in IPA */
-	struct osmo_ss7_as *as = osmo_ss7_as_find_by_rctx(inst, 0);
+	struct osmo_ss7_as *as;
 	struct osmo_ss7_route *rt;
 
+	xua_find_as_for_asp(&as, asp, NULL);
 	OSMO_ASSERT(as);
 
 	/* find the route which we have created if we ever reached ipa_asp_fsm_wait_id_ack2 */
