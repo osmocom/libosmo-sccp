@@ -202,6 +202,66 @@ struct xua_as_fsm_priv {
 	} recovery;
 };
 
+/* is the given AS one with a single ASP of IPA type? */
+static bool is_single_ipa_asp(struct osmo_ss7_as *as)
+{
+	unsigned int asp_count = 0;
+	int i;
+
+	for (i = 0; i < ARRAY_SIZE(as->cfg.asps); i++) {
+		struct osmo_ss7_asp *asp = as->cfg.asps[i];
+		if (!asp)
+			continue;
+		asp_count++;
+		if (asp->cfg.proto != OSMO_SS7_ASP_PROT_IPA)
+			return false;
+	}
+	if (asp_count == 1)
+		return true;
+	return false;
+}
+
+static void ipa_add_route(struct osmo_fsm_inst *fi)
+{
+	struct xua_as_fsm_priv *xafp = (struct xua_as_fsm_priv *) fi->priv;
+	struct osmo_ss7_as *as = xafp->as;
+	struct osmo_ss7_instance *inst = as->inst;
+
+	/* As opposed to M3UA, there is no RKM and we have to implicitly
+	 * automatically add a route once an IPA connection has come up */
+	osmo_ss7_route_create(inst->rtable_system, as->cfg.routing_key.pc, 0xffffff, as->cfg.name);
+}
+
+static void ipa_del_route(struct osmo_fsm_inst *fi)
+{
+	struct xua_as_fsm_priv *xafp = (struct xua_as_fsm_priv *) fi->priv;
+	struct osmo_ss7_as *as = xafp->as;
+	struct osmo_ss7_instance *inst = as->inst;
+	struct osmo_ss7_route *rt;
+
+	/* find the route which we have created if we ever reached ipa_asp_fsm_wait_id_ack2 */
+	rt = osmo_ss7_route_find_dpc_mask(inst->rtable_system, as->cfg.routing_key.pc, 0xffffff);
+	/* no route found, bail out */
+	if (!rt) {
+		LOGPFSML(fi, LOGL_NOTICE, "Attempting to delete route for this IPA AS, but cannot "
+			 "find route for DPC %s. Did you manually delete it?\n",
+			 osmo_ss7_pointcode_print(inst, as->cfg.routing_key.pc));
+		return;
+	}
+
+	/* route points to different AS, bail out */
+	if (rt->dest.as != as) {
+		LOGPFSML(fi, LOGL_NOTICE, "Attempting to delete route for this IPA ASP, but found "
+			 "route for DPC %s points to different AS (%s)\n",
+			 osmo_ss7_pointcode_print(inst, as->cfg.routing_key.pc), rt->dest.as->cfg.name);
+		return;
+	}
+
+	osmo_ss7_route_destroy(rt);
+}
+
+
+
 /* is any other ASP in this AS in state != DOWN? */
 static bool check_any_other_asp_not_down(struct osmo_ss7_as *as, struct osmo_ss7_asp *asp_cmp)
 {
@@ -309,12 +369,16 @@ static void xua_as_fsm_onenter(struct osmo_fsm_inst *fi, uint32_t old_state)
 		npar.status_info = M3UA_NOTIFY_I_AS_INACT;
 		break;
 	case XUA_AS_S_ACTIVE:
+		if (is_single_ipa_asp(as))
+			ipa_add_route(fi);
 		npar.status_info = M3UA_NOTIFY_I_AS_ACT;
 		break;
 	case XUA_AS_S_PENDING:
 		npar.status_info = M3UA_NOTIFY_I_AS_PEND;
 		break;
 	case XUA_AS_S_DOWN:
+		if (is_single_ipa_asp(as))
+			ipa_del_route(fi);
 		/* RFC4666 sec 4.3.2 AS States:
 		   If we end up here, it means no ASP is ACTIVE or INACTIVE,
 		   meaning no ASP can have already configured the traffic mode
