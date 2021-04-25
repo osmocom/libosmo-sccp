@@ -783,6 +783,15 @@ osmo_ss7_route_create(struct osmo_ss7_route_table *rtbl, uint32_t pc,
 			return NULL;
 	}
 
+	/* check for duplicates */
+	rt = osmo_ss7_route_find_dpc_mask(rtbl, pc, mask);
+	if (rt && !strcmp(rt->cfg.linkset_name, linkset_name)) {
+		LOGSS7(rtbl->inst, LOGL_ERROR, "Refusing to create duplicate route: "
+			"pc=%u=%s mask=0x%x via linkset/AS '%s'\n",
+			pc, osmo_ss7_pointcode_print(rtbl->inst, pc), mask, linkset_name);
+		return rt;
+	}
+
 	rt = talloc_zero(rtbl, struct osmo_ss7_route);
 	if (!rt)
 		return NULL;
