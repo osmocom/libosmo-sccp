@@ -273,6 +273,7 @@ static int ipa_rx_msg_sccp(struct osmo_ss7_asp *asp, struct msgb *msg)
 	data_hdr.si = MTP_SI_SCCP;
 	data_hdr.opc = osmo_htonl(opc);
 	data_hdr.dpc = osmo_htonl(dpc);
+	data_hdr.ni = as->inst->cfg.network_indicator;
 	/* Create M3UA message in XUA structure */
 	xua = m3ua_xfer_from_data(&data_hdr, msgb_l2(msg), msgb_l2len(msg));
 	msgb_free(msg);
