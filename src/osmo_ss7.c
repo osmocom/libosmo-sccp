@@ -809,7 +809,13 @@ osmo_ss7_route_create(struct osmo_ss7_route_table *rtbl, uint32_t pc,
 /*! \brief Destroy a given SS7 route */
 void osmo_ss7_route_destroy(struct osmo_ss7_route *rt)
 {
+	struct osmo_ss7_route_table *rtbl = rt->rtable;
+
 	OSMO_ASSERT(ss7_initialized);
+
+	LOGSS7(rtbl->inst, LOGL_INFO, "Destroying route: pc=%u=%s mask=0x%x via linkset/ASP '%s'\n",
+	       rt->cfg.pc, osmo_ss7_pointcode_print(rtbl->inst, rt->cfg.pc), rt->cfg.mask, rt->cfg.linkset_name);
+
 	llist_del(&rt->list);
 	talloc_free(rt);
 }
