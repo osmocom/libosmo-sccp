@@ -196,6 +196,15 @@ uint8_t osmo_ss7_pc_width(const struct osmo_ss7_pc_fmt *pc_fmt)
 	return pc_fmt->component_len[0] + pc_fmt->component_len[1] + pc_fmt->component_len[2];
 }
 
+/* truncate pc or mask to maximum permitted length. This solves
+ * callers specifying arbitrary large masks which then evade duplicate
+ * detection with longer mask lengths */
+uint32_t osmo_ss7_pc_normalize(const struct osmo_ss7_pc_fmt *pc_fmt, uint32_t pc)
+{
+	uint32_t mask = (1 << osmo_ss7_pc_width(pc_fmt))-1;
+	return pc & mask;
+}
+
 /* get the number of bits we must shift the given component of a point
  * code in this ss7_instance */
 static unsigned int get_pc_comp_shift(const struct osmo_ss7_pc_fmt *pc_fmt,
@@ -702,6 +711,9 @@ osmo_ss7_route_find_dpc(struct osmo_ss7_route_table *rtbl, uint32_t dpc)
 	struct osmo_ss7_route *rt;
 
 	OSMO_ASSERT(ss7_initialized);
+
+	dpc = osmo_ss7_pc_normalize(&rtbl->inst->cfg.pc_fmt, dpc);
+
 	/* we assume the routes are sorted by mask length, i.e. more
 	 * specific routes first, and less specific routes with shorter
 	 * mask later */
@@ -720,6 +732,9 @@ osmo_ss7_route_find_dpc_mask(struct osmo_ss7_route_table *rtbl, uint32_t dpc,
 	struct osmo_ss7_route *rt;
 
 	OSMO_ASSERT(ss7_initialized);
+	mask = osmo_ss7_pc_normalize(&rtbl->inst->cfg.pc_fmt, mask);
+	dpc = osmo_ss7_pc_normalize(&rtbl->inst->cfg.pc_fmt, dpc);
+
 	/* we assume the routes are sorted by mask length, i.e. more
 	 * specific routes first, and less specific routes with shorter
 	 * mask later */
@@ -774,6 +789,11 @@ osmo_ss7_route_create(struct osmo_ss7_route_table *rtbl, uint32_t pc,
 	struct osmo_ss7_route *rt;
 	struct osmo_ss7_linkset *lset;
 	struct osmo_ss7_as *as = NULL;
+
+	/* truncate mask to maximum.  Let's avoid callers specifying arbitrary large
+	 * masks to ensure we don't fail duplicate detection with longer mask lengths */
+	mask = osmo_ss7_pc_normalize(&rtbl->inst->cfg.pc_fmt, mask);
+	pc = osmo_ss7_pc_normalize(&rtbl->inst->cfg.pc_fmt, pc);
 
 	OSMO_ASSERT(ss7_initialized);
 	lset = osmo_ss7_linkset_find_by_name(rtbl->inst, linkset_name);
