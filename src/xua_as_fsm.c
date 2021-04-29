@@ -200,6 +200,7 @@ struct xua_as_fsm_priv {
 		struct osmo_timer_list t_r;
 		struct llist_head queued_msgs;
 	} recovery;
+	bool ipa_route_created;
 };
 
 /* is the given AS one with a single ASP of IPA type? */
@@ -227,9 +228,13 @@ static void ipa_add_route(struct osmo_fsm_inst *fi)
 	struct osmo_ss7_as *as = xafp->as;
 	struct osmo_ss7_instance *inst = as->inst;
 
+	if (osmo_ss7_route_find_dpc_mask(inst->rtable_system, as->cfg.routing_key.pc, 0xffffff))
+		return;
+
 	/* As opposed to M3UA, there is no RKM and we have to implicitly
 	 * automatically add a route once an IPA connection has come up */
-	osmo_ss7_route_create(inst->rtable_system, as->cfg.routing_key.pc, 0xffffff, as->cfg.name);
+	if (osmo_ss7_route_create(inst->rtable_system, as->cfg.routing_key.pc, 0xffffff, as->cfg.name))
+		xafp->ipa_route_created = true;
 }
 
 static void ipa_del_route(struct osmo_fsm_inst *fi)
@@ -238,6 +243,10 @@ static void ipa_del_route(struct osmo_fsm_inst *fi)
 	struct osmo_ss7_as *as = xafp->as;
 	struct osmo_ss7_instance *inst = as->inst;
 	struct osmo_ss7_route *rt;
+
+	/* don't delete a route if we added none */
+	if (!xafp->ipa_route_created)
+		return;
 
 	/* find the route which we have created if we ever reached ipa_asp_fsm_wait_id_ack2 */
 	rt = osmo_ss7_route_find_dpc_mask(inst->rtable_system, as->cfg.routing_key.pc, 0xffffff);
@@ -258,6 +267,7 @@ static void ipa_del_route(struct osmo_fsm_inst *fi)
 	}
 
 	osmo_ss7_route_destroy(rt);
+	xafp->ipa_route_created = false;
 }
 
 
