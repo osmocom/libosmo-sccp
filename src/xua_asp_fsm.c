@@ -867,7 +867,7 @@ static void ipa_asp_fsm_down(struct osmo_fsm_inst *fi, uint32_t event, void *dat
 			}
 		} else {
 			/* Client: We simply wait for an ID GET */
-			osmo_fsm_inst_state_chg(fi, IPA_ASP_S_WAIT_ID_ACK, 10, T_WAIT_ID_ACK);
+			osmo_fsm_inst_state_chg(fi, IPA_ASP_S_WAIT_ID_GET, 10, T_WAIT_ID_GET);
 		}
 		break;
 	}
@@ -1081,7 +1081,7 @@ static const struct osmo_fsm_state ipa_asp_states[] = {
 	[IPA_ASP_S_DOWN] = {
 		.in_event_mask = S(XUA_ASP_E_M_ASP_UP_REQ) |
 				 S(XUA_ASP_E_SCTP_EST_IND),
-		.out_state_mask = S(IPA_ASP_S_WAIT_ID_ACK) |
+		.out_state_mask = S(IPA_ASP_S_WAIT_ID_GET) |
 				  S(IPA_ASP_S_WAIT_ID_RESP),
 		.name = "ASP_DOWN",
 		.action = ipa_asp_fsm_down,
