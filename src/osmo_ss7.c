@@ -1759,10 +1759,6 @@ static void xua_cli_close(struct osmo_stream_cli *cli)
 	osmo_fsm_inst_dispatch(asp->fi, XUA_ASP_E_SCTP_COMM_DOWN_IND, asp);
 	/* send M-SCTP_RELEASE.ind to XUA Layer Manager */
 	xua_asp_send_xlm_prim_simple(asp, OSMO_XLM_PRIM_M_SCTP_RELEASE, PRIM_OP_INDICATION);
-
-	/* no connection means no socket means no socket name */
-	talloc_free(asp->sock_name);
-	asp->sock_name = NULL;
 }
 
 static void xua_cli_close_and_reconnect(struct osmo_stream_cli *cli)
@@ -1895,10 +1891,6 @@ static int xua_srv_conn_closed_cb(struct osmo_stream_srv *srv)
 		 * called us */
 		osmo_ss7_asp_destroy(asp);
 	}
-
-	/* no connection means no socket means no socket name */
-	talloc_free(asp->sock_name);
-	asp->sock_name = NULL;
 
 	return 0;
 }
