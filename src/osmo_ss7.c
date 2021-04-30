@@ -1734,8 +1734,7 @@ static int xua_cli_connect_cb(struct osmo_stream_cli *cli)
 	struct osmo_ss7_asp *asp = osmo_stream_cli_get_data(cli);
 
 	/* update the socket name */
-	if (asp->sock_name)
-		talloc_free(asp->sock_name);
+	talloc_free(asp->sock_name);
 	asp->sock_name = osmo_sock_get_name(asp, ofd->fd);
 
 	LOGPASP(asp, DLSS7, LOGL_INFO, "Client connected %s\n", asp->sock_name);
@@ -1987,8 +1986,7 @@ static int xua_accept_cb(struct osmo_stream_srv_link *link, int fd)
 	asp->server = srv;
 	asp->xua_server = oxs;
 	/* update the ASP socket name */
-	if (asp->sock_name)
-		talloc_free(asp->sock_name);
+	talloc_free(asp->sock_name);
 	asp->sock_name = talloc_reparent(link, asp, sock_name);
 	/* make sure the conn_cb() is called with the asp as private
 	 * data */
