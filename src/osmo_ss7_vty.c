@@ -37,6 +37,8 @@
 #include <osmocom/vty/telnet_interface.h>
 #include <osmocom/vty/misc.h>
 
+#include <osmocom/netif/stream.h>
+
 #include <osmocom/sigtran/osmo_ss7.h>
 #include <osmocom/sigtran/protocol/mtp.h>
 
@@ -765,7 +767,15 @@ DEFUN(show_cs7_asp, show_cs7_asp_cmd,
 	vty_out(vty, "------------  ------------  -------------  ---- ----------------------- ----------%s", VTY_NEWLINE);
 
 	llist_for_each_entry(asp, &inst->asp_list, list) {
-		osmo_ss7_asp_peer_snprintf(buf, sizeof(buf), &asp->cfg.remote);
+		if (asp->cfg.proto == OSMO_SS7_ASP_PROT_IPA && asp->cfg.remote.port == 0 && asp->server) {
+			struct osmo_fd *ofd = osmo_stream_srv_get_ofd(asp->server);
+			char hostbuf[64];
+			char portbuf[16];
+			osmo_sock_get_ip_and_port(ofd->fd, hostbuf, sizeof(hostbuf),
+						  portbuf, sizeof(portbuf), false);
+			snprintf(buf, sizeof(buf), "%s:%s", hostbuf, portbuf);
+		} else
+			osmo_ss7_asp_peer_snprintf(buf, sizeof(buf), &asp->cfg.remote);
 		vty_out(vty, "%-12s  %-12s  %-13s  %-4s  %-14s  %-10s%s",
 			asp->cfg.name, "?",
 			asp->fi? osmo_fsm_inst_state_name(asp->fi) : "uninitialized",
