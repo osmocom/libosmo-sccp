@@ -170,6 +170,10 @@ static int lm_timer_cb(struct osmo_fsm_inst *fi)
 		restart_asp(fi);
 		break;
 	case T_WAIT_NOTIFY:
+#if 1
+		osmo_fsm_inst_state_chg(fi, S_ACTIVE, 0, 0);
+		osmo_fsm_inst_dispatch(lmp->asp->fi, XUA_ASP_E_M_ASP_ACTIVE_REQ, NULL);
+#else
 		/* No AS has reported via NOTIFY that is was
 		 * (statically) configured at the SG for this ASP, so
 		 * let's dynamically register */
@@ -186,6 +190,7 @@ static int lm_timer_cb(struct osmo_fsm_inst *fi)
 		prim->u.rk_reg.key = as->cfg.routing_key;
 		prim->u.rk_reg.traf_mode = as->cfg.mode;
 		osmo_xlm_sap_down(lmp->asp, &prim->oph);
+#endif
 		break;
 	case T_WAIT_NOTIFY_RKM:
 		/* No AS has reported via NOTIFY even after dynamic RKM
