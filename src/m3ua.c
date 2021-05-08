@@ -932,9 +932,9 @@ static int m3ua_rx_snm(struct osmo_ss7_asp *asp, struct xua_msg *xua)
 {
 	/* SNM only permitted in ACTIVE state */
 	if (asp->fi->state != XUA_ASP_S_ACTIVE) {
-		LOGPASP(asp, DLM3UA, LOGL_NOTICE, "Received M3UA SNM while ASP in state %s\n",
+		LOGPASP(asp, DLM3UA, LOGL_NOTICE, "Received M3UA SNM while ASP in state %s - ALLOWING\n",
 			osmo_fsm_inst_state_name(asp->fi));
-		return M3UA_ERR_UNEXPECTED_MSG;
+		//return M3UA_ERR_UNEXPECTED_MSG;
 	}
 
 	switch (asp->cfg.role) {
