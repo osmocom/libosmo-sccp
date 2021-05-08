@@ -901,6 +901,12 @@ static int m3ua_rx_snm_asp(struct osmo_ss7_asp *asp, struct xua_msg *xua)
 			xua->hdr.msg_type);
 		/* silently ignore those to not confuse the sender */
 		break;
+	case M3UA_SNM_DAUD:	/* Audit: ASP inquires about availability of Point Codes */
+		/* The M3UA RFC clearly states this message is for the ASP->SG direction.  However, it seems
+		 * there are implementations that also send it in SG->ASP direction */
+		LOGPASP(asp, DLM3UA, LOGL_NOTICE, "Handling DAUD on ASP ?!?\n");
+		xua_snm_rx_daud(asp, xua);
+		break;
 	default:
 		return M3UA_ERR_UNSUPP_MSG_TYPE;
 	}
