@@ -243,7 +243,11 @@ static int scmg_rx_sst(struct osmo_sccp_user *scu, const struct osmo_sccp_addr *
 	if (0 /* !subsys_available(scu) */)
 		return 0;
 
-	return sccp_scmg_tx(scu, called_addr, calling_addr, SCCP_SCMG_MSGT_SSA,
+	struct osmo_sccp_addr peer_addr = *calling_addr;
+	peer_addr.pc = 7000;
+	peer_addr.presence |= OSMO_SCCP_ADDR_T_PC;
+
+	return sccp_scmg_tx(scu, called_addr, &peer_addr, SCCP_SCMG_MSGT_SSA,
 			    sst->affected_ssn, sst->affected_pc, 0, NULL);
 }
 
