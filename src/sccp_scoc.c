@@ -499,7 +499,10 @@ static struct sccp_connection *conn_create(struct osmo_sccp_user *user)
 	uint32_t conn_id;
 
 	do {
-		conn_id = user->inst->next_id++;
+		/* modulo 2^24 as we currently use the connection ID also as local
+		 * reference, and that is limited to 24 bits */
+		user->inst->next_id = (user->inst->next_id + 1) %  (1 << 24);
+		conn_id = user->inst->next_id;
 	} while (conn_find_by_id(user->inst, conn_id));
 
 	return conn_create_id(user, conn_id);
