@@ -222,6 +222,7 @@ ss7_asp_vty_test(config-cs7-asp)# list
   sctp-role (client|server)
   block
   shutdown
+...
 
 ss7_asp_vty_test(config-cs7-asp)# ?
 ...
@@ -233,6 +234,7 @@ ss7_asp_vty_test(config-cs7-asp)# ?
   sctp-role    Specify the SCTP role for this ASP
   block        Allows a SCTP Association with ASP, but doesn't let it become active
   shutdown     Terminates SCTP association; New associations will be rejected
+...
 
 ss7_asp_vty_test(config-cs7-asp)# remote-ip 127.0.0.200
 ss7_asp_vty_test(config-cs7-asp)# local-ip 127.0.0.100
