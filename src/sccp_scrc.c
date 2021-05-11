@@ -440,6 +440,26 @@ int sccp_scrc_rx_sclc_msg(struct osmo_sccp_instance *inst,
 	return scrc_local_out_common(inst, xua, &called);
 }
 
+/* ensure the CallingParty address doesn't just contain SSN, but at least SSN+PC */
+static void ensure_opc_in_calling_ssn(struct osmo_sccp_instance *inst,
+				      struct xua_msg *xua)
+{
+	struct osmo_sccp_addr calling;
+
+	sua_addr_parse(&calling, xua, SUA_IEI_SRC_ADDR);
+
+	/* if we route on SSN and only have a SSN in the address... */
+	if (calling.ri == OSMO_SCCP_RI_SSN_PC &&
+	    calling.presence == OSMO_SCCP_ADDR_T_SSN) {
+		/* add the M3UA OPC to the address to ensure that the recipient
+		 * can actually respond back to the source */
+		calling.presence |= OSMO_SCCP_ADDR_T_PC;
+		calling.pc = xua->mtp.opc;
+		xua_msg_free_tag(xua, SUA_IEI_SRC_ADDR);
+		xua_msg_add_sccp_addr(xua, SUA_IEI_SRC_ADDR, &calling);
+	}
+}
+
 /* Figure C.1/Q.714 Sheet 1 of 12, after we converted the
  * MTP-TRANSFER.ind to SUA. */
 int scrc_rx_mtp_xfer_ind_xua(struct osmo_sccp_instance *inst,
@@ -460,6 +480,9 @@ int scrc_rx_mtp_xfer_ind_xua(struct osmo_sccp_instance *inst,
 		return 0;
 	}
 	/* We only treat connectionless and CR below */
+
+	/* ensure we have at least OPC+SSN and not just SSN in CallingParty (OS#5146) */
+	ensure_opc_in_calling_ssn(inst, xua);
 
 	sua_addr_parse(&called, xua, SUA_IEI_DEST_ADDR);
 
