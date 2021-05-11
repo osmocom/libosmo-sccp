@@ -433,6 +433,8 @@ struct osmo_ss7_asp {
 
 /*! Peer SG doesn't send NTFY(AS-INACTIVE) after ASP-UP procedure */
 #define OSMO_SS7_ASP_QUIRK_NO_NOTIFY	0x00000001
+/*! Accept DAUD in ASP role (RFC states only permitted in ASP->SG role) */
+#define OSMO_SS7_ASP_QUIRK_DAUD_IN_ASP	0x00000002
 
 int osmo_ss7_asp_peer_snprintf(char* buf, size_t buf_len, struct osmo_ss7_asp_peer *peer);
 int osmo_ss7_asp_peer_set_hosts(struct osmo_ss7_asp_peer *peer, void *talloc_ctx,

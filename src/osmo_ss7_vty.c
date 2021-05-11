@@ -56,12 +56,14 @@
 	"IPA Multiplex (SCCP Lite)\n"
 
 static const struct value_string asp_quirk_names[] = {
-	{ OSMO_SS7_ASP_QUIRK_NO_NOTIFY, "no_notify" },
+	{ OSMO_SS7_ASP_QUIRK_NO_NOTIFY,		"no_notify" },
+	{ OSMO_SS7_ASP_QUIRK_DAUD_IN_ASP,	"daud_in_asp" },
 	{ 0, NULL }
 };
 
 static const struct value_string asp_quirk_descs[] = {
 	{ OSMO_SS7_ASP_QUIRK_NO_NOTIFY, "Peer SG doesn't send NTFY(AS-INACTIVE) after ASP-UP" },
+	{ OSMO_SS7_ASP_QUIRK_DAUD_IN_ASP, "Allow Rx of DAUD in ASP role" },
 	{ 0, NULL }
 };
 
@@ -762,11 +764,7 @@ DEFUN_ATTR(asp_quirk, asp_quirk_cmd,
 	CMD_ATTR_IMMEDIATE)
 {
 	struct osmo_ss7_asp *asp = vty->index;
-#if 0	/* we only have one quirk, so there is no argv[0] yet! */
 	int quirk = get_string_value(asp_quirk_names, argv[0]);
-#else
-	int quirk = get_string_value(asp_quirk_names, "no_notify");
-#endif
 
 	if (quirk < 0)
 		return CMD_WARNING;
@@ -781,11 +779,7 @@ DEFUN_ATTR(asp_no_quirk, asp_no_quirk_cmd,
 	CMD_ATTR_IMMEDIATE)
 {
 	struct osmo_ss7_asp *asp = vty->index;
-#if 0	/* we only have one quirk, so there is no argv[0] yet! */
 	int quirk = get_string_value(asp_quirk_names, argv[0]);
-#else
-	int quirk = get_string_value(asp_quirk_names, "no_notify");
-#endif
 
 	if (quirk < 0)
 		return CMD_WARNING;
