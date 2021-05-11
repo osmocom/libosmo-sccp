@@ -1,5 +1,5 @@
 /* Default XUA Layer Manager */
-/* (C) 2017 by Harald Welte <laforge@gnumonks.org>
+/* (C) 2017-2021 by Harald Welte <laforge@gnumonks.org>
  * All Rights Reserved
  *
  * SPDX-License-Identifier: GPL-2.0+
@@ -170,6 +170,13 @@ static int lm_timer_cb(struct osmo_fsm_inst *fi)
 		restart_asp(fi);
 		break;
 	case T_WAIT_NOTIFY:
+		if (lmp->asp->cfg.quirks & OSMO_SS7_ASP_QUIRK_NO_NOTIFY) {
+			/* some implementations don't send the NOTIFY which they SHOULD
+			 * according to RFC4666 (see OS#5145) */
+			LOGPFSM(fi, "quirk no_notify active; locally emulate AS-INACTIVE.ind\n");
+			osmo_fsm_inst_dispatch(fi, LM_E_AS_INACTIVE_IND, NULL);
+			break;
+		}
 		/* No AS has reported via NOTIFY that is was
 		 * (statically) configured at the SG for this ASP, so
 		 * let's dynamically register */

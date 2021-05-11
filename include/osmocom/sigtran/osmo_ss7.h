@@ -427,8 +427,12 @@ struct osmo_ss7_asp {
 		struct osmo_ss7_asp_peer local;
 		struct osmo_ss7_asp_peer remote;
 		uint8_t qos_class;
+		uint32_t quirks;
 	} cfg;
 };
+
+/*! Peer SG doesn't send NTFY(AS-INACTIVE) after ASP-UP procedure */
+#define OSMO_SS7_ASP_QUIRK_NO_NOTIFY	0x00000001
 
 int osmo_ss7_asp_peer_snprintf(char* buf, size_t buf_len, struct osmo_ss7_asp_peer *peer);
 int osmo_ss7_asp_peer_set_hosts(struct osmo_ss7_asp_peer *peer, void *talloc_ctx,

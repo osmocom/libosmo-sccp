@@ -1,6 +1,6 @@
 /* Core SS7 Instance/Linkset/Link/AS/ASP VTY Interface */
 
-/* (C) 2015-2017 by Harald Welte <laforge@gnumonks.org>
+/* (C) 2015-2021 by Harald Welte <laforge@gnumonks.org>
  * All Rights Reserved
  *
  * SPDX-License-Identifier: GPL-2.0+
@@ -55,6 +55,15 @@
 	"MTP3 User Adaptation\n"	\
 	"IPA Multiplex (SCCP Lite)\n"
 
+static const struct value_string asp_quirk_names[] = {
+	{ OSMO_SS7_ASP_QUIRK_NO_NOTIFY, "no_notify" },
+	{ 0, NULL }
+};
+
+static const struct value_string asp_quirk_descs[] = {
+	{ OSMO_SS7_ASP_QUIRK_NO_NOTIFY, "Peer SG doesn't send NTFY(AS-INACTIVE) after ASP-UP" },
+	{ 0, NULL }
+};
 
 /***********************************************************************
  * Core CS7 Configuration
@@ -747,6 +756,44 @@ DEFUN_ATTR(asp_shutdown, asp_shutdown_cmd,
 	return CMD_WARNING;
 }
 
+DEFUN_ATTR(asp_quirk, asp_quirk_cmd,
+	"OVERWRITTEN",
+	"OVERWRITTEN\n",
+	CMD_ATTR_IMMEDIATE)
+{
+	struct osmo_ss7_asp *asp = vty->index;
+#if 0	/* we only have one quirk, so there is no argv[0] yet! */
+	int quirk = get_string_value(asp_quirk_names, argv[0]);
+#else
+	int quirk = get_string_value(asp_quirk_names, "no_notify");
+#endif
+
+	if (quirk < 0)
+		return CMD_WARNING;
+
+	asp->cfg.quirks |= quirk;
+	return CMD_SUCCESS;
+}
+
+DEFUN_ATTR(asp_no_quirk, asp_no_quirk_cmd,
+	"OVERWRITTEN",
+	"OVERWRITTEN\n",
+	CMD_ATTR_IMMEDIATE)
+{
+	struct osmo_ss7_asp *asp = vty->index;
+#if 0	/* we only have one quirk, so there is no argv[0] yet! */
+	int quirk = get_string_value(asp_quirk_names, argv[0]);
+#else
+	int quirk = get_string_value(asp_quirk_names, "no_notify");
+#endif
+
+	if (quirk < 0)
+		return CMD_WARNING;
+
+	asp->cfg.quirks &= ~quirk;
+	return CMD_SUCCESS;
+}
+
 DEFUN(show_cs7_asp, show_cs7_asp_cmd,
 	"show cs7 instance <0-15> asp",
 	SHOW_STR CS7_STR INST_STR INST_STR "Application Server Process (ASP)\n")
@@ -814,6 +861,11 @@ static void write_one_asp(struct vty *vty, struct osmo_ss7_asp *asp, bool show_d
 	}
 	if (!asp->cfg.is_server)
 		vty_out(vty, "  sctp-role client%s", VTY_NEWLINE);
+	for (i = 0; i < 32; i++) {
+		if (!(asp->cfg.quirks & (1 << i)))
+			continue;
+		vty_out(vty, "  quirk %s%s", get_value_string(asp_quirk_names, (1 << i)), VTY_NEWLINE);
+	}
 }
 
 
@@ -2029,6 +2081,17 @@ static void vty_init_shared(void *ctx)
 {
 	g_ctx = ctx;
 
+	asp_quirk_cmd.string = vty_cmd_string_from_valstr(ctx, asp_quirk_names,
+							  "quirk (", "|", ")", VTY_DO_LOWER);
+	asp_quirk_cmd.doc = vty_cmd_string_from_valstr(ctx, asp_quirk_descs,
+							"Enable quirk to work around interop issues\n",
+							"\n", "\n", 0);
+	asp_no_quirk_cmd.string = vty_cmd_string_from_valstr(ctx, asp_quirk_names,
+							  "no quirk (", "|", ")", VTY_DO_LOWER);
+	asp_no_quirk_cmd.doc = vty_cmd_string_from_valstr(ctx, asp_quirk_descs,
+							NO_STR "Disable quirk to work around interop issues\n",
+							"\n", "\n", 0);
+
 	install_lib_element_ve(&show_cs7_user_cmd);
 	install_lib_element_ve(&show_cs7_xua_cmd);
 	install_lib_element_ve(&show_cs7_config_cmd);
@@ -2057,6 +2120,8 @@ static void vty_init_shared(void *ctx)
 	install_lib_element(L_CS7_ASP_NODE, &asp_sctp_role_cmd);
 	install_lib_element(L_CS7_ASP_NODE, &asp_block_cmd);
 	install_lib_element(L_CS7_ASP_NODE, &asp_shutdown_cmd);
+	install_lib_element(L_CS7_ASP_NODE, &asp_quirk_cmd);
+	install_lib_element(L_CS7_ASP_NODE, &asp_no_quirk_cmd);
 
 	install_node(&as_node, NULL);
 	install_lib_element_ve(&show_cs7_as_cmd);
