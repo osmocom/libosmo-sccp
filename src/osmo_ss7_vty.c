@@ -58,12 +58,14 @@
 static const struct value_string asp_quirk_names[] = {
 	{ OSMO_SS7_ASP_QUIRK_NO_NOTIFY,		"no_notify" },
 	{ OSMO_SS7_ASP_QUIRK_DAUD_IN_ASP,	"daud_in_asp" },
+	{ OSMO_SS7_ASP_QUIRK_SNM_INACTIVE,	"snm_inactive" },
 	{ 0, NULL }
 };
 
 static const struct value_string asp_quirk_descs[] = {
 	{ OSMO_SS7_ASP_QUIRK_NO_NOTIFY, "Peer SG doesn't send NTFY(AS-INACTIVE) after ASP-UP" },
 	{ OSMO_SS7_ASP_QUIRK_DAUD_IN_ASP, "Allow Rx of DAUD in ASP role" },
+	{ OSMO_SS7_ASP_QUIRK_SNM_INACTIVE, "Allow Rx of [S]SNM in AS-INACTIVE state" },
 	{ 0, NULL }
 };
 
