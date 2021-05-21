@@ -857,8 +857,8 @@ static void write_one_asp(struct vty *vty, struct osmo_ss7_asp *asp, bool show_d
 	}
 	if (!asp->cfg.is_server)
 		vty_out(vty, "  sctp-role client%s", VTY_NEWLINE);
-	for (i = 0; i < 32; i++) {
-		if (!(asp->cfg.quirks & (1 << i)))
+	for (i = 0; i < sizeof(uint32_t) * 8; i++) {
+		if (!(asp->cfg.quirks & ((uint32_t) 1 << i)))
 			continue;
 		vty_out(vty, "  quirk %s%s", get_value_string(asp_quirk_names, (1 << i)), VTY_NEWLINE);
 	}
