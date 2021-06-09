@@ -964,6 +964,7 @@ static void ipa_asp_fsm_wait_id_get(struct osmo_fsm_inst *fi, uint32_t event, vo
 	struct msgb *msg_get, *msg_resp;
 	const uint8_t *req_data;
 	int data_len;
+	int fd;
 
 	switch (event) {
 	case IPA_ASP_E_ID_GET:
@@ -985,6 +986,16 @@ static void ipa_asp_fsm_wait_id_get(struct osmo_fsm_inst *fi, uint32_t event, vo
 		}
 		osmo_ss7_asp_send(asp, msg_resp);
 		osmo_fsm_inst_state_chg(fi, IPA_ASP_S_WAIT_ID_ACK, 10, T_WAIT_ID_ACK);
+		break;
+	case IPA_ASP_E_ID_ACK:
+		/* Some SCCPLite MSCs are known to send an ACK directly instead
+		 * of GET. Support them and skip the GET+RESP handshake by
+		 * sending ACK2 to server directly */
+		fd = get_fd_from_iafp(iafp);
+		if (fd >= 0) {
+			ipaccess_send_id_ack(fd);
+			osmo_fsm_inst_state_chg(fi, IPA_ASP_S_ACTIVE, 0, 0);
+		}
 		break;
 	}
 }
@@ -1114,8 +1125,10 @@ static const struct osmo_fsm_state ipa_asp_states[] = {
 	},
 	/* Client Side */
 	[IPA_ASP_S_WAIT_ID_GET] = {
-		.in_event_mask = S(IPA_ASP_E_ID_GET),
-		.out_state_mask = S(IPA_ASP_S_WAIT_ID_ACK),
+		.in_event_mask = S(IPA_ASP_E_ID_GET) |
+				 S(IPA_ASP_E_ID_ACK), /* support broken MSCs skipping GET+RESP */
+		.out_state_mask = S(IPA_ASP_S_WAIT_ID_ACK) |
+				  S(IPA_ASP_S_ACTIVE),  /* support broken MSCs skipping GET+RESP */
 		.name = "WAIT_ID_GET",
 		.action = ipa_asp_fsm_wait_id_get,
 	},
