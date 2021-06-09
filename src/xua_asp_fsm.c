@@ -338,6 +338,21 @@ static const uint32_t evt_ack_map[_NUM_XUA_ASP_E] = {
 	[XUA_ASP_E_ASPSM_BEAT] = XUA_ASP_E_ASPSM_BEAT_ACK,
 };
 
+/* Helper function to dispatch an ASP->AS event to all AS of which this
+ * ASP is a memmber.  Ignores routing contexts for now. */
+static void dispatch_to_all_as(struct osmo_fsm_inst *fi, uint32_t event)
+{
+	struct xua_asp_fsm_priv *xafp = fi->priv;
+	struct osmo_ss7_asp *asp = xafp->asp;
+	struct osmo_ss7_instance *inst = asp->inst;
+	struct osmo_ss7_as *as;
+
+	llist_for_each_entry(as, &inst->as_list, list) {
+		if (!osmo_ss7_as_has_asp(as, asp))
+			continue;
+		osmo_fsm_inst_dispatch(as->fi, event, asp);
+	}
+}
 
 /* check if expected message was received + stop t_ack */
 static void check_stop_t_ack(struct osmo_fsm_inst *fi, uint32_t event)
@@ -380,6 +395,16 @@ static void check_stop_t_ack(struct osmo_fsm_inst *fi, uint32_t event)
 			return;						\
 		}							\
 	} while(0)
+
+
+/***************
+** FSM states **
+***************/
+
+static void xua_asp_fsm_down_onenter(struct osmo_fsm_inst *fi, uint32_t prev_state)
+{
+	dispatch_to_all_as(fi, XUA_ASPAS_ASP_DOWN_IND);
+}
 
 static void xua_asp_fsm_down(struct osmo_fsm_inst *fi, uint32_t event, void *data)
 {
@@ -436,25 +461,9 @@ static void xua_asp_fsm_down(struct osmo_fsm_inst *fi, uint32_t event, void *dat
 	}
 }
 
-/* Helper function to dispatch an ASP->AS event to all AS of which this
- * ASP is a memmber.  Ignores routing contexts for now. */
-static void dispatch_to_all_as(struct osmo_fsm_inst *fi, uint32_t event)
+static void xua_asp_fsm_inactive_onenter(struct osmo_fsm_inst *fi, uint32_t prev_state)
 {
-	struct xua_asp_fsm_priv *xafp = fi->priv;
-	struct osmo_ss7_asp *asp = xafp->asp;
-	struct osmo_ss7_instance *inst = asp->inst;
-	struct osmo_ss7_as *as;
-
-	llist_for_each_entry(as, &inst->as_list, list) {
-		if (!osmo_ss7_as_has_asp(as, asp))
-			continue;
-		osmo_fsm_inst_dispatch(as->fi, event, asp);
-	}
-}
-
-static void xua_asp_fsm_down_onenter(struct osmo_fsm_inst *fi, uint32_t prev_state)
-{
-	dispatch_to_all_as(fi, XUA_ASPAS_ASP_DOWN_IND);
+	dispatch_to_all_as(fi, XUA_ASPAS_ASP_INACTIVE_IND);
 }
 
 static void xua_asp_fsm_inactive(struct osmo_fsm_inst *fi, uint32_t event, void *data)
@@ -571,9 +580,9 @@ static void xua_asp_fsm_inactive(struct osmo_fsm_inst *fi, uint32_t event, void 
 	}
 }
 
-static void xua_asp_fsm_inactive_onenter(struct osmo_fsm_inst *fi, uint32_t prev_state)
+static void xua_asp_fsm_active_onenter(struct osmo_fsm_inst *fi, uint32_t prev_state)
 {
-	dispatch_to_all_as(fi, XUA_ASPAS_ASP_INACTIVE_IND);
+	dispatch_to_all_as(fi, XUA_ASPAS_ASP_ACTIVE_IND);
 }
 
 static void xua_asp_fsm_active(struct osmo_fsm_inst *fi, uint32_t event, void *data)
@@ -650,11 +659,6 @@ static void xua_asp_fsm_active(struct osmo_fsm_inst *fi, uint32_t event, void *d
 		peer_send(fi, XUA_ASP_E_ASPTM_ASPAC_ACK, xua_in);
 		break;
 	}
-}
-
-static void xua_asp_fsm_active_onenter(struct osmo_fsm_inst *fi, uint32_t prev_state)
-{
-	dispatch_to_all_as(fi, XUA_ASPAS_ASP_ACTIVE_IND);
 }
 
 static void xua_asp_allstate(struct osmo_fsm_inst *fi, uint32_t event, void *data)
@@ -850,6 +854,10 @@ static int get_fd_from_iafp(struct ipa_asp_fsm_priv *iafp)
 	return ofd->fd;
 }
 
+/***************
+** FSM states **
+***************/
+
 /* Server + Client: Initial State, wait for M-ASP-UP.req */
 static void ipa_asp_fsm_down(struct osmo_fsm_inst *fi, uint32_t event, void *data)
 {
@@ -999,6 +1007,12 @@ static void ipa_asp_fsm_wait_id_ack(struct osmo_fsm_inst *fi, uint32_t event, vo
 	}
 }
 
+static void ipa_asp_fsm_active_onenter(struct osmo_fsm_inst *fi, uint32_t prev_state)
+{
+	dispatch_to_all_as(fi, XUA_ASPAS_ASP_INACTIVE_IND);
+	dispatch_to_all_as(fi, XUA_ASPAS_ASP_ACTIVE_IND);
+}
+
 /* Server + Client: We're actively transmitting user data */
 static void ipa_asp_fsm_active(struct osmo_fsm_inst *fi, uint32_t event, void *data)
 {
@@ -1008,6 +1022,11 @@ static void ipa_asp_fsm_active(struct osmo_fsm_inst *fi, uint32_t event, void *d
 		osmo_fsm_inst_state_chg(fi, IPA_ASP_S_DOWN, 0, 0);
 		break;
 	}
+}
+
+static void ipa_asp_fsm_inactive_onenter(struct osmo_fsm_inst *fi, uint32_t prev_state)
+{
+	dispatch_to_all_as(fi, XUA_ASPAS_ASP_INACTIVE_IND);
 }
 
 static void ipa_asp_fsm_inactive(struct osmo_fsm_inst *fi, uint32_t event, void *data)
@@ -1044,17 +1063,6 @@ static void ipa_asp_allstate(struct osmo_fsm_inst *fi, uint32_t event, void *dat
 	default:
 		break;
 	}
-}
-
-static void ipa_asp_fsm_active_onenter(struct osmo_fsm_inst *fi, uint32_t prev_state)
-{
-	dispatch_to_all_as(fi, XUA_ASPAS_ASP_INACTIVE_IND);
-	dispatch_to_all_as(fi, XUA_ASPAS_ASP_ACTIVE_IND);
-}
-
-static void ipa_asp_fsm_inactive_onenter(struct osmo_fsm_inst *fi, uint32_t prev_state)
-{
-	dispatch_to_all_as(fi, XUA_ASPAS_ASP_INACTIVE_IND);
 }
 
 static void ipa_pong_timer_cb(void *_fi)
