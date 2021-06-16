@@ -1050,6 +1050,7 @@ static int _rout_key(struct vty *vty,
 {
 	struct osmo_ss7_as *as = vty->index;
 	struct osmo_ss7_routing_key *rkey = &as->cfg.routing_key;
+	struct osmo_ss7_route *rt;
 	int pc;
 
 	if (as->cfg.proto == OSMO_SS7_ASP_PROT_IPA && atoi(rcontext) != 0) {
@@ -1063,11 +1064,32 @@ static int _rout_key(struct vty *vty,
 		vty_out(vty, "Invalid point code (%s)%s", dpc, VTY_NEWLINE);
 		return CMD_WARNING;
 	}
+
+	/* When libosmo-sigtran is used in ASP role, the VTY routing table node
+	 * (config-cs7-rt) is not available. However, when we add a routing key
+	 * to an AS we still have to put a matching route into the routing
+	 * table. This is done automatically by first removing the old route
+	 * (users may change the routing key via VTY during runtime) and then
+	 * putting a new route (see below). */
+	if (cs7_role == CS7_ROLE_ASP) {
+		rt = osmo_ss7_route_find_dpc_mask(as->inst->rtable_system, rkey->pc, 0xffffff);
+		if (rt)
+			osmo_ss7_route_destroy(rt);
+	}
+
 	rkey->pc = pc;
 
 	rkey->context = atoi(rcontext);				/* FIXME: input validation */
 	rkey->si = si ? get_string_value(mtp_si_vals, si) : 0;	/* FIXME: input validation */
 	rkey->ssn = ssn ? atoi(ssn) : 0;			/* FIXME: input validation */
+
+	/* automatically add new route (see also comment above) */
+	if (cs7_role == CS7_ROLE_ASP) {
+		if (!osmo_ss7_route_create(as->inst->rtable_system, rkey->pc, 0xffffff, as->cfg.name)) {
+			vty_out(vty, "Cannot crate route (pc=%s, linkset=%s) to linkset %s", dpc, as->cfg.name, VTY_NEWLINE);
+			return CMD_WARNING;
+		}
+	}
 
 	return CMD_SUCCESS;
 }
