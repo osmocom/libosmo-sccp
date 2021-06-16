@@ -2159,6 +2159,8 @@ static void vty_init_shared(void *ctx)
 	install_lib_element(L_CS7_AS_NODE, &as_pc_override_cmd);
 	install_lib_element(L_CS7_AS_NODE, &as_pc_patch_sccp_cmd);
 
+	install_lib_element_ve(&show_cs7_route_cmd);
+
 	vty_init_addr();
 }
 
@@ -2174,7 +2176,6 @@ void osmo_ss7_vty_init_sg(void *ctx)
 	vty_init_shared(ctx);
 
 	install_node(&rtable_node, NULL);
-	install_lib_element_ve(&show_cs7_route_cmd);
 	install_lib_element(L_CS7_NODE, &cs7_route_table_cmd);
 	install_lib_element(L_CS7_RTABLE_NODE, &cfg_description_cmd);
 	install_lib_element(L_CS7_RTABLE_NODE, &cs7_rt_upd_cmd);

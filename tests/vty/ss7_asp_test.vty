@@ -5,6 +5,7 @@ ss7_asp_vty_test> list
   show cs7 config
   show cs7 instance <0-15> asp
   show cs7 instance <0-15> as (active|all|m3ua|sua)
+  show cs7 instance <0-15> route
   show cs7 instance <0-15> sccp addressbook
   show cs7 instance <0-15> sccp users
   show cs7 instance <0-15> sccp ssn <0-65535>
@@ -20,6 +21,7 @@ ss7_asp_vty_test# list
   show cs7 config
   show cs7 instance <0-15> asp
   show cs7 instance <0-15> as (active|all|m3ua|sua)
+  show cs7 instance <0-15> route
   show cs7 instance <0-15> sccp addressbook
   show cs7 instance <0-15> sccp users
   show cs7 instance <0-15> sccp ssn <0-65535>
@@ -49,6 +51,7 @@ ss7_asp_vty_test# show cs7 instance 0 ?
   users  User Table
   asp    Application Server Process (ASP)
   as     Application Server (AS)
+  route  Routing Table
   sccp   Signalling Connection Control Part
 
 ss7_asp_vty_test# show cs7 instance 0 as ?
