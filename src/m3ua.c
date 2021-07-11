@@ -752,8 +752,10 @@ int m3ua_rx_msg(struct osmo_ss7_asp *asp, struct msgb *msg)
 		err = m3ua_gen_error_msg(rc, msg);
 
 out:
-	if (err)
+	if (err) {
 		m3ua_tx_xua_asp(asp, err);
+		xua_msg_free(err);
+	}
 
 	xua_msg_free(xua);
 
@@ -856,6 +858,7 @@ void m3ua_tx_snm_available(struct osmo_ss7_asp *asp, const uint32_t *rctx, unsig
 		xua = m3ua_encode_duna(rctx, num_rctx, aff_pc, num_aff_pc, info_string);
 
 	m3ua_tx_xua_asp(asp, xua);
+	xua_msg_free(xua);
 }
 
 /*! Transmit SSNM DUPU message indicating user unavailability.
@@ -871,6 +874,7 @@ void m3ua_tx_dupu(struct osmo_ss7_asp *asp, const uint32_t *rctx, unsigned int n
 {
 	struct xua_msg *xua = m3ua_encode_dupu(rctx, num_rctx, dpc, user, cause, info_str);
 	m3ua_tx_xua_asp(asp, xua);
+	xua_msg_free(xua);
 }
 
 /* received SNM message on ASP side */
