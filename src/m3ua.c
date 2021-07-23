@@ -820,9 +820,9 @@ static struct xua_msg *m3ua_encode_dupu(const uint32_t *rctx, unsigned int num_r
 					const char *info_string)
 {
 	struct xua_msg *xua = xua_msg_alloc();
-	uint32_t user_cause = (user << 16) | cause;
+	uint32_t user_cause = (cause << 16) | user;
 
-	xua->hdr = XUA_HDR(M3UA_MSGC_SNM, M3UA_SNM_DUNA);
+	xua->hdr = XUA_HDR(M3UA_MSGC_SNM, M3UA_SNM_DUPU);
 	xua->hdr.version = M3UA_VERSION;
 	if (rctx)
 		xua_msg_add_data(xua, M3UA_IEI_ROUTE_CTX, num_rctx * sizeof(*rctx), (const uint8_t *)rctx);
