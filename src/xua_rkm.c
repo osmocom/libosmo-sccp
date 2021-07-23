@@ -350,6 +350,12 @@ static int handle_rkey_dereg(struct osmo_ss7_asp *asp, uint32_t rctx,
 		return -1;
 	}
 
+	/* Reject if not dynamically allocated (OS#4239) */
+	if (!as->rkm_dyn_allocated) {
+		msgb_append_dereg_res(resp, M3UA_RKM_DEREG_ERR_NOT_REGD, 0);
+		return -1;
+	}
+
 	/* Reject if ASP is not even part of AS */
 	if (!osmo_ss7_as_has_asp(as, asp)) {
 		msgb_append_dereg_res(resp, M3UA_RKM_DEREG_ERR_INVAL_RCTX, 0);
