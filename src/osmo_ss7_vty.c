@@ -45,8 +45,7 @@
 #include "xua_internal.h"
 #include <osmocom/sigtran/sccp_sap.h>
 #include "sccp_internal.h"
-
-#include "sccp_internal.h"
+#include "ss7_internal.h"
 
 #define XUA_VAR_STR	"(sua|m3ua|ipa)"
 
@@ -1937,33 +1936,6 @@ static void write_one_cs7(struct vty *vty, struct osmo_ss7_instance *inst, bool 
 		osmo_sccp_vty_write_cs7_node(vty, " ", inst->sccp);
 }
 
-static bool ipv6_sctp_supported(const char *host, bool bind)
-{
-	int rc;
-	struct addrinfo hints;
-	struct addrinfo *result;
-	memset(&hints, 0, sizeof(struct addrinfo));
-	hints.ai_family = AF_INET6;
-	hints.ai_socktype = SOCK_STREAM;
-	hints.ai_flags = AI_NUMERICHOST;
-	hints.ai_protocol = 0; /* Any protocol */
-
-	if (bind)  /* For wildcard IP address */
-		hints.ai_flags |= AI_PASSIVE;
-
-	/* man getaddrinfo: Either node or service, but not both, may be NULL. */
-	OSMO_ASSERT(host);
-	rc = getaddrinfo(host, NULL, &hints, &result);
-	if (rc != 0) {
-		LOGP(DLSS7, LOGL_NOTICE, "Default IPv6 address %s not supported: %s\n",
-		     host, gai_strerror(rc));
-		return false;
-	} else {
-		freeaddrinfo(result);
-		return true;
-	}
-}
-
 int osmo_ss7_vty_go_parent(struct vty *vty)
 {
 	struct osmo_ss7_as *as;
@@ -1975,30 +1947,8 @@ int osmo_ss7_vty_go_parent(struct vty *vty)
 	switch (vty->node) {
 	case L_CS7_ASP_NODE:
 		asp = vty->index;
-		/* If no local addr was set */
-		if (!asp->cfg.local.host_cnt) {
-			bool rem_has_v4 = false, rem_has_v6 = false;
-			int i;
-			for (i = 0; i < asp->cfg.remote.host_cnt; i++) {
-				if (osmo_ip_str_type(asp->cfg.remote.host[i]) == AF_INET6)
-					rem_has_v6 = true;
-				else
-					rem_has_v4 = true;
-			}
-			/* "::" Covers both IPv4 and IPv6, but if only IPv4
-			 * address are set on the remote side, IPv4 on the local
-			 * side must be set too */
-			if (ipv6_sctp_supported("::", true) && !(rem_has_v4 && !rem_has_v6))
-				osmo_ss7_asp_peer_add_host(&asp->cfg.local, asp, "::");
-			else
-				osmo_ss7_asp_peer_add_host(&asp->cfg.local, asp, "0.0.0.0");
-		}
-		/* If no remote addr was set */
-		if (!asp->cfg.remote.host_cnt) {
-			osmo_ss7_asp_peer_add_host(&asp->cfg.remote, asp, "127.0.0.1");
-			if (ipv6_sctp_supported("::1", false))
-				osmo_ss7_asp_peer_add_host(&asp->cfg.remote, asp, "::1");
-		}
+		/* Make sure proper defaults values are set */
+		osmo_ss7_asp_set_default_peer_hosts(asp);
 		osmo_ss7_asp_restart(asp);
 		vty->node = L_CS7_NODE;
 		vty->index = asp->inst;
@@ -2016,13 +1966,7 @@ int osmo_ss7_vty_go_parent(struct vty *vty)
 	case L_CS7_XUA_NODE:
 		oxs = vty->index;
 		/* If no local addr was set, or erased after _create(): */
-		if (!oxs->cfg.local.host_cnt) {
-			/* "::" Covers both IPv4 and IPv6 */
-			if (ipv6_sctp_supported("::", true))
-				osmo_ss7_xua_server_set_local_host(oxs, "::");
-			else
-				osmo_ss7_xua_server_set_local_host(oxs, "0.0.0.0");
-		}
+		osmo_ss7_xua_server_set_default_local_hosts(oxs);
 		if (osmo_ss7_xua_server_bind(oxs) < 0)
 			vty_out(vty, "%% Unable to bind xUA server to IP(s)%s", VTY_NEWLINE);
 		vty->node = L_CS7_NODE;

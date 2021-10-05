@@ -38,6 +38,7 @@
 
 #include "sccp_internal.h"
 #include "xua_internal.h"
+#include "ss7_internal.h"
 
 /*! \brief Find a SCCP User registered for given PC+SSN or SSN only
  * First search all users with a valid PC for a full PC+SSN match.
@@ -476,9 +477,9 @@ const char *osmo_sccp_user_name(struct osmo_sccp_user *scu)
  *  \param[in] default_pc pointcode to be used on missing VTY setting
  *  \param[in] prot protocol to be used (e.g OSMO_SS7_ASP_PROT_M3UA)
  *  \param[in] default_local_port local port to be used on missing VTY setting
- *  \param[in] default_local_ip local IP-address to be used on missing VTY setting
+ *  \param[in] default_local_ip local IP-address to be used on missing VTY setting (NULL: use library own defaults)
  *  \param[in] default_remote_port remote port to be used on missing VTY setting
- *  \param[in] default_remote_ip remote IP-address to be used on missing VTY setting
+ *  \param[in] default_remote_ip remote IP-address to be used on missing VTY setting (NULL: use library own defaults)
  *  \returns callee-allocated SCCP instance on success; NULL on error */
 
 struct osmo_sccp_instance *
@@ -618,8 +619,12 @@ osmo_sccp_simple_client_on_ss7_id(void *ctx, uint32_t ss7_id, const char *name,
 			if (!asp)
 				goto out_rt;
 			asp_created = true;
-			osmo_ss7_asp_peer_set_hosts(&asp->cfg.local, asp, &default_local_ip, 1);
-			osmo_ss7_asp_peer_set_hosts(&asp->cfg.remote, asp, &default_remote_ip, 1);
+			if (default_local_ip)
+				osmo_ss7_asp_peer_set_hosts(&asp->cfg.local, asp, &default_local_ip, 1);
+			if (default_remote_ip)
+				osmo_ss7_asp_peer_set_hosts(&asp->cfg.remote, asp, &default_remote_ip, 1);
+			/* Make sure proper defaults are applied if app didn't provide specific default values */
+			osmo_ss7_asp_set_default_peer_hosts(asp);
 			asp->simple_client_allocated = true;
 		}
 
