@@ -475,10 +475,10 @@ const char *osmo_sccp_user_name(struct osmo_sccp_user *scu)
  *  \param[in] name human readable name
  *  \param[in] default_pc pointcode to be used on missing VTY setting
  *  \param[in] prot protocol to be used (e.g OSMO_SS7_ASP_PROT_M3UA)
- *  \param[in] default_local_port local port to be usd on missing VTY setting
- *  \param[in] default_local_ip local IP-address to be usd on missing VTY setting
- *  \param[in] default_remote_port remote port to be usd on missing VTY setting
- *  \param[in] default_remote_ip remote IP-address to be usd on missing VTY setting
+ *  \param[in] default_local_port local port to be used on missing VTY setting
+ *  \param[in] default_local_ip local IP-address to be used on missing VTY setting
+ *  \param[in] default_remote_port remote port to be used on missing VTY setting
+ *  \param[in] default_remote_ip remote IP-address to be used on missing VTY setting
  *  \returns callee-allocated SCCP instance on success; NULL on error */
 
 struct osmo_sccp_instance *
@@ -664,10 +664,10 @@ out_ss7:
  *  \param[in] name human readable name
  *  \param[in] default_pc pointcode to be used on missing VTY setting
  *  \param[in] prot protocol to be used (e.g OSMO_SS7_ASP_PROT_M3UA)
- *  \param[in] default_local_port local port to be usd on missing VTY setting
- *  \param[in] default_local_ip local IP-address to be usd on missing VTY setting
- *  \param[in] default_remote_port remote port to be usd on missing VTY setting
- *  \param[in] default_remote_ip remote IP-address to be usd on missing VTY setting
+ *  \param[in] default_local_port local port to be used on missing VTY setting
+ *  \param[in] default_local_ip local IP-address to be used on missing VTY setting
+ *  \param[in] default_remote_port remote port to be used on missing VTY setting
+ *  \param[in] default_remote_ip remote IP-address to be used on missing VTY setting
  *  \returns callee-allocated SCCP instance on success; NULL on error */
 struct osmo_sccp_instance *
 osmo_sccp_simple_client(void *ctx, const char *name, uint32_t default_pc,
