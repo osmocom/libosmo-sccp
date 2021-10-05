@@ -1196,7 +1196,6 @@ static inline bool host_is_ip_anyaddr(const char *host, bool is_v6)
  *  \param[in] host string containing an IP addresses.
  *  \returns 0 on success; negtive otherwise */
 int osmo_ss7_asp_peer_add_host(struct osmo_ss7_asp_peer *peer, void *talloc_ctx, const char *host)
-
 {
 	int i;
 	bool new_is_v6 = osmo_ip_str_type(host) == AF_INET6;
