@@ -1194,7 +1194,7 @@ static inline bool host_is_ip_anyaddr(const char *host, bool is_v6)
  *  \param[in] peer Application Server Process peer the address is appened to.
  *  \param[in] talloc_ctx talloc context used to allocate new address.
  *  \param[in] host string containing an IP addresses.
- *  \returns 0 on success; negtive otherwise */
+ *  \returns 0 on success; negative otherwise */
 int osmo_ss7_asp_peer_add_host(struct osmo_ss7_asp_peer *peer, void *talloc_ctx, const char *host)
 {
 	int i;
