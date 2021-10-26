@@ -488,6 +488,64 @@ struct  sccp_data_ext_unitdata_service {
 	uint8_t			data[0];
 } __attribute__((packed));
 
+/* Long unitdata (LUDT), ITU-T Q.713 4.20 */
+struct sccp_data_long_unitdata {
+	/* mandatory */
+	uint8_t			type;
+	uint8_t			proto_class;
+	uint8_t			hop_counter;
+
+	/* variable */
+	uint16_t		variable_called;
+	uint16_t		variable_calling;
+	uint16_t		variable_data;
+	/* optional */
+	uint16_t		optional_start;
+
+#if VARIABLE
+	called party address
+	calling party address
+	data
+#endif
+
+#if OPTIONAL
+	segmentation
+	importance
+#endif
+
+	uint8_t			data[0];
+
+} __attribute__((packed));
+
+/* Long unitdata service (LUDTS), ITU-T Q.713 4.21 */
+struct  sccp_data_long_unitdata_service {
+	/* mandantory */
+	uint8_t			type;
+	uint8_t			return_cause;
+	uint8_t			hop_counter;
+
+
+	/* variable */
+	uint16_t		variable_called;
+	uint16_t		variable_calling;
+	uint16_t		variable_data;
+	/* optional */
+	uint16_t		optional_start;
+
+#if VARIABLE
+	called party address
+	calling party address
+	data
+#endif
+
+#if OPTIONAL
+	segmentation
+	importance
+#endif
+
+	uint8_t			data[0];
+} __attribute__((packed));
+
 struct sccp_data_it {
 	/* mandatory */
 	uint8_t			type;

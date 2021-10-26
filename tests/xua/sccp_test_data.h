@@ -12,3 +12,5 @@ extern const uint8_t bssmap_clear[13];
 extern const uint8_t bssmap_released[14];
 extern const uint8_t bssmap_release_complete[7];
 extern const uint8_t tcap_global_title[183];
+extern const uint8_t ludt_ranap_reset[40];
+extern const uint8_t ludt_data300bytes[323];

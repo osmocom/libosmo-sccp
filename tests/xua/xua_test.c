@@ -375,6 +375,7 @@ struct sccp2sua_testcase {
 
 const uint32_t sua_proto_class0 = 0;
 const uint32_t sua_proto_class2 = 2;
+const uint32_t sua_hop_ctr_0x0f = 0x0f;
 const uint32_t sua_loc_ref_bsc = 0x10203;
 const uint32_t sua_loc_ref_msc = 0x00003;
 const uint32_t sua_cause0 = 0x00003;
@@ -500,13 +501,41 @@ static const struct sccp2sua_testcase sccp2sua_testcases[] = {
 			.parts = {
 			},
 		},
+	}, {
+		/* This case expectedly prints "Input != re-encoded output!" because input is a
+		 * LUDT with a small payload size fitting 1-byte length, while our (re-)encoder
+		 * encodes it as UDT in this case because it's enough to encode and transmit the
+		 * message. Both are valid. */
+		.name = "LUDT-RANAP_RELEASE",
+		.sccp = PANDSIZ(ludt_ranap_reset),
+		.sua = {
+			.hdr = _XUA_HDR(SUA_MSGC_CL, SUA_CL_CLDT),
+			.parts = {
+				PARTU32(SUA_IEI_PROTO_CLASS, &sua_proto_class0),
+				PARTU32(SUA_IEI_S7_HOP_CTR, &sua_hop_ctr_0x0f),
+				PARTARR(SUA_IEI_DEST_ADDR, sua_addr_ssn_bssmap),
+				PARTARR(SUA_IEI_SRC_ADDR, sua_addr_ssn_bssmap),
+			},
+		},
+	}, {
+		.name = "LUDT-data300bytes",
+		.sccp = PANDSIZ(ludt_data300bytes),
+		.sua = {
+			.hdr = _XUA_HDR(SUA_MSGC_CL, SUA_CL_CLDT),
+			.parts = {
+				PARTU32(SUA_IEI_PROTO_CLASS, &sua_proto_class0),
+				PARTU32(SUA_IEI_S7_HOP_CTR, &sua_hop_ctr_0x0f),
+				PARTARR(SUA_IEI_DEST_ADDR, sua_addr_ssn_bssmap),
+				PARTARR(SUA_IEI_SRC_ADDR, sua_addr_ssn_bssmap),
+			},
+		},
 	},
 };
 
 static void test_sccp2sua_case(const struct sccp2sua_testcase *tcase)
 {
 	struct xua_msg *xua;
-	struct msgb *msg = msgb_alloc(300, "SCCP2SUA Test Input");
+	struct msgb *msg = msgb_alloc(500, "SCCP2SUA Test Input");
 	struct msgb *msg2;
 
 	printf("\n=> %s\n", tcase->name);
