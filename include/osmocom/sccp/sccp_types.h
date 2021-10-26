@@ -446,6 +446,9 @@ struct sccp_data_ext_unitdata {
 	data
 #endif
 
+	/* optional */
+	uint8_t			optional_start;
+
 #if OPTIONAL
 	segmentation
 	importance
@@ -474,6 +477,9 @@ struct  sccp_data_ext_unitdata_service {
 	calling party address
 	data
 #endif
+
+	/* optional */
+	uint8_t			optional_start;
 
 #if OPTIONAL
 	segmentation

@@ -1200,9 +1200,16 @@ static struct xua_msg *sccp_to_xua_udt(struct msgb *msg, struct xua_msg *xua)
 
 }
 
+static int sua_to_sccp_xudt(struct msgb *msg, struct xua_msg *xua);
+
 static int sua_to_sccp_udt(struct msgb *msg, struct xua_msg *xua)
 {
 	struct sccp_data_unitdata *udt;
+
+	/* Use XUDT if we have a hop counter on the SUA side */
+	if (xua_msg_find_tag(xua, SUA_IEI_S7_HOP_CTR))
+		return sua_to_sccp_xudt(msg, xua);
+
 	udt = (struct sccp_data_unitdata *) msgb_put(msg, sizeof(*udt));
 
 	/* Fixed Part */
@@ -1213,6 +1220,46 @@ static int sua_to_sccp_udt(struct msgb *msg, struct xua_msg *xua)
 	sccp_add_var_addr(msg, &udt->variable_calling, xua, SUA_IEI_SRC_ADDR);
 	sccp_add_variable_part(msg, &udt->variable_data, xua, SUA_IEI_DATA);
 	return 0;
+}
+
+/*! \returns \ref xua in case of success, NULL on error (xua not freed!) */
+static struct xua_msg *sccp_to_xua_xudt(struct msgb *msg, struct xua_msg *xua)
+{
+	struct sccp_data_ext_unitdata *xudt = (struct sccp_data_ext_unitdata *)msg->l2h;
+
+	/* Fixed Part */
+	xua_msg_add_u32(xua, SUA_IEI_PROTO_CLASS, xudt->proto_class);
+	xua_msg_add_u32(xua, SUA_IEI_S7_HOP_CTR, xudt->hop_counter);
+	/* Variable Part */
+	if (!sccp_ptr_part_consistent(msg, &xudt->variable_called))
+		return NULL;
+	sccp_addr_to_sua_ptr(xua, SUA_IEI_DEST_ADDR, msg, &xudt->variable_called);
+	if (!sccp_ptr_part_consistent(msg, &xudt->variable_calling))
+		return NULL;
+	sccp_addr_to_sua_ptr(xua, SUA_IEI_SRC_ADDR, msg, &xudt->variable_calling);
+	if (!sccp_ptr_part_consistent(msg, &xudt->variable_data))
+		return NULL;
+	sccp_data_to_sua_ptr(xua, SUA_IEI_DATA, msg, &xudt->variable_data);
+	/* Optional Part */
+	return sccp_to_xua_opt(msg, &xudt->optional_start, xua);
+
+}
+
+static int sua_to_sccp_xudt(struct msgb *msg, struct xua_msg *xua)
+{
+	struct sccp_data_ext_unitdata *xudt;
+	xudt = (struct sccp_data_ext_unitdata *) msgb_put(msg, sizeof(*xudt));
+
+	/* Fixed Part */
+	xudt->type = SCCP_MSG_TYPE_XUDT;
+	xudt->proto_class = xua_msg_get_u32(xua, SUA_IEI_PROTO_CLASS);
+	xudt->hop_counter = xua_msg_get_u32(xua, SUA_IEI_S7_HOP_CTR);
+	/* Variable Part */
+	sccp_add_var_addr(msg, &xudt->variable_called, xua, SUA_IEI_DEST_ADDR);
+	sccp_add_var_addr(msg, &xudt->variable_calling, xua, SUA_IEI_SRC_ADDR);
+	sccp_add_variable_part(msg, &xudt->variable_data, xua, SUA_IEI_DATA);
+	/* Optional Part */
+	return xua_ies_to_sccp_opts(msg, &xudt->optional_start, xudt->type, xua);
 }
 
 /*! \returns \ref xua in case of success, NULL on error (xua not freed!) */
@@ -1237,9 +1284,16 @@ static struct xua_msg *sccp_to_xua_udts(struct msgb *msg, struct xua_msg *xua)
 
 }
 
+static int sua_to_sccp_xudts(struct msgb *msg, struct xua_msg *xua);
+
 static int sua_to_sccp_udts(struct msgb *msg, struct xua_msg *xua)
 {
 	struct sccp_data_unitdata_service *udts;
+
+	/* Use XUDTS if we have a hop counter */
+	if (xua_msg_find_tag(xua, SUA_IEI_S7_HOP_CTR))
+		return sua_to_sccp_xudts(msg, xua);
+
 	udts = (struct sccp_data_unitdata_service *) msgb_put(msg, sizeof(*udts));
 
 	/* Fixed Part */
@@ -1250,6 +1304,46 @@ static int sua_to_sccp_udts(struct msgb *msg, struct xua_msg *xua)
 	sccp_add_var_addr(msg, &udts->variable_calling, xua, SUA_IEI_SRC_ADDR);
 	sccp_add_variable_part(msg, &udts->variable_data, xua, SUA_IEI_DATA);
 	return 0;
+}
+
+/*! \returns \ref xua in case of success, NULL on error (xua not freed!) */
+static struct xua_msg *sccp_to_xua_xudts(struct msgb *msg, struct xua_msg *xua)
+{
+	struct sccp_data_ext_unitdata_service *xudts;
+	xudts = (struct sccp_data_ext_unitdata_service *)msg->l2h;
+
+	/* Fixed Part */
+	xua_msg_add_u32(xua, SUA_IEI_CAUSE, SUA_CAUSE_T_RETURN | xudts->return_cause);
+	xua_msg_add_u32(xua, SUA_IEI_S7_HOP_CTR, xudts->hop_counter);
+	/* Variable Part */
+	if (!sccp_ptr_part_consistent(msg, &xudts->variable_called))
+		return NULL;
+	sccp_addr_to_sua_ptr(xua, SUA_IEI_DEST_ADDR, msg, &xudts->variable_called);
+	if (!sccp_ptr_part_consistent(msg, &xudts->variable_calling))
+		return NULL;
+	sccp_addr_to_sua_ptr(xua, SUA_IEI_SRC_ADDR, msg, &xudts->variable_calling);
+	if (!sccp_ptr_part_consistent(msg, &xudts->variable_data))
+		return NULL;
+	sccp_data_to_sua_ptr(xua, SUA_IEI_DATA, msg, &xudts->variable_data);
+	/* Optional Part */
+	return sccp_to_xua_opt(msg, &xudts->optional_start, xua);
+}
+
+static int sua_to_sccp_xudts(struct msgb *msg, struct xua_msg *xua)
+{
+	struct sccp_data_ext_unitdata_service *xudts;
+	xudts = (struct sccp_data_ext_unitdata_service *) msgb_put(msg, sizeof(*xudts));
+
+	/* Fixed Part */
+	xudts->type = SCCP_MSG_TYPE_XUDTS;
+	xudts->return_cause = xua_msg_get_u32(xua, SUA_IEI_CAUSE) & 0xff;
+	xudts->hop_counter = xua_msg_get_u32(xua, SUA_IEI_S7_HOP_CTR);
+	/* Variable Part */
+	sccp_add_var_addr(msg, &xudts->variable_called, xua, SUA_IEI_DEST_ADDR);
+	sccp_add_var_addr(msg, &xudts->variable_calling, xua, SUA_IEI_SRC_ADDR);
+	sccp_add_variable_part(msg, &xudts->variable_data, xua, SUA_IEI_DATA);
+	/* Optional Part */
+	return xua_ies_to_sccp_opts(msg, &xudts->optional_start, xudts->type, xua);
 }
 
 /*! \returns \ref xua in case of success, NULL on error (xua not freed!) */
@@ -1376,6 +1470,16 @@ struct xua_msg *osmo_sccp_to_xua(struct msgb *msg)
 		if (!sccp_to_xua_err(msg, xua))
 			goto malformed;
 		return xua;
+	case SCCP_MSG_TYPE_XUDT:
+		xua->hdr = XUA_HDR(SUA_MSGC_CL, SUA_CL_CLDT);
+		if (!sccp_to_xua_xudt(msg, xua))
+			goto malformed;
+		return xua;
+	case SCCP_MSG_TYPE_XUDTS:
+		xua->hdr = XUA_HDR(SUA_MSGC_CL, SUA_CL_CLDR);
+		if (!sccp_to_xua_xudts(msg, xua))
+			goto malformed;
+		return xua;
 	/* Unsupported Message Types */
 	case SCCP_MSG_TYPE_DT2:
 	case SCCP_MSG_TYPE_AK:
@@ -1383,8 +1487,6 @@ struct xua_msg *osmo_sccp_to_xua(struct msgb *msg)
 	case SCCP_MSG_TYPE_EA:
 	case SCCP_MSG_TYPE_RSR:
 	case SCCP_MSG_TYPE_RSC:
-	case SCCP_MSG_TYPE_XUDT:
-	case SCCP_MSG_TYPE_XUDTS:
 	case SCCP_MSG_TYPE_LUDT:
 	case SCCP_MSG_TYPE_LUDTS:
 		LOGP(DLSUA, LOGL_ERROR, "Unsupported SCCP message %s\n",
