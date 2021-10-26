@@ -94,6 +94,7 @@ uint32_t xua_msg_get_u32(const struct xua_msg *xua, uint16_t iei);
 const uint32_t *xua_msg_get_u32p(const struct xua_msg *xua, uint16_t iei, uint32_t *out);
 const char *xua_msg_part_get_str(const struct xua_msg_part *part);
 const char *xua_msg_get_str(const struct xua_msg *xua, uint16_t iei);
+int xua_msg_get_len(const struct xua_msg *xua, uint16_t iei);
 void xua_part_add_gt(struct msgb *msg, const struct osmo_sccp_gt *gt);
 int xua_msg_add_sccp_addr(struct xua_msg *xua, uint16_t iei, const struct osmo_sccp_addr *addr);
 

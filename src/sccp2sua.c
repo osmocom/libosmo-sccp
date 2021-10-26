@@ -425,6 +425,36 @@ static int sccp_add_variable_part(struct msgb *msg, uint8_t *var_ptr, struct xua
 	return part->len;
 }
 
+/*! \brief Add a "SCCP Long Variable Mandatory Part" to the given msgb
+ *  \param msg Message buffer to which part shall be added
+ *  \param[out] var_ptr pointer to relative pointer in SCCP header
+ *  \param[in] xua xUA message from which to use source data
+ *  \param[in] iei xUA information element identifier of source data */
+static int sccp_add_long_variable_part(struct msgb *msg, uint8_t *var_ptr, struct xua_msg *xua, uint16_t iei)
+{
+	struct xua_msg_part *part = xua_msg_find_tag(xua, iei);
+	uint8_t *lenbyte;
+	uint8_t *cur;
+	if (!part) {
+		LOGP(DLSUA, LOGL_ERROR, "Cannot find IEI %u in SUA message\n", iei);
+		return -ENODEV;
+	}
+
+	/* first allocate one byte for the length */
+	lenbyte = msgb_put(msg, 2);
+	/* update the relative pointer to the length byte */
+	*var_ptr = lenbyte - var_ptr;
+
+	/* then append the encoded SCCP address */
+	cur = msgb_put(msg, part->len);
+	memcpy(cur, part->dat, part->len);
+
+	/* store the encoded length of the address, LSB first */
+	lenbyte[0] = part->len & 0xff;
+	lenbyte[1] = part->len >> 8;
+
+	return part->len;
+}
 
 /*! \brief validate that SCCP part with pointer + length doesn't exceed msg tail
  *  \param[in] msg Message containing SCCP address
@@ -462,6 +492,20 @@ static int sccp_data_to_sua_ptr(struct xua_msg *xua, uint16_t iei, struct msgb *
 
 	return xua_msg_add_data(xua, iei, addrlen, addr);
 }
+
+/*! \brief convenience wrapper around xua_msg_add_data() for variable mandatory data */
+static int sccp_longdata_to_sua_ptr(struct xua_msg *xua, uint16_t iei, struct msgb *msg, uint8_t *ptr_addr)
+{
+	uint8_t *addr = ptr_addr + *ptr_addr + 2;
+	unsigned int addrlen = 0;
+
+	/* LSB first */
+	addrlen += *(ptr_addr + *ptr_addr);
+	addrlen += *(ptr_addr + *ptr_addr + 1) << 8;
+
+	return xua_msg_add_data(xua, iei, addrlen, addr);
+}
+
 
 /*! \brief Convert a given SCCP option to SUA and add it to given xua_msg
  *  \param xua caller-provided xUA message to which option is to be  added
@@ -1201,10 +1245,17 @@ static struct xua_msg *sccp_to_xua_udt(struct msgb *msg, struct xua_msg *xua)
 }
 
 static int sua_to_sccp_xudt(struct msgb *msg, struct xua_msg *xua);
+static int sua_to_sccp_ludt(struct msgb *msg, struct xua_msg *xua);
 
 static int sua_to_sccp_udt(struct msgb *msg, struct xua_msg *xua)
 {
 	struct sccp_data_unitdata *udt;
+
+	/* Use LUDT if length exceeds 255 (single byte length field) */
+	/* TODO: start using LUDT sooner if called/calling party contain GT or if
+	 * segmentation and/or importance present, see Q.715 Section 8.3.2 */
+	if (xua_msg_get_len(xua, SUA_IEI_DATA) > 255)
+		return sua_to_sccp_ludt(msg, xua);
 
 	/* Use XUDT if we have a hop counter on the SUA side */
 	if (xua_msg_find_tag(xua, SUA_IEI_S7_HOP_CTR))
@@ -1248,6 +1299,13 @@ static struct xua_msg *sccp_to_xua_xudt(struct msgb *msg, struct xua_msg *xua)
 static int sua_to_sccp_xudt(struct msgb *msg, struct xua_msg *xua)
 {
 	struct sccp_data_ext_unitdata *xudt;
+
+	/* Use LUDT if length exceeds 255 (single byte length field) */
+	/* TODO: start using LUDTS sooner if called/calling party contain GT or if
+	 * segmentation and/or importance present, see Q.715 Section 8.3.2 */
+	if (xua_msg_get_len(xua, SUA_IEI_DATA) > 254)
+		return sua_to_sccp_ludt(msg, xua);
+
 	xudt = (struct sccp_data_ext_unitdata *) msgb_put(msg, sizeof(*xudt));
 
 	/* Fixed Part */
@@ -1260,6 +1318,45 @@ static int sua_to_sccp_xudt(struct msgb *msg, struct xua_msg *xua)
 	sccp_add_variable_part(msg, &xudt->variable_data, xua, SUA_IEI_DATA);
 	/* Optional Part */
 	return xua_ies_to_sccp_opts(msg, &xudt->optional_start, xudt->type, xua);
+}
+
+/*! \returns \ref xua in case of success, NULL on error (xua not freed!) */
+static struct xua_msg *sccp_to_xua_ludt(struct msgb *msg, struct xua_msg *xua)
+{
+	struct sccp_data_ext_unitdata *ludt = (struct sccp_data_ext_unitdata *)msg->l2h;
+
+	/* Fixed Part */
+	xua_msg_add_u32(xua, SUA_IEI_PROTO_CLASS, ludt->proto_class);
+	xua_msg_add_u32(xua, SUA_IEI_S7_HOP_CTR, ludt->hop_counter);
+	/* Variable Part */
+	if (!sccp_ptr_part_consistent(msg, &ludt->variable_called))
+		return NULL;
+	sccp_addr_to_sua_ptr(xua, SUA_IEI_DEST_ADDR, msg, &ludt->variable_called);
+	if (!sccp_ptr_part_consistent(msg, &ludt->variable_calling))
+		return NULL;
+	sccp_addr_to_sua_ptr(xua, SUA_IEI_SRC_ADDR, msg, &ludt->variable_calling);
+	if (!sccp_ptr_part_consistent(msg, &ludt->variable_data))
+		return NULL;
+	sccp_longdata_to_sua_ptr(xua, SUA_IEI_DATA, msg, &ludt->variable_data);
+	/* Optional Part */
+	return sccp_to_xua_opt(msg, &ludt->optional_start, xua);
+}
+
+static int sua_to_sccp_ludt(struct msgb *msg, struct xua_msg *xua)
+{
+	struct sccp_data_ext_unitdata *ludt;
+	ludt = (struct sccp_data_ext_unitdata *) msgb_put(msg, sizeof(*ludt));
+
+	/* Fixed Part */
+	ludt->type = SCCP_MSG_TYPE_LUDT;
+	ludt->proto_class = xua_msg_get_u32(xua, SUA_IEI_PROTO_CLASS);
+	ludt->hop_counter = xua_msg_get_u32(xua, SUA_IEI_S7_HOP_CTR);
+	/* Variable Part */
+	sccp_add_var_addr(msg, &ludt->variable_called, xua, SUA_IEI_DEST_ADDR);
+	sccp_add_var_addr(msg, &ludt->variable_calling, xua, SUA_IEI_SRC_ADDR);
+	sccp_add_long_variable_part(msg, &ludt->variable_data, xua, SUA_IEI_DATA);
+	/* Optional Part */
+	return xua_ies_to_sccp_opts(msg, &ludt->optional_start, ludt->type, xua);
 }
 
 /*! \returns \ref xua in case of success, NULL on error (xua not freed!) */
@@ -1285,10 +1382,17 @@ static struct xua_msg *sccp_to_xua_udts(struct msgb *msg, struct xua_msg *xua)
 }
 
 static int sua_to_sccp_xudts(struct msgb *msg, struct xua_msg *xua);
+static int sua_to_sccp_ludts(struct msgb *msg, struct xua_msg *xua);
 
 static int sua_to_sccp_udts(struct msgb *msg, struct xua_msg *xua)
 {
 	struct sccp_data_unitdata_service *udts;
+
+	/* Use LUDTS if length exceeds 255 (single byte length field) */
+	/* TODO: start using LUDTS sooner if called/calling party contain GT,
+	 * see Q.715 Section 8.3.2 */
+	if (xua_msg_get_len(xua, SUA_IEI_DATA) > 255)
+		return sua_to_sccp_ludts(msg, xua);
 
 	/* Use XUDTS if we have a hop counter */
 	if (xua_msg_find_tag(xua, SUA_IEI_S7_HOP_CTR))
@@ -1344,6 +1448,46 @@ static int sua_to_sccp_xudts(struct msgb *msg, struct xua_msg *xua)
 	sccp_add_variable_part(msg, &xudts->variable_data, xua, SUA_IEI_DATA);
 	/* Optional Part */
 	return xua_ies_to_sccp_opts(msg, &xudts->optional_start, xudts->type, xua);
+}
+
+/*! \returns \ref xua in case of success, NULL on error (xua not freed!) */
+static struct xua_msg *sccp_to_xua_ludts(struct msgb *msg, struct xua_msg *xua)
+{
+	struct sccp_data_ext_unitdata_service *ludts;
+	ludts =(struct sccp_data_ext_unitdata_service *)msg->l2h;
+
+	/* Fixed Part */
+	xua_msg_add_u32(xua, SUA_IEI_CAUSE, SUA_CAUSE_T_RETURN | ludts->return_cause);
+	xua_msg_add_u32(xua, SUA_IEI_S7_HOP_CTR, ludts->hop_counter);
+	/* Variable Part */
+	if (!sccp_ptr_part_consistent(msg, &ludts->variable_called))
+		return NULL;
+	sccp_addr_to_sua_ptr(xua, SUA_IEI_DEST_ADDR, msg, &ludts->variable_called);
+	if (!sccp_ptr_part_consistent(msg, &ludts->variable_calling))
+		return NULL;
+	sccp_addr_to_sua_ptr(xua, SUA_IEI_SRC_ADDR, msg, &ludts->variable_calling);
+	if (!sccp_ptr_part_consistent(msg, &ludts->variable_data))
+		return NULL;
+	sccp_longdata_to_sua_ptr(xua, SUA_IEI_DATA, msg, &ludts->variable_data);
+	/* Optional Part */
+	return sccp_to_xua_opt(msg, &ludts->optional_start, xua);
+}
+
+static int sua_to_sccp_ludts(struct msgb *msg, struct xua_msg *xua)
+{
+	struct sccp_data_ext_unitdata_service *ludts;
+	ludts = (struct sccp_data_ext_unitdata_service *) msgb_put(msg, sizeof(*ludts));
+
+	/* Fixed Part */
+	ludts->type = SCCP_MSG_TYPE_LUDTS;
+	ludts->return_cause = xua_msg_get_u32(xua, SUA_IEI_CAUSE) & 0xff;
+	ludts->hop_counter = xua_msg_get_u32(xua, SUA_IEI_S7_HOP_CTR);
+	/* Variable Part */
+	sccp_add_var_addr(msg, &ludts->variable_called, xua, SUA_IEI_DEST_ADDR);
+	sccp_add_var_addr(msg, &ludts->variable_calling, xua, SUA_IEI_SRC_ADDR);
+	sccp_add_long_variable_part(msg, &ludts->variable_data, xua, SUA_IEI_DATA);
+	/* Optional Part */
+	return xua_ies_to_sccp_opts(msg, &ludts->optional_start, ludts->type, xua);
 }
 
 /*! \returns \ref xua in case of success, NULL on error (xua not freed!) */
@@ -1480,6 +1624,16 @@ struct xua_msg *osmo_sccp_to_xua(struct msgb *msg)
 		if (!sccp_to_xua_xudts(msg, xua))
 			goto malformed;
 		return xua;
+	case SCCP_MSG_TYPE_LUDT:
+		xua->hdr = XUA_HDR(SUA_MSGC_CL, SUA_CL_CLDT);
+		if (!sccp_to_xua_ludt(msg, xua))
+			goto malformed;
+		return xua;
+	case SCCP_MSG_TYPE_LUDTS:
+		xua->hdr = XUA_HDR(SUA_MSGC_CL, SUA_CL_CLDR);
+		if (!sccp_to_xua_ludts(msg, xua))
+			goto malformed;
+		return xua;
 	/* Unsupported Message Types */
 	case SCCP_MSG_TYPE_DT2:
 	case SCCP_MSG_TYPE_AK:
@@ -1487,8 +1641,6 @@ struct xua_msg *osmo_sccp_to_xua(struct msgb *msg)
 	case SCCP_MSG_TYPE_EA:
 	case SCCP_MSG_TYPE_RSR:
 	case SCCP_MSG_TYPE_RSC:
-	case SCCP_MSG_TYPE_LUDT:
-	case SCCP_MSG_TYPE_LUDTS:
 		LOGP(DLSUA, LOGL_ERROR, "Unsupported SCCP message %s\n",
 			osmo_sccp_msg_type_name(msg->l2h[0]));
 		xua_msg_free(xua);

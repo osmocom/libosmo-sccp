@@ -330,6 +330,14 @@ const char *xua_msg_get_str(const struct xua_msg *xua, uint16_t iei)
 	return xua_msg_part_get_str(part);
 }
 
+int xua_msg_get_len(const struct xua_msg *xua, uint16_t iei)
+{
+	struct xua_msg_part *part = xua_msg_find_tag(xua, iei);
+	if (!part)
+		return -1;
+	return part->len;
+}
+
 void xua_part_add_gt(struct msgb *msg, const struct osmo_sccp_gt *gt)
 {
 	uint16_t *len_ptr;
