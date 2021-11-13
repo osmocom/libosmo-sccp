@@ -261,7 +261,7 @@ static int scmg_rx(struct osmo_sccp_user *scu, const struct osmo_sccp_addr *call
 	case SCCP_SCMG_MSGT_SOG:
 	case SCCP_SCMG_MSGT_SSC:
 	default:
-		LOGP(DLSCCP, LOGL_NOTICE, "Rx unsupported SCCP SCMG %s, ignoring",
+		LOGP(DLSCCP, LOGL_NOTICE, "Rx unsupported SCCP SCMG %s, ignoring\n",
 			sccp_scmg_msgt_name(scmg->msg_type));
 		break;
 	}
