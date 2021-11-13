@@ -88,6 +88,74 @@ DEFUN(scu_unitdata_req, scu_unitdata_req_cmd,
 	return CMD_SUCCESS;
 }
 
+struct load_test_ctx {
+	struct osmo_sccp_user *scu;
+	struct vty *vty;
+
+	struct osmo_timer_list timer;
+	char data[256];
+
+	unsigned int msu_size;
+	unsigned int total_num_msu;
+	unsigned int sent_msu;
+	unsigned int timer_interval_us;
+	struct timespec start_time;
+};
+
+static struct load_test_ctx g_ltc;
+
+static void load_test_timer_cb(void *ctx)
+{
+	struct vty *vty = g_ltc.vty;
+
+	osmo_sccp_tx_unitdata(g_ltc.scu, &g_calling_addr, &g_called_addr,
+			(const uint8_t *)g_ltc.data, g_ltc.msu_size);
+	g_ltc.sent_msu++;
+	if (g_ltc.sent_msu >= g_ltc.total_num_msu) {
+		struct timespec stop_time, expired_time;
+		float expired_timef;
+		osmo_clock_gettime(CLOCK_MONOTONIC, &stop_time);
+		timespecsub(&stop_time, &g_ltc.start_time, &expired_time);
+		expired_timef = expired_time.tv_sec;
+		expired_timef += (float) expired_time.tv_nsec / 1000000000.0f;
+
+		vty_out(vty, "SCCP Unitdata load test completed after %5.2f seconds (%5.2f MSU/s)%s", 
+			expired_timef, g_ltc.sent_msu / expired_timef, VTY_NEWLINE);
+		return;
+	}
+	/* schedule for the next millisecond */
+	osmo_timer_schedule(&g_ltc.timer, 0, g_ltc.timer_interval_us);
+}
+
+DEFUN(scu_unitdata_load_test, scu_unitdata_load_test_cmd,
+	"unitdata-load-test msu-size <1-255> msu-count <1-4294967295> msu-per-second <1-1000000>",
+	"Run loadtest\n")
+{
+	struct osmo_sccp_user *scu = vty->index;
+	unsigned int msu_size = atoi(argv[0]);
+	unsigned int msu_count = atoi(argv[1]);
+	unsigned int msu_per_second = atoi(argv[2]);
+
+	if (osmo_timer_pending(&g_ltc.timer)) {
+		vty_out(vty, "Cannot start load test, it is alrady running%s", VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	g_ltc.msu_size = msu_size;
+	g_ltc.total_num_msu = msu_count;
+	g_ltc.timer_interval_us = 1000000/msu_per_second;
+
+	g_ltc.scu = scu;
+	g_ltc.vty = vty;
+	g_ltc.sent_msu = 0;
+	osmo_timer_setup(&g_ltc.timer, load_test_timer_cb, NULL);
+	osmo_clock_gettime(CLOCK_MONOTONIC, &g_ltc.start_time);
+	load_test_timer_cb(NULL);
+	vty_out(vty, "SCCP Unitdata load test started%s", VTY_NEWLINE);
+
+	return CMD_SUCCESS;
+}
+
 DEFUN(scu_disc_req, scu_disc_req_cmd,
 	"disconnect-req <0-16777216>",
 	"N-DISCONNT.req\n"
@@ -144,6 +212,7 @@ int sccp_test_user_vty_install(struct osmo_sccp_instance *inst, int ssn)
 	install_element(SCU_NODE, &scu_conn_resp_cmd);
 	install_element(SCU_NODE, &scu_data_req_cmd);
 	install_element(SCU_NODE, &scu_unitdata_req_cmd);
+	install_element(SCU_NODE, &scu_unitdata_load_test_cmd);
 	install_element(SCU_NODE, &scu_disc_req_cmd);
 
 	install_element(ENABLE_NODE, &scu_cmd);
