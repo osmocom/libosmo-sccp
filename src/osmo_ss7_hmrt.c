@@ -35,6 +35,7 @@
 #include <osmocom/sigtran/protocol/m3ua.h>
 
 #include "xua_internal.h"
+#include "ss7_internal.h"
 
 /* convert from M3UA message to MTP-TRANSFER.ind osmo_mtp_prim */
 struct osmo_mtp_prim *m3ua_to_xfer_ind(struct xua_msg *xua)
@@ -226,6 +227,8 @@ static int hmrt_message_for_routing(struct osmo_ss7_instance *inst,
 				DEBUGP(DLSS7, "Found route for dpc=%u=%s: %s\n",
 				       dpc, osmo_ss7_pointcode_print(inst, dpc), rt_name);
 			}
+
+			rate_ctr_inc2(as->ctrg, SS7_AS_CTR_TX_MSU_TOTAL);
 
 			switch (as->cfg.proto) {
 			case OSMO_SS7_ASP_PROT_M3UA:

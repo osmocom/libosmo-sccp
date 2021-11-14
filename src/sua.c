@@ -46,6 +46,7 @@
 #include "xua_asp_fsm.h"
 #include "xua_internal.h"
 #include "sccp_internal.h"
+#include "ss7_internal.h"
 
 /* Appendix C.4 of Q.714 (all in milliseconds) */
 #define CONNECTION_TIMER	( 1 * 60 * 100)
@@ -521,6 +522,8 @@ static int sua_rx_cl(struct osmo_ss7_asp *asp, struct xua_msg *xua)
 	if (rc)
 		return rc;
 
+	rate_ctr_inc2(as->ctrg, SS7_AS_CTR_RX_MSU_TOTAL);
+
 	switch (xua->hdr.msg_type) {
 	case 0: /* Reserved, permitted by ETSI TS 101 592 5.2.3.2 */
 	case SUA_CL_CLDT:
@@ -548,6 +551,8 @@ static int sua_rx_co(struct osmo_ss7_asp *asp, struct xua_msg *xua)
 	rc = xua_find_as_for_asp(&as, asp, rctx_ie);
 	if (rc)
 		return rc;
+
+	rate_ctr_inc2(as->ctrg, SS7_AS_CTR_RX_MSU_TOTAL);
 
 	switch (xua->hdr.msg_type) {
 	case 0: /* Reserved, permitted by ETSI TS 101 592 5.2.3.2 */

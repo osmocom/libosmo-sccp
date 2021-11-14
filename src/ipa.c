@@ -47,6 +47,7 @@
 #include <osmocom/sigtran/protocol/mtp.h>
 
 #include "xua_internal.h"
+#include "ss7_internal.h"
 #include "xua_asp_fsm.h"
 
 
@@ -223,6 +224,8 @@ static int ipa_rx_msg_sccp(struct osmo_ss7_asp *asp, struct msgb *msg)
 		msgb_free(msg);
 		return -1;
 	}
+
+	rate_ctr_inc2(as->ctrg, SS7_AS_CTR_RX_MSU_TOTAL);
 
 	/* pull the IPA header */
 	msgb_pull_to_l2(msg);

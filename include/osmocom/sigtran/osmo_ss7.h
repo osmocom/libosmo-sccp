@@ -9,6 +9,7 @@
 #include <osmocom/core/msgb.h>
 #include <osmocom/core/prim.h>
 #include <osmocom/core/socket.h>
+#include <osmocom/core/rate_ctr.h>
 
 extern struct llist_head osmo_ss7_instances;
 
@@ -310,6 +311,9 @@ struct osmo_ss7_as {
 	/*! Were we allocated by "simple client" support? */
 	bool simple_client_allocated;
 
+	/*! Rate Counter Group */
+	struct rate_ctr_group *ctrg;
+
 	struct {
 		char *name;
 		char *description;
@@ -411,6 +415,9 @@ struct osmo_ss7_asp {
 
 	/*! Were we allocated by "simple client" support? */
 	bool simple_client_allocated;
+
+	/*! Rate Counter Group */
+	struct rate_ctr_group *ctrg;
 
 	/*! Pending message for non-blocking IPA read */
 	struct msgb *pending_msg;

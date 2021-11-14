@@ -32,6 +32,7 @@
 #include <osmocom/core/utils.h>
 #include <osmocom/core/logging.h>
 #include <osmocom/core/application.h>
+#include <osmocom/core/rate_ctr.h>
 #include <osmocom/core/fsm.h>
 #include <osmocom/vty/vty.h>
 #include <osmocom/vty/stats.h>
@@ -254,6 +255,7 @@ int main(int argc, char **argv)
 	signal(SIGUSR1, &signal_handler);
 	signal(SIGUSR2, &signal_handler);
 	osmo_init_ignore_signals();
+	rate_ctr_init(tall_stp_ctx);
 
 	if (cmdline_config.daemonize) {
 		rc = osmo_daemonize();

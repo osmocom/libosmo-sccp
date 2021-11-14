@@ -44,6 +44,7 @@
 #include "xua_as_fsm.h"
 #include "xua_asp_fsm.h"
 #include "xua_internal.h"
+#include "ss7_internal.h"
 
 #define M3UA_MSGB_SIZE 1500
 
@@ -552,6 +553,8 @@ static int m3ua_rx_xfer(struct osmo_ss7_asp *asp, struct xua_msg *xua)
 	rc = xua_find_as_for_asp(&as, asp, rctx_ie);
 	if (rc)
 		return rc;
+
+	rate_ctr_inc2(as->ctrg, SS7_AS_CTR_RX_MSU_TOTAL);
 
 	/* FIXME: check for AS state == ACTIVE */
 

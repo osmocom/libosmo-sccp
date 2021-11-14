@@ -48,6 +48,7 @@
 
 #include "sccp_internal.h"
 #include "xua_internal.h"
+#include "ss7_internal.h"
 #include "xua_asp_fsm.h"
 #include "xua_as_fsm.h"
 
@@ -895,6 +896,19 @@ const char *osmo_ss7_route_print(const struct osmo_ss7_route *rt)
  * SS7 Application Server
  ***********************************************************************/
 
+static const struct rate_ctr_desc ss7_as_rcd[] = {
+	[SS7_AS_CTR_RX_MSU_TOTAL] = { "rx.msu.total", "Total number of MSU received" },
+	[SS7_AS_CTR_TX_MSU_TOTAL] = { "tx.msu.total", "Total number of MSU transmitted" },
+};
+
+static const struct rate_ctr_group_desc ss7_as_rcgd = {
+	.group_name_prefix = "sigtran.as",
+	.group_description = "SIGTRAN Application Server",
+	.num_ctr = ARRAY_SIZE(ss7_as_rcd),
+	.ctr_desc = ss7_as_rcd,
+};
+static unsigned int g_ss7_as_rcg_idx;
+
 /*! \brief Find Application Server by given name
  *  \param[in] inst SS7 Instance on which we operate
  *  \param[in] name Name of AS
@@ -1002,6 +1016,12 @@ osmo_ss7_as_find_or_create(struct osmo_ss7_instance *inst, const char *name,
 		as = talloc_zero(inst, struct osmo_ss7_as);
 		if (!as)
 			return NULL;
+		as->ctrg = rate_ctr_group_alloc(as, &ss7_as_rcgd, g_ss7_as_rcg_idx++);
+		if (!as->ctrg) {
+			talloc_free(as);
+			return NULL;
+		}
+		rate_ctr_group_set_name(as->ctrg, name);
 		as->inst = inst;
 		as->cfg.name = talloc_strdup(as, name);
 		as->cfg.proto = proto;
@@ -1124,6 +1144,26 @@ bool osmo_ss7_as_active(const struct osmo_ss7_as *as)
 /***********************************************************************
  * SS7 Application Server Process
  ***********************************************************************/
+
+enum ss7_asp_ctr {
+	SS7_ASP_CTR_PKT_RX_TOTAL,
+	SS7_ASP_CTR_PKT_RX_UNKNOWN,
+	SS7_ASP_CTR_PKT_TX_TOTAL,
+};
+
+static const struct rate_ctr_desc ss7_asp_rcd[] = {
+	[SS7_ASP_CTR_PKT_RX_TOTAL] = { "rx.packets.total", "Total number of packets received" },
+	[SS7_ASP_CTR_PKT_RX_UNKNOWN] = { "rx.packets.unknown", "Number of packets received for unknown PPID" },
+	[SS7_ASP_CTR_PKT_TX_TOTAL] = { "tx.packets.total", "Total number of packets transmitted" },
+};
+
+static const struct rate_ctr_group_desc ss7_asp_rcgd = {
+	.group_name_prefix = "sigtran.asp",
+	.group_description = "SIGTRAN Application Server Process",
+	.num_ctr = ARRAY_SIZE(ss7_asp_rcd),
+	.ctr_desc = ss7_asp_rcd,
+};
+static unsigned int g_ss7_asp_rcg_idx;
 
 int osmo_ss7_asp_peer_snprintf(char* buf, size_t buf_len, struct osmo_ss7_asp_peer *peer)
 {
@@ -1485,6 +1525,12 @@ osmo_ss7_asp_find_or_create(struct osmo_ss7_instance *inst, const char *name,
 	if (!asp) {
 		/* FIXME: check if local port has SCTP? */
 		asp = talloc_zero(inst, struct osmo_ss7_asp);
+		asp->ctrg = rate_ctr_group_alloc(asp, &ss7_asp_rcgd, g_ss7_asp_rcg_idx++);
+		if (!asp->ctrg) {
+			talloc_free(asp);
+			return NULL;
+		}
+		rate_ctr_group_set_name(asp->ctrg, name);
 		asp->inst = inst;
 		asp->cfg.remote.port = remote_port;
 		asp->cfg.local.port = local_port;
@@ -1781,6 +1827,8 @@ static int xua_srv_conn_cb(struct osmo_stream_srv *conn)
 	msgb_sctp_stream(msg) = sinfo.sinfo_stream;
 	msg->dst = asp;
 
+	rate_ctr_inc2(asp->ctrg, SS7_ASP_CTR_PKT_RX_TOTAL);
+
 	if (ppid == SUA_PPID && asp->cfg.proto == OSMO_SS7_ASP_PROT_SUA)
 		rc = sua_rx_msg(asp, msg);
 	else if (ppid == M3UA_PPID && asp->cfg.proto == OSMO_SS7_ASP_PROT_M3UA)
@@ -1860,6 +1908,7 @@ static int ipa_cli_read_cb(struct osmo_stream_cli *conn)
 		return -1;
 	}
 	msg->dst = asp;
+	rate_ctr_inc2(asp->ctrg, SS7_ASP_CTR_PKT_RX_TOTAL);
 	return ipa_rx_msg(asp, msg);
 }
 
@@ -1917,6 +1966,8 @@ static int xua_cli_read_cb(struct osmo_stream_cli *conn)
 	msgb_sctp_ppid(msg) = ppid;
 	msgb_sctp_stream(msg) = sinfo.sinfo_stream;
 	msg->dst = asp;
+
+	rate_ctr_inc2(asp->ctrg, SS7_ASP_CTR_PKT_RX_TOTAL);
 
 	if (ppid == SUA_PPID && asp->cfg.proto == OSMO_SS7_ASP_PROT_SUA)
 		rc = sua_rx_msg(asp, msg);
@@ -2085,6 +2136,8 @@ int osmo_ss7_asp_send(struct osmo_ss7_asp *asp, struct msgb *msg)
 	default:
 		OSMO_ASSERT(0);
 	}
+
+	rate_ctr_inc2(asp->ctrg, SS7_ASP_CTR_PKT_TX_TOTAL);
 
 	if (asp->cfg.is_server) {
 		if (!asp->server) {
@@ -2361,6 +2414,8 @@ static osmo_ss7_asp_rx_unknown_cb *g_osmo_ss7_asp_rx_unknown_cb;
 
 int ss7_asp_rx_unknown(struct osmo_ss7_asp *asp, int ppid_mux, struct msgb *msg)
 {
+	rate_ctr_inc2(asp->ctrg, SS7_ASP_CTR_PKT_RX_UNKNOWN);
+
 	if (g_osmo_ss7_asp_rx_unknown_cb)
 		return (*g_osmo_ss7_asp_rx_unknown_cb)(asp, ppid_mux, msg);
 
