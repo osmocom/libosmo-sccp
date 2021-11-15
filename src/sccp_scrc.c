@@ -85,7 +85,7 @@ static int sua2sccp_tx_m3ua(struct osmo_sccp_instance *inst,
 		return -1;
 	}
 
-	/* 2) wrap into MTP-TRANSFER.req primtiive */
+	/* 2) wrap into MTP-TRANSFER.req primitive */
 	msg->l2h = msg->data;
 	omp = (struct osmo_mtp_prim *) msgb_push(msg, sizeof(*omp));
 	osmo_prim_init(&omp->oph, MTP_SAP_USER,
@@ -109,7 +109,7 @@ static int sua2sccp_tx_m3ua(struct osmo_sccp_instance *inst,
 	return osmo_ss7_user_mtp_xfer_req(s7i, omp);
 }
 
-/* Gererate MTP-TRANSFER.req from xUA message */
+/* Generate MTP-TRANSFER.req from xUA message */
 static int gen_mtp_transfer_req_xua(struct osmo_sccp_instance *inst,
 				    struct xua_msg *xua,
 				    const struct osmo_sccp_addr *called)
@@ -230,7 +230,7 @@ static int scrc_node_7(struct osmo_sccp_instance *inst,
 	/* Connection Oriented? */
 	if (sua_is_connectionless(xua)) {
 		/* TODO: Perform Capability Test */
-		/* TODO: Canges Needed? */
+		/* TODO: Changes Needed? */
 		if (0) {
 			/* Changes Needed -> SCLC */
 			return 0;

@@ -36,7 +36,7 @@
  * However, all SCCP features can be expressed in SUA.
  *
  * The code only supports Class 2.  No support for Class 3 is intended,
- * but patches are of course alwys welcome.
+ * but patches are of course always welcome.
  *
  * Missing other features:
  *  * Segmentation/Reassembly support
@@ -119,7 +119,7 @@ static int xua_gen_encode_and_send(struct osmo_sccp_user *scu, uint32_t event,
  * The caller is required to free oph->msg, otherwise the same as sccp_sclc_user_sap_down().
  *  \param[in] scu SCCP User who is sending the primitive
  *  \param[on] oph Osmocom primitive header of the primitive
- *  \returns 0 on success; negtive in case of error */
+ *  \returns 0 on success; negative in case of error */
 int sccp_sclc_user_sap_down_nofree(struct osmo_sccp_user *scu, struct osmo_prim_hdr *oph)
 {
 	struct osmo_scu_prim *prim = (struct osmo_scu_prim *) oph;
@@ -143,7 +143,7 @@ int sccp_sclc_user_sap_down_nofree(struct osmo_sccp_user *scu, struct osmo_prim_
  * Implies a msgb_free(oph->msg), otherwise the same as sccp_sclc_user_sap_down_nofree().
  *  \param[in] scu SCCP User who is sending the primitive
  *  \param[on] oph Osmocom primitive header of the primitive
- *  \returns 0 on success; negtive in case of error */
+ *  \returns 0 on success; negative in case of error */
 int sccp_sclc_user_sap_down(struct osmo_sccp_user *scu, struct osmo_prim_hdr *oph)
 {
 	struct osmo_scu_prim *prim = (struct osmo_scu_prim *) oph;

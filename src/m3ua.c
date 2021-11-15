@@ -449,7 +449,7 @@ int m3ua_decode_notify(struct osmo_xlm_prim_notify *npar, void *ctx,
 }
 
 /***********************************************************************
- * Transmitting M3UA messsages to SCTP
+ * Transmitting M3UA messages to SCTP
  ***********************************************************************/
 
 /* Convert M3UA from xua_msg to msgb and set PPID/stream */
@@ -512,7 +512,7 @@ int m3ua_tx_xua_as(struct osmo_ss7_as *as, struct xua_msg *xua)
 }
 
 /***********************************************************************
- * Receiving M3UA messsages from SCTP
+ * Receiving M3UA messages from SCTP
  ***********************************************************************/
 
 /* obtain the destination point code from a M3UA message in XUA fmt * */
@@ -694,7 +694,7 @@ int m3ua_rx_msg(struct osmo_ss7_asp *asp, struct msgb *msg)
 	OSMO_ASSERT(asp->cfg.proto == OSMO_SS7_ASP_PROT_M3UA);
 
 	/* caller owns msg memory, we shall neither free it here nor
-	 * keep references beyond the executin of this function and its
+	 * keep references beyond the execution of this function and its
 	 * callees */
 
 	xua = xua_from_msg(M3UA_VERSION, msgb_length(msg), msgb_data(msg));

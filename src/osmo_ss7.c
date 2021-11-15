@@ -615,7 +615,7 @@ osmo_ss7_linkset_find_or_create(struct osmo_ss7_instance *inst, const char *name
  * SS7 Link
  ***********************************************************************/
 
-/*! \brief Destryo SS7 Link
+/*! \brief Destroy SS7 Link
  *  \param[in] link SS7 Link to be destroyed */
 void osmo_ss7_link_destroy(struct osmo_ss7_link *link)
 {
@@ -999,7 +999,7 @@ struct osmo_ss7_as *osmo_ss7_as_find_by_proto(struct osmo_ss7_instance *inst,
  *  \param[in] inst SS7 Instance on which we operate
  *  \param[in] name Name of Application Server
  *  \param[in] proto Protocol of Application Server
- *  \returns pointer to Application Server on suuccess; NULL otherwise */
+ *  \returns pointer to Application Server on success; NULL otherwise */
 struct osmo_ss7_as *
 osmo_ss7_as_find_or_create(struct osmo_ss7_instance *inst, const char *name,
 			   enum osmo_ss7_asp_protocol proto)
@@ -1201,7 +1201,7 @@ int osmo_ss7_asp_peer_snprintf(char* buf, size_t buf_len, struct osmo_ss7_asp_pe
  *  \param[in] talloc_ctx talloc context used to allocate new addresses.
  *  \param[in] hosts Array of strings containing IP addresses.
  *  \param[in] host_cnt Number of strings in hosts
- *  \returns 0 on success; negtive otherwise */
+ *  \returns 0 on success; negative otherwise */
 int osmo_ss7_asp_peer_set_hosts(struct osmo_ss7_asp_peer *peer, void *talloc_ctx, const char* const* hosts, size_t host_cnt)
 {
 	int i = 0;
@@ -1231,7 +1231,7 @@ static inline bool host_is_ip_anyaddr(const char *host, bool is_v6)
 }
 
 /*! \brief Append (copy) address to a given ASP peer. Previous addresses are kept.
- *  \param[in] peer Application Server Process peer the address is appened to.
+ *  \param[in] peer Application Server Process peer the address is appended to.
  *  \param[in] talloc_ctx talloc context used to allocate new address.
  *  \param[in] host string containing an IP addresses.
  *  \returns 0 on success; negative otherwise */

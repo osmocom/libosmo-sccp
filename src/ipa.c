@@ -135,7 +135,7 @@ static struct osmo_ss7_as *find_as_for_asp(struct osmo_ss7_asp *asp)
 {
 	struct osmo_ss7_as *as;
 
-	/* in the IPA case, weassume there is a 1:1 mapping between the
+	/* in the IPA case, we assume there is a 1:1 mapping between the
 	 * ASP and the AS.  An AS without ASP means there is no
 	 * connection, and an ASP without AS means that we don't (yet?)
 	 * know the identity of the peer */
@@ -301,7 +301,7 @@ int ipa_rx_msg(struct osmo_ss7_asp *asp, struct msgb *msg)
 	OSMO_ASSERT(asp->cfg.proto == OSMO_SS7_ASP_PROT_IPA);
 
 	/* osmo_ipa_process_msg() will already have verified length
-	 * consistency and set up l2h poiter */
+	 * consistency and set up l2h pointer */
 	hh = (struct ipaccess_head *) msg->l1h;
 
 	switch (hh->proto) {

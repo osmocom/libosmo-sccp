@@ -36,7 +36,7 @@
  * However, all SCCP features can be expressed in SUA.
  *
  * The code only supports Class 2.  No support for Class 3 is intended,
- * but patches are of course alwys welcome.
+ * but patches are of course always welcome.
  *
  * Missing other features:
  *  * Segmentation/Reassembly support
@@ -80,7 +80,7 @@ struct sccp_connection {
 	/* remote point code */
 	uint32_t remote_pc;
 
-	/* local/remote addresses and identiies */
+	/* local/remote addresses and identities */
 	struct osmo_sccp_addr calling_addr;
 	struct osmo_sccp_addr called_addr;
 	/* SCCP connection identifier. Only relevant across the SCCP User SAP,
@@ -90,7 +90,7 @@ struct sccp_connection {
 	/* SCCP Remote Connection Reference.  Allocated by the remote
 	 * SCCP stack to uniquely identify a SCCP connection on its end.
 	 * We don't interpret it, but simply cache it here so we can use
-	 * it whever sending data to the peer. Only relevant over the
+	 * it whenever sending data to the peer. Only relevant over the
 	 * wire, not to be used across the SCCP user SAP */
 	uint32_t remote_ref;
 
@@ -1521,7 +1521,7 @@ static void tx_rlsd_from_xua_twoway(struct sccp_connection *conn,
 	xua_msg_free(xua);
 }
 
-/* process received message for unasigned local reference */
+/* process received message for unassigned local reference */
 static void sccp_scoc_rx_unass_local_ref(struct osmo_sccp_instance *inst,
 					 struct xua_msg *xua)
 {
@@ -1631,7 +1631,7 @@ void sccp_scoc_rx_from_scrc(struct osmo_sccp_instance *inst,
 	/* we basically try to convert the SUA message into an event,
 	 * and then dispatch the event to the connection-specific FSM.
 	 * If it is a CORE (Connect REquest), we create the connection
-	 * (and imlpicitly its FSM) first */
+	 * (and implicitly its FSM) first */
 
 	if (xua->hdr.msg_type == SUA_CO_CORE) {
 		scu = sccp_find_user(inst, xua);
