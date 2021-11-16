@@ -897,12 +897,12 @@ const char *osmo_ss7_route_print(const struct osmo_ss7_route *rt)
  ***********************************************************************/
 
 static const struct rate_ctr_desc ss7_as_rcd[] = {
-	[SS7_AS_CTR_RX_MSU_TOTAL] = { "rx.msu.total", "Total number of MSU received" },
-	[SS7_AS_CTR_TX_MSU_TOTAL] = { "tx.msu.total", "Total number of MSU transmitted" },
+	[SS7_AS_CTR_RX_MSU_TOTAL] = { "rx:msu:total", "Total number of MSU received" },
+	[SS7_AS_CTR_TX_MSU_TOTAL] = { "tx:msu:total", "Total number of MSU transmitted" },
 };
 
 static const struct rate_ctr_group_desc ss7_as_rcgd = {
-	.group_name_prefix = "sigtran.as",
+	.group_name_prefix = "sigtran_as",
 	.group_description = "SIGTRAN Application Server",
 	.num_ctr = ARRAY_SIZE(ss7_as_rcd),
 	.ctr_desc = ss7_as_rcd,
@@ -1152,13 +1152,13 @@ enum ss7_asp_ctr {
 };
 
 static const struct rate_ctr_desc ss7_asp_rcd[] = {
-	[SS7_ASP_CTR_PKT_RX_TOTAL] = { "rx.packets.total", "Total number of packets received" },
-	[SS7_ASP_CTR_PKT_RX_UNKNOWN] = { "rx.packets.unknown", "Number of packets received for unknown PPID" },
-	[SS7_ASP_CTR_PKT_TX_TOTAL] = { "tx.packets.total", "Total number of packets transmitted" },
+	[SS7_ASP_CTR_PKT_RX_TOTAL] = { "rx:packets:total", "Total number of packets received" },
+	[SS7_ASP_CTR_PKT_RX_UNKNOWN] = { "rx:packets:unknown", "Number of packets received for unknown PPID" },
+	[SS7_ASP_CTR_PKT_TX_TOTAL] = { "tx:packets:total", "Total number of packets transmitted" },
 };
 
 static const struct rate_ctr_group_desc ss7_asp_rcgd = {
-	.group_name_prefix = "sigtran.asp",
+	.group_name_prefix = "sigtran_asp",
 	.group_description = "SIGTRAN Application Server Process",
 	.num_ctr = ARRAY_SIZE(ss7_asp_rcd),
 	.ctr_desc = ss7_asp_rcd,
