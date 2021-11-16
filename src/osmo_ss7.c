@@ -1111,6 +1111,7 @@ void osmo_ss7_as_destroy(struct osmo_ss7_as *as)
 
 	as->inst = NULL;
 	llist_del(&as->list);
+	rate_ctr_group_free(as->ctrg);
 	talloc_free(as);
 }
 
@@ -1574,6 +1575,7 @@ void osmo_ss7_asp_destroy(struct osmo_ss7_asp *asp)
 	/* unlink from ss7_instance */
 	asp->inst = NULL;
 	llist_del(&asp->list);
+	rate_ctr_group_free(asp->ctrg);
 	/* release memory */
 	talloc_free(asp);
 }
