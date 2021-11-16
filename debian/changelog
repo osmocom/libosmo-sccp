@@ -1,3 +1,58 @@
+libosmo-sccp (1.5.0) unstable; urgency=medium
+
+  [ Harald Welte ]
+  * Add README.md describing what this repo is about
+  * ipa: Use VTY-configured default network indicator
+  * ipa_asp_fsm_del_route(): Log what happens if we bail out early
+  * don't log "SCTP connection close" if an IPA/TCP connection closes
+  * osmo_ss7: Log route destruction (like we log route creation)
+  * ipa_asp_fsm: Fix AS lookup from IPA ASP
+  * Don't create duplicate routes in osmo_ss7_route_create()
+  * ipa: Move automatic route add/del from ASP to AS level
+  * osmo_ss7: Truncate route 'mask' to point code bit length
+  * xua_as_fsm: Only delete a route for an IPA AS if we created one earlier
+  * xua_asp_fsm: Fix IPA client role
+  * don't do explicit NULL checks before calling talloc_free()
+  * osmo_ss7: free the sock_name string once an ASP socket is closed
+  * Revert "osmo_ss7: free the sock_name string once an ASP socket is closed"
+  * ss7_vty: Print actual connected port number in case of IPA server
+  * Constrain connection ID allocation to 24 bits
+  * ss7_asp_test.vty: Allow more asp node commands after shutdown
+  * osmo_ss7: introduce notion of configurable 'quirks'
+  * m3ua/sua: Add quirk for allowing inbound DAUD from SG in ASP role.
+  * m3ua/sua: Add new snm_inactive quirk
+  * sccp_scrc: Ensure we have not just SSN but at least OPC+SSN in CallingParty
+  * sccp: Add minimalistic support for XUDT / XUDTS
+  * sccp_scmg: Add missing line eneding to log statement
+  * stp: Add basic RX/TX rate counters on AS and ASP level
+  * spelling fixes in comments
+  * rate_ctr: Use legal counter group prefixes / names (no '.' allowed)
+  * osmo_ss7: properly unlink rate_counter on AS/ASP free
+
+  [ Vadim Yanitskiy ]
+  * VTY: write_one_asp(): fix 1 << 31 cannot be represented by 'int'
+
+  [ Pau Espin Pedrol ]
+  * cosmetic: xua_asp_fsm.c: reorder functions in file
+  * ipa_asp_fsm: Support server starting handshake with ID_GET or ID_ACK
+  * cosmetic: Fix extra empty line
+  * cosmetic: Fix typos in documentation
+  * osmo_sccp_simple_client_on_ss7_id(): Allow set internally proper IPv4/v6 default hosts
+  * osmo_ss7.c: Fix typo in doc for osmo_ss7_asp_peer_add_host()
+
+  [ Philipp Maier ]
+  * osmo_ss7_vty: automatically create routes for routing key
+  * osmo_ss7_vty: allow users to inspect routes also in ASP role
+
+  [ Eric ]
+  * m3ua: fix leaky usage of m3ua_tx_xua_asp
+
+  [ Oliver Smith ]
+  * m3ua: reject deregistration of static routing keys
+  * m3ua: fix m3ua_encode_dupu
+
+ -- Pau Espin Pedrol <pespin@sysmocom.de>  Tue, 16 Nov 2021 14:44:42 +0100
+
 libosmo-sccp (1.4.0) unstable; urgency=medium
 
   [ Vadim Yanitskiy ]
