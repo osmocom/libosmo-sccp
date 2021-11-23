@@ -45,6 +45,7 @@
 
 #include <osmocom/netif/stream.h>
 #include <osmocom/netif/ipa.h>
+#include <osmocom/netif/sctp.h>
 
 #include "sccp_internal.h"
 #include "xua_internal.h"
@@ -1663,32 +1664,6 @@ bool osmo_ss7_asp_active(const struct osmo_ss7_asp *asp)
  * libosmo-netif integration for SCTP stream server/client
  ***********************************************************************/
 
-static const struct value_string sctp_assoc_chg_vals[] = {
-	{ SCTP_COMM_UP,		"COMM_UP" },
-	{ SCTP_COMM_LOST,	"COMM_LOST" },
-	{ SCTP_RESTART,		"RESTART" },
-	{ SCTP_SHUTDOWN_COMP,	"SHUTDOWN_COMP" },
-	{ SCTP_CANT_STR_ASSOC,	"CANT_STR_ASSOC" },
-	{ 0, NULL }
-};
-
-static const struct value_string sctp_sn_type_vals[] = {
-	{ SCTP_ASSOC_CHANGE,		"ASSOC_CHANGE" },
-	{ SCTP_PEER_ADDR_CHANGE,	"PEER_ADDR_CHANGE" },
-	{ SCTP_SHUTDOWN_EVENT, 		"SHUTDOWN_EVENT" },
-	{ SCTP_SEND_FAILED,		"SEND_FAILED" },
-	{ SCTP_REMOTE_ERROR,		"REMOTE_ERROR" },
-	{ SCTP_PARTIAL_DELIVERY_EVENT,	"PARTIAL_DELIVERY_EVENT" },
-	{ SCTP_ADAPTATION_INDICATION,	"ADAPTATION_INDICATION" },
-#ifdef SCTP_AUTHENTICATION_INDICATION
-	{ SCTP_AUTHENTICATION_INDICATION, "AUTHENTICATION_INDICATION" },
-#endif
-#ifdef SCTP_SENDER_DRY_EVENT
-	{ SCTP_SENDER_DRY_EVENT,	"SENDER_DRY_EVENT" },
-#endif
-	{ 0, NULL }
-};
-
 static int get_logevel_by_sn_type(int sn_type)
 {
 	switch (sn_type) {
@@ -1728,13 +1703,11 @@ static void log_sctp_notification(struct osmo_ss7_asp *asp, const char *pfx,
 	switch (notif->sn_header.sn_type) {
 	case SCTP_ASSOC_CHANGE:
 		LOGPASP(asp, DLSS7, log_level, "%s SCTP_ASSOC_CHANGE: %s\n",
-			pfx, get_value_string(sctp_assoc_chg_vals,
-				notif->sn_assoc_change.sac_state));
+			pfx, osmo_sctp_assoc_chg_str(notif->sn_assoc_change.sac_state));
 		break;
 	default:
 		LOGPASP(asp, DLSS7, log_level, "%s %s\n",
-			pfx, get_value_string(sctp_sn_type_vals,
-				notif->sn_header.sn_type));
+			pfx, osmo_sctp_sn_type_str(notif->sn_header.sn_type));
 		break;
 	}
 }
