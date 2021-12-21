@@ -308,7 +308,7 @@ static int scmg_prim_cb(struct osmo_prim_hdr *oph, void *_scu)
 int sccp_scmg_init(struct osmo_sccp_instance *inst)
 {
 	struct osmo_sccp_user *scu;
-	scu = osmo_sccp_user_bind(inst, "SCCP Maangement", scmg_prim_cb, SCCP_SSN_MANAGEMENT);
+	scu = osmo_sccp_user_bind(inst, "SCCP Management", scmg_prim_cb, SCCP_SSN_MANAGEMENT);
 	if (!scu)
 		return -1;
 	return 0;
