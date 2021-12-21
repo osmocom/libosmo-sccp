@@ -410,20 +410,20 @@ osmo_ss7_instance_find_or_create(void *ctx, uint32_t id)
  *  \param[in] inst SS7 Instance to be destroyed */
 void osmo_ss7_instance_destroy(struct osmo_ss7_instance *inst)
 {
-	struct osmo_ss7_linkset *lset;
-	struct osmo_ss7_as *as;
-	struct osmo_ss7_asp *asp;
+	struct osmo_ss7_linkset *lset, *lset2;
+	struct osmo_ss7_as *as, *as2;
+	struct osmo_ss7_asp *asp, *asp2;
 
 	OSMO_ASSERT(ss7_initialized);
 	LOGSS7(inst, LOGL_INFO, "Destroying SS7 Instance\n");
 
-	llist_for_each_entry(asp, &inst->asp_list, list)
+	llist_for_each_entry_safe(asp, asp2, &inst->asp_list, list)
 		osmo_ss7_asp_destroy(asp);
 
-	llist_for_each_entry(as, &inst->as_list, list)
+	llist_for_each_entry_safe(as, as2, &inst->as_list, list)
 		osmo_ss7_as_destroy(as);
 
-	llist_for_each_entry(lset, &inst->linksets, list)
+	llist_for_each_entry_safe(lset, lset2, &inst->linksets, list)
 		osmo_ss7_linkset_destroy(lset);
 
 	llist_del(&inst->list);
