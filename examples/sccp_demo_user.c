@@ -28,16 +28,17 @@ static const char *config_file;
 
 static struct osmo_sccp_instance *g_sccp;
 
-static struct osmo_sccp_instance *sua_server_helper(int local_port, const char *local_address, int local_pc,
+static struct osmo_sccp_instance *sua_server_helper(enum osmo_ss7_asp_protocol protocol,
+						    int local_port, const char *local_address, int local_pc,
 						    int remote_port, const char *remote_address, int remote_pc)
 {
 	struct osmo_sccp_instance *sccp;
 
-	sccp = osmo_sccp_simple_server(NULL, local_pc, OSMO_SS7_ASP_PROT_M3UA, local_port, local_address);
+	sccp = osmo_sccp_simple_server(NULL, local_pc, protocol, local_port, local_address);
 	if (sccp == NULL)
 		return NULL;
 
-	osmo_sccp_simple_server_add_clnt(sccp, OSMO_SS7_ASP_PROT_M3UA, "client", remote_pc, local_port,
+	osmo_sccp_simple_server_add_clnt(sccp, protocol, "client", remote_pc, local_port,
 					 remote_port, remote_address);
 
 	return sccp;
@@ -110,6 +111,7 @@ static void usage(void) {
 			"             [-r REMOTE_ADDRESS[:REMOTE_PORT]]\n"
 			"             [-L LOCAL_POINT_CODE] [-R REMOTE_POINT_CODE]\n"
 			"Options:\n"
+			"  -p: protocol to use (m3ua, sua, ipa; default is ipa)\n"
 			"  -c: Run in client mode (default is server mode)\n"
 			"  -l: local IP address and SCTP port (default is %s:%d in server mode,\n"
 			"                                       %s:%d in client mode)\n"
@@ -179,9 +181,16 @@ int main(int argc, char **argv)
 	int remote_port = DEFAULT_REMOTE_PORT_SERVER;
 	int remote_pc = DEFAULT_PC_CLIENT;
 	bool lflag = false, rflag = false, Lflag = false, Rflag = false;
+	enum osmo_ss7_asp_protocol protocol = OSMO_SS7_ASP_PROT_M3UA;
 
-	while ((ch = getopt(argc, argv, "cl:r:L:R:C:")) != -1) {
+	while ((ch = getopt(argc, argv, "p:cl:r:L:R:C:")) != -1) {
 		switch (ch) {
+		case 'p':
+			rc = get_string_value(osmo_ss7_asp_protocol_vals, optarg);
+			if (rc < 0)
+				exit(1);
+			protocol = rc;
+			break;
 		case 'c':
 			client = true;
 
@@ -273,7 +282,7 @@ int main(int argc, char **argv)
 	}
 
 	if (client) {
-		g_sccp = osmo_sccp_simple_client(NULL, "client", local_pc, OSMO_SS7_ASP_PROT_M3UA,
+		g_sccp = osmo_sccp_simple_client(NULL, "client", local_pc, protocol,
 						 local_port, local_address, remote_port, remote_address);
 		if (g_sccp == NULL) {
 			perror("Could not create SCCP client");
@@ -281,7 +290,7 @@ int main(int argc, char **argv)
 		}
 		sccp_test_user_vty_install(g_sccp, OSMO_SCCP_SSN_BSSAP);
 	} else {
-		g_sccp = sua_server_helper(local_port, local_address, local_pc,
+		g_sccp = sua_server_helper(protocol, local_port, local_address, local_pc,
 					   remote_port, remote_address, remote_pc);
 		if (g_sccp == NULL) {
 			perror("Could not create SCCP server");
