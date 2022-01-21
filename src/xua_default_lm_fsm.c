@@ -149,7 +149,7 @@ static void lm_wait_asp_up(struct osmo_fsm_inst *fi, uint32_t event, void *data)
 {
 	switch (event) {
 	case LM_E_ASP_UP_CONF:
-		/* ASP is sup, wait for some time if any NOTIFY
+		/* ASP is up, wait for some time if any NOTIFY
 		 * indications about AS in this ASP are received */
 		osmo_fsm_inst_state_chg(fi, S_WAIT_NOTIFY, 2, T_WAIT_NOTIFY);
 		break;
