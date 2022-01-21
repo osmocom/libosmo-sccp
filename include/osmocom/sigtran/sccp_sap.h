@@ -281,8 +281,7 @@ struct osmo_sccp_user;
 
 void osmo_sccp_vty_init(void);
 
-struct osmo_sccp_instance *
-osmo_sccp_instance_create(struct osmo_ss7_instance *ss7, void *priv);
+struct osmo_sccp_instance *osmo_sccp_instance_create(struct osmo_ss7_instance *ss7, void *priv);
 void osmo_sccp_instance_destroy(struct osmo_sccp_instance *inst);
 struct osmo_ss7_instance *osmo_sccp_get_ss7(const struct osmo_sccp_instance *sccp);
 struct osmo_sccp_instance *osmo_sccp_get_sccp(const struct osmo_sccp_user *scu);
@@ -291,22 +290,17 @@ void osmo_sccp_user_unbind(struct osmo_sccp_user *scu);
 void osmo_sccp_user_set_priv(struct osmo_sccp_user *scu, void *priv);
 void *osmo_sccp_user_get_priv(struct osmo_sccp_user *scu);
 
-struct osmo_sccp_user *
-osmo_sccp_user_bind_pc(struct osmo_sccp_instance *inst, const char *name,
-		       osmo_prim_cb prim_cb, uint16_t ssn, uint32_t pc);
+struct osmo_sccp_user *osmo_sccp_user_bind_pc(struct osmo_sccp_instance *inst, const char *name,
+					      osmo_prim_cb prim_cb, uint16_t ssn, uint32_t pc);
 
-struct osmo_sccp_user *
-osmo_sccp_user_bind(struct osmo_sccp_instance *inst, const char *name,
-		    osmo_prim_cb prim_cb, uint16_t ssn);
-struct osmo_sccp_user *
-osmo_sccp_user_find(struct osmo_sccp_instance *inst, uint16_t ssn, uint32_t pc);
+struct osmo_sccp_user *osmo_sccp_user_bind(struct osmo_sccp_instance *inst, const char *name,
+					   osmo_prim_cb prim_cb, uint16_t ssn);
+struct osmo_sccp_user *osmo_sccp_user_find(struct osmo_sccp_instance *inst, uint16_t ssn, uint32_t pc);
 
 int osmo_sccp_user_sap_down(struct osmo_sccp_user *scu, struct osmo_prim_hdr *oph);
 int osmo_sccp_user_sap_down_nofree(struct osmo_sccp_user *scu, struct osmo_prim_hdr *oph);
 
-struct osmo_ss7_instance *
-osmo_sccp_addr_by_name(struct osmo_sccp_addr *dest_addr,
-		       const char *name);
+struct osmo_ss7_instance *osmo_sccp_addr_by_name(struct osmo_sccp_addr *dest_addr, const char *name);
 
 const char *osmo_sccp_name_by_addr(const struct osmo_sccp_addr *addr);
 
