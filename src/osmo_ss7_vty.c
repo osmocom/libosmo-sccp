@@ -1350,6 +1350,28 @@ osmo_sccp_addr_by_name(struct osmo_sccp_addr *dest_addr,
 	return entry->inst;
 }
 
+/*! \brief Lookup an SCCP address from the addressbook of a specific instance
+ *	   by its name.
+ *  \param[out] dest_addr pointer to output the resulting sccp-address;
+ *		(set to NULL if not interested)
+ *  \param[in] name of the address to lookup
+ *  \param[in] inst ss7 instance of which the address book will be searched
+ *  \returns 0 on success; <0 on error */
+int osmo_sccp_addr_by_name_local(struct osmo_sccp_addr *dest_addr, const char *name,
+				 const struct osmo_ss7_instance *inst)
+{
+	struct osmo_sccp_addr_entry *entry;
+
+	entry = addr_entry_by_name_local(name, inst);
+	if (!entry)
+		return -ENOENT;
+
+	if (dest_addr)
+		*dest_addr = entry->addr;
+
+	return 0;
+}
+
 /*! \brief Reverse lookup the lookup-name of a specified SCCP address.
  *  \param[in] name of the address to lookup
  *  \returns char pointer to the lookup-name; NULL on error */

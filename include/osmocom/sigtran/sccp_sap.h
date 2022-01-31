@@ -301,6 +301,8 @@ int osmo_sccp_user_sap_down(struct osmo_sccp_user *scu, struct osmo_prim_hdr *op
 int osmo_sccp_user_sap_down_nofree(struct osmo_sccp_user *scu, struct osmo_prim_hdr *oph);
 
 struct osmo_ss7_instance *osmo_sccp_addr_by_name(struct osmo_sccp_addr *dest_addr, const char *name);
+int osmo_sccp_addr_by_name_local(struct osmo_sccp_addr *dest_addr, const char *name,
+				 const struct osmo_ss7_instance *inst);
 
 const char *osmo_sccp_name_by_addr(const struct osmo_sccp_addr *addr);
 
