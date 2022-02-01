@@ -473,7 +473,6 @@ static void xua_asp_fsm_inactive(struct osmo_fsm_inst *fi, uint32_t event, void 
 	struct osmo_ss7_as *as;
 	struct xua_msg *xua_in;
 	uint32_t traf_mode = 0;
-	enum osmo_ss7_as_traffic_mode tmode;
 	struct xua_msg_part *part;
 	int i;
 
@@ -515,7 +514,6 @@ static void xua_asp_fsm_inactive(struct osmo_fsm_inst *fi, uint32_t event, void 
 				peer_send_error(fi, M3UA_ERR_UNSUPP_TRAF_MOD_TYP);
 				return;
 			}
-			tmode = osmo_ss7_tmode_from_xua(traf_mode);
 		}
 		if ((part = xua_msg_find_tag(xua_in, M3UA_IEI_ROUTE_CTX))) {
 			for (i = 0; i < part->len / sizeof(uint32_t); i++) {
@@ -529,6 +527,7 @@ static void xua_asp_fsm_inactive(struct osmo_fsm_inst *fi, uint32_t event, void 
 		}
 
 		if (traf_mode) { /* if the peer has specified a traffic mode at all */
+			enum osmo_ss7_as_traffic_mode tmode = osmo_ss7_tmode_from_xua(traf_mode);
 			llist_for_each_entry(as, &asp->inst->as_list, list) {
 				if (!osmo_ss7_as_has_asp(as, asp))
 					continue;
