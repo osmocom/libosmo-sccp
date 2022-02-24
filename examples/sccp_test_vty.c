@@ -13,13 +13,13 @@
 
 static struct osmo_sccp_user *g_scu;
 
-static struct osmo_sccp_addr g_calling_addr = {
+struct osmo_sccp_addr g_calling_addr = {
 	.presence = OSMO_SCCP_ADDR_T_SSN | OSMO_SCCP_ADDR_T_PC,
 	.ri = OSMO_SCCP_RI_SSN_PC,
 	.pc = 23,
 };
 
-static struct osmo_sccp_addr g_called_addr = {
+struct osmo_sccp_addr g_called_addr = {
 	.presence = OSMO_SCCP_ADDR_T_SSN | OSMO_SCCP_ADDR_T_PC,
 	.ssn = 1,
 	.ri = OSMO_SCCP_RI_SSN_PC,

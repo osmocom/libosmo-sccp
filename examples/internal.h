@@ -12,6 +12,9 @@ enum {
 
 struct osmo_sccp_user;
 
+extern struct osmo_sccp_addr g_calling_addr;
+extern struct osmo_sccp_addr g_called_addr;
+
 int sccp_test_user_vty_install(struct osmo_sccp_instance *inst, int ssn);
 
 int sccp_test_server_init(struct osmo_sccp_instance *sccp);

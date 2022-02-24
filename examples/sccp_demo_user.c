@@ -300,6 +300,8 @@ int main(int argc, char **argv)
 		}
 		sccp_test_server_init(g_sccp);
 	}
+	g_calling_addr.pc = local_pc;
+	g_called_addr.pc = remote_pc;
 
 	while (1) {
 		osmo_select_main(0);
