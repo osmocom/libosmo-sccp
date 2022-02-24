@@ -120,6 +120,7 @@ static void usage(void) {
 			"                                       %s:%d in client mode)\n"
 			"  -L: local point code (default is %d in server mode, %d in client mode)\n"
 			"  -R: remote point code (default is %d in server mode, %d in client mode)\n",
+			"  -d: LOGMASK (libosmocore log mask string, e.g. -d DLINP,1:DLSS7,2)\n"
 			DEFAULT_LOCAL_ADDRESS_SERVER, DEFAULT_LOCAL_PORT_SERVER,
 			DEFAULT_LOCAL_ADDRESS_CLIENT, DEFAULT_LOCAL_PORT_CLIENT,
 			DEFAULT_REMOTE_ADDRESS_SERVER, DEFAULT_REMOTE_PORT_SERVER,
@@ -184,7 +185,10 @@ int main(int argc, char **argv)
 	bool lflag = false, rflag = false, Lflag = false, Rflag = false;
 	enum osmo_ss7_asp_protocol protocol = OSMO_SS7_ASP_PROT_M3UA;
 
-	while ((ch = getopt(argc, argv, "p:cl:r:L:R:C:")) != -1) {
+	void *tall_ctx = talloc_named_const(NULL, 1, "sccp_demo_user");
+	init_logging(tall_ctx);
+
+	while ((ch = getopt(argc, argv, "p:cl:r:L:R:C:d:")) != -1) {
 		switch (ch) {
 		case 'p':
 			rc = get_string_value(osmo_ss7_asp_protocol_vals, optarg);
@@ -238,6 +242,9 @@ int main(int argc, char **argv)
 		case 'C':
 			config_file = optarg;
 			break;
+		case 'd':
+			log_parse_category_mask(osmo_stderr_target, optarg);
+			break;
 		default:
 			usage();
 		}
@@ -253,8 +260,6 @@ int main(int argc, char **argv)
 	signal(SIGUSR1, &signal_handler);
 	signal(SIGUSR2, &signal_handler);
 
-	void *tall_ctx = talloc_named_const(NULL, 1, "sccp_demo_user");
-	init_logging(tall_ctx);
 	OSMO_ASSERT(osmo_ss7_init() == 0);
 	osmo_fsm_log_addr(false);
 	vty_info.tall_ctx = tall_ctx;
