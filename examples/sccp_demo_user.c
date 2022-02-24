@@ -300,6 +300,7 @@ int main(int argc, char **argv)
 			exit (1);
 		}
 		sccp_test_user_vty_install(g_sccp, OSMO_SCCP_SSN_BSSAP);
+		sccp_test_server_init(g_sccp);
 	} else {
 		g_sccp = sua_server_helper(protocol, local_port, local_address, local_pc,
 					   remote_port, remote_address, remote_pc);
