@@ -11,6 +11,8 @@
 #include <osmocom/core/logging.h>
 #include <osmocom/core/application.h>
 #include <osmocom/core/fsm.h>
+#include <osmocom/core/stats.h>
+#include <osmocom/core/rate_ctr.h>
 #include <osmocom/vty/vty.h>
 #include <osmocom/vty/telnet_interface.h>
 #include <osmocom/vty/logging.h>
@@ -260,6 +262,8 @@ int main(int argc, char **argv)
 	signal(SIGUSR1, &signal_handler);
 	signal(SIGUSR2, &signal_handler);
 
+	osmo_stats_init(tall_ctx);
+	rate_ctr_init(tall_ctx);
 	OSMO_ASSERT(osmo_ss7_init() == 0);
 	osmo_fsm_log_addr(false);
 	vty_info.tall_ctx = tall_ctx;
