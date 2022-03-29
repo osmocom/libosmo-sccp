@@ -399,7 +399,7 @@ osmo_ss7_instance_find_or_create(void *ctx, uint32_t id)
 	inst->cfg.pc_fmt.component_len[1] = 8;
 	inst->cfg.pc_fmt.component_len[2] = 3;
 
-	llist_add(&inst->list, &osmo_ss7_instances);
+	llist_add_tail(&inst->list, &osmo_ss7_instances);
 
 	INIT_LLIST_HEAD(&inst->cfg.sccp_address_book);
 

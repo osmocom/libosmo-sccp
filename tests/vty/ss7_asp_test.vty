@@ -337,10 +337,6 @@ my-ass       AS_DOWN      0          3.2.1                                      
 
 ss7_asp_vty_test(config)# show running-config
 ...
-cs7 instance 1
- sccp-address bar
-  routing-indicator PC
-  point-code 1.2.3
 cs7 instance 0
  asp my-asp 12345 54321 m3ua
   local-ip 127.0.0.100
@@ -349,6 +345,10 @@ cs7 instance 0
   asp my-asp
   routing-key 0 3.2.1
  sccp-address foo
+  routing-indicator PC
+  point-code 1.2.3
+cs7 instance 1
+ sccp-address bar
   routing-indicator PC
   point-code 1.2.3
 end
