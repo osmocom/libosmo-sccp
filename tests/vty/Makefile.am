@@ -10,7 +10,7 @@ EXTRA_DIST = \
 	vty_test_runner.py \
 	$(NULL)
 
-noinst_PROGRAMS = ss7_asp_vty_test
+check_PROGRAMS = ss7_asp_vty_test
 
 ss7_asp_vty_test_SOURCES = ss7_asp_vty_test.c
 

@@ -7,6 +7,6 @@ LDADD = $(top_builddir)/src/libosmo-sigtran.la \
 
 EXTRA_DIST = ss7_test.ok ss7_test.err
 
-noinst_PROGRAMS = ss7_test
+check_PROGRAMS = ss7_test
 
 ss7_test_SOURCES = ss7_test.c

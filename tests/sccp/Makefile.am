@@ -3,7 +3,7 @@ AM_CFLAGS=-Wall -ggdb3 $(LIBOSMOCORE_CFLAGS)
 
 EXTRA_DIST = sccp_test.ok
 
-noinst_PROGRAMS = sccp_test
+check_PROGRAMS = sccp_test
 
 sccp_test_SOURCES = sccp_test.c
 sccp_test_LDADD = \

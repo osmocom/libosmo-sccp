@@ -8,6 +8,6 @@ LDADD = $(top_builddir)/src/libosmo-sigtran.la \
 EXTRA_DIST = xua_test.ok xua_test.err
 
 noinst_HEADERS = sccp_test_data.h
-noinst_PROGRAMS = xua_test
+check_PROGRAMS = xua_test
 
 xua_test_SOURCES = xua_test.c sccp_test_data.c
