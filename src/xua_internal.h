@@ -21,6 +21,9 @@ int sua_tx_xua_as(struct osmo_ss7_as *as, struct xua_msg *xua);
 void sua_tx_snm_available(struct osmo_ss7_asp *asp, const uint32_t *rctx, unsigned int num_rctx,
 			  const uint32_t *aff_pc, unsigned int num_aff_pc, const uint32_t *aff_ssn,
 			  const uint32_t *smi, const char *info_string, bool available);
+void sua_tx_snm_congestion(struct osmo_ss7_asp *asp, const uint32_t *rctx, unsigned int num_rctx,
+			   const uint32_t *aff_pc, unsigned int num_aff_pc, const uint32_t *ssn,
+			   const uint8_t cong_level, const char *info_string);
 void sua_tx_dupu(struct osmo_ss7_asp *asp, const uint32_t *rctx, unsigned int num_rctx,
 		 uint32_t dpc, uint16_t user, uint16_t cause, const char *info_str);
 
@@ -30,12 +33,18 @@ int m3ua_tx_xua_as(struct osmo_ss7_as *as, struct xua_msg *xua);
 void m3ua_tx_snm_available(struct osmo_ss7_asp *asp, const uint32_t *rctx, unsigned int num_rctx,
 			   const uint32_t *aff_pc, unsigned int num_aff_pc,
 			   const char *info_string, bool available);
+void m3ua_tx_snm_congestion(struct osmo_ss7_asp *asp, const uint32_t *rctx, unsigned int num_rctx,
+			    const uint32_t *aff_pc, unsigned int num_aff_pc,
+			    const uint32_t *concerned_dpc, const uint8_t *cong_level,
+			    const char *info_string);
 void m3ua_tx_dupu(struct osmo_ss7_asp *asp, const uint32_t *rctx, unsigned int num_rctx,
 		  uint32_t dpc, uint16_t user, uint16_t cause, const char *info_str);
+
 void xua_snm_rx_daud(struct osmo_ss7_asp *asp, struct xua_msg *xua);
 void xua_snm_rx_duna(struct osmo_ss7_asp *asp, struct osmo_ss7_as *as, struct xua_msg *xua);
 void xua_snm_rx_dava(struct osmo_ss7_asp *asp, struct osmo_ss7_as *as, struct xua_msg *xua);
 void xua_snm_rx_dupu(struct osmo_ss7_asp *asp, struct osmo_ss7_as *as, struct xua_msg *xua);
+void xua_snm_rx_scon(struct osmo_ss7_asp *asp, struct osmo_ss7_as *as, struct xua_msg *xua);
 int m3ua_rx_msg(struct osmo_ss7_asp *asp, struct msgb *msg);
 
 struct msgb *m3ua_msgb_alloc(const char *name);

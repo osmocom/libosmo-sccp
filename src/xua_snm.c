@@ -115,6 +115,24 @@ static void xua_tx_upu(struct osmo_ss7_asp *asp, const uint32_t *rctx, unsigned 
 	}
 }
 
+static void xua_tx_scon(struct osmo_ss7_asp *asp, const uint32_t *rctx, unsigned int num_rctx,
+			const uint32_t *aff_pc, unsigned int num_aff_pc,
+			const uint32_t *concerned_dpc, const uint8_t *cong_level,
+			const char *info_string)
+{
+	switch (asp->cfg.proto) {
+	case OSMO_SS7_ASP_PROT_M3UA:
+		m3ua_tx_snm_congestion(asp, rctx, num_rctx, aff_pc, num_aff_pc,
+				       concerned_dpc, cong_level, info_string);
+		break;
+	case OSMO_SS7_ASP_PROT_SUA:
+		sua_tx_snm_congestion(asp, rctx, num_rctx, aff_pc, num_aff_pc, NULL,
+				      cong_level ? *cong_level : 0, info_string);
+		break;
+	default:
+		break;
+	}
+}
 
 /* generate MTP-PAUSE / MTP-RESUME towards local SCCP users */
 static void xua_snm_pc_available_to_sccp(struct osmo_sccp_instance *sccp,
@@ -254,6 +272,36 @@ static void xua_snm_upu(struct osmo_ss7_as *as, uint32_t dpc, uint16_t user, uin
 			continue;
 
 		xua_tx_upu(asp, rctx, num_rctx, dpc, user, cause, info_str);
+	}
+}
+
+static void xua_snm_scon(struct osmo_ss7_as *as, const uint32_t *aff_pc, unsigned int num_aff_pc,
+			 const uint32_t *concerned_dpc, const uint8_t *cong_level, const char *info_string)
+{
+	struct osmo_ss7_instance *s7i = as->inst;
+	struct osmo_ss7_asp *asp;
+	uint32_t rctx[32];
+	unsigned int num_rctx;
+
+	/* TODO: How to translate to MTP and towards SCCP (create N-PCSTATE.ind to SCU) */
+
+	/* inform remote ASPs via SCON */
+	llist_for_each_entry(asp, &s7i->asp_list, list) {
+		/* SSNM is only permitted for ASPs in ACTIVE state */
+		if (!osmo_ss7_asp_active(asp))
+			continue;
+
+		/* only send SCON if we locally are the SG and the remote is ASP */
+		if (asp->cfg.role != OSMO_SS7_ASP_ROLE_SG)
+			continue;
+
+		num_rctx = get_all_rctx_for_asp(rctx, ARRAY_SIZE(rctx), asp, as);
+		/* this can happen if the given ASP is only in the AS that reports the change,
+		 * which shall be excluded */
+		if (num_rctx == 0)
+			continue;
+
+		xua_tx_scon(asp, rctx, num_rctx, aff_pc, num_aff_pc, concerned_dpc, cong_level, info_string);
 	}
 }
 
@@ -404,4 +452,21 @@ void xua_snm_rx_dupu(struct osmo_ss7_asp *asp, struct osmo_ss7_as *as, struct xu
 		get_value_string(mtp_si_vals, user), cause);
 
 	xua_snm_upu(as, aff_pc, user, cause, info_str);
+}
+
+/* an incoming SUA/M3UA SCON was received from a remote SG */
+void xua_snm_rx_scon(struct osmo_ss7_asp *asp, struct osmo_ss7_as *as, struct xua_msg *xua)
+{
+	struct xua_msg_part *ie_aff_pc = xua_msg_find_tag(xua, M3UA_IEI_AFFECTED_PC);
+	const char *info_str = xua_msg_get_str(xua, M3UA_IEI_INFO_STRING);
+	uint32_t _concerned_dpc, _cong_level;
+	const uint32_t *concerned_dpc = xua_msg_get_u32p(xua, M3UA_IEI_CONC_DEST, &_concerned_dpc);
+	const uint32_t *cong_level = xua_msg_get_u32p(xua, M3UA_IEI_CONG_IND, &_cong_level);
+	int log_ss = osmo_ss7_asp_get_log_subsys(asp);
+
+	LOGPASP(asp, log_ss, LOGL_NOTICE, "RX SCON(%s) for %s level=%u\n", info_str ? info_str : "",
+		format_affected_pcs_c(xua, asp->inst, ie_aff_pc), cong_level ? *cong_level : 0);
+
+	xua_snm_scon(as, (const uint32_t *) ie_aff_pc->dat, ie_aff_pc->len / sizeof(uint32_t),
+		     concerned_dpc, (const uint8_t *) cong_level, info_str);
 }

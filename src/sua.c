@@ -875,6 +875,35 @@ void sua_tx_snm_available(struct osmo_ss7_asp *asp, const uint32_t *rctx, unsign
 	sua_tx_xua_asp(asp, xua);
 }
 
+
+/*! Transmit SSNM SCON message indicating congestion
+ *  \param[in] asp ASP through which to transmit message. Must be ACTIVE.
+ *  \param[in] rctx array of Routing Contexts in network byte order.
+ *  \param[in] num_rctx number of rctx
+ *  \param[in] aff_pc array of 'Affected Point Code' in network byte order.
+ *  \param[in] num_aff_pc number of aff_pc
+ *  \param[in] ssn optional SSN (can be NULL)
+ *  \param[in] cong_level optional congestion level (can be NULL)
+ *  \param[in] info_string optional information string (can be NULL). */
+void sua_tx_snm_congestion(struct osmo_ss7_asp *asp, const uint32_t *rctx, unsigned int num_rctx,
+			   const uint32_t *aff_pc, unsigned int num_aff_pc, const uint32_t *ssn,
+			   const uint8_t cong_level, const char *info_string)
+{
+	struct xua_msg *xua = xua_msg_alloc();
+
+	xua->hdr = XUA_HDR(SUA_MSGC_SNM, SUA_SNM_SCON);
+	xua->hdr.version = SUA_VERSION;
+	if (rctx)
+		xua_msg_add_data(xua, SUA_IEI_ROUTE_CTX, num_rctx * sizeof(*rctx), (const uint8_t *)rctx);
+	xua_msg_add_data(xua, SUA_IEI_AFFECTED_PC, num_aff_pc * sizeof(*aff_pc), (const uint8_t *) aff_pc);
+	if (ssn)
+		xua_msg_add_u32(xua, SUA_IEI_SSN, *ssn);
+	xua_msg_add_u32(xua, SUA_IEI_CONG_LEVEL, cong_level);
+	if (info_string)
+		xua_msg_add_data(xua, SUA_IEI_INFO_STRING, strlen(info_string)+1, (const uint8_t *) info_string);
+}
+
+
 /*! Transmit SSNM DUPU message indicating user unavailability.
  *  \param[in] asp ASP through which to transmit message. Must be ACTIVE.
  *  \param[in] rctx array of Routing Contexts in network byte order.

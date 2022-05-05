@@ -864,6 +864,40 @@ void m3ua_tx_snm_available(struct osmo_ss7_asp *asp, const uint32_t *rctx, unsig
 	xua_msg_free(xua);
 }
 
+/*! Transmit SSNM SCON message indicating congestion
+ *  \param[in] asp ASP through which to transmit message. Must be ACTIVE.
+ *  \param[in] rctx array of Routing Contexts in network byte order.
+ *  \param[in] num_rctx number of rctx
+ *  \param[in] aff_pc array of 'Affected Point Code' in network byte order.
+ *  \param[in] num_aff_pc number of aff_pc
+ *  \param[in] concerned_dpc optional concerned DPC (can be NULL)
+ *  \param[in] cong_level optional congestion level (can be NULL)
+ *  \param[in] info_string optional information string (can be NULL). */
+void m3ua_tx_snm_congestion(struct osmo_ss7_asp *asp, const uint32_t *rctx, unsigned int num_rctx,
+			    const uint32_t *aff_pc, unsigned int num_aff_pc,
+			    const uint32_t *concerned_dpc, const uint8_t *cong_level,
+			    const char *info_string)
+{
+	struct xua_msg *xua = xua_msg_alloc();
+
+	xua->hdr = XUA_HDR(M3UA_MSGC_SNM, M3UA_SNM_SCON);
+	xua->hdr.version = M3UA_VERSION;
+	if (rctx)
+		xua_msg_add_data(xua, M3UA_IEI_ROUTE_CTX, num_rctx * sizeof(*rctx), (const uint8_t *)rctx);
+
+	xua_msg_add_data(xua, M3UA_IEI_AFFECTED_PC, num_aff_pc * sizeof(*aff_pc), (const uint8_t *) aff_pc);
+
+	if (concerned_dpc)
+		xua_msg_add_u32(xua, M3UA_IEI_CONC_DEST, *concerned_dpc & 0xffffff);
+	if (cong_level)
+		xua_msg_add_u32(xua, M3UA_IEI_CONG_IND, *cong_level & 0xff);
+	if (info_string)
+		xua_msg_add_data(xua, M3UA_IEI_INFO_STRING, strlen(info_string)+1, (const uint8_t *) info_string);
+
+	m3ua_tx_xua_asp(asp, xua);
+	xua_msg_free(xua);
+}
+
 /*! Transmit SSNM DUPU message indicating user unavailability.
  *  \param[in] asp ASP through which to transmit message. Must be ACTIVE.
  *  \param[in] rctx array of Routing Contexts in network byte order.
@@ -903,6 +937,8 @@ static int m3ua_rx_snm_asp(struct osmo_ss7_asp *asp, struct xua_msg *xua)
 		xua_snm_rx_dupu(asp, as, xua);
 		break;
 	case M3UA_SNM_SCON:
+		xua_snm_rx_scon(asp, as, xua);
+		break;
 	case M3UA_SNM_DRST:
 		LOGPASP(asp, DLM3UA, LOGL_NOTICE, "Received unsupported M3UA SNM message type %u\n",
 			xua->hdr.msg_type);
