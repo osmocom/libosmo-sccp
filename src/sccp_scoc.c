@@ -615,7 +615,7 @@ static struct xua_msg *xua_gen_msg_co(struct sccp_connection *conn, uint32_t eve
 			xua_msg_add_data(xua, SUA_IEI_DATA, msgb_l2len(prim->oph.msg),
 					 msgb_l2(prim->oph.msg));
 		break;
-	case SUA_CO_RELRE: /* Release Request == SCCP REL */
+	case SUA_CO_RELRE: /* Release Request == SCCP RLSD */
 		if (!prim)
 			goto prim_needed;
 		xua->hdr = XUA_HDR(SUA_MSGC_CO, SUA_CO_RELRE);
@@ -628,7 +628,7 @@ static struct xua_msg *xua_gen_msg_co(struct sccp_connection *conn, uint32_t eve
 			xua_msg_add_data(xua, SUA_IEI_DATA, msgb_l2len(prim->oph.msg),
 					 msgb_l2(prim->oph.msg));
 		break;
-	case SUA_CO_RELCO: /* Release Confirm == SCCP RLSD */
+	case SUA_CO_RELCO: /* Release Confirm == SCCP RLC */
 		xua->hdr = XUA_HDR(SUA_MSGC_CO, SUA_CO_RELCO);
 		xua_msg_add_u32(xua, SUA_IEI_ROUTE_CTX, conn->inst->route_ctx);
 		xua_msg_add_u32(xua, SUA_IEI_DEST_REF, conn->remote_ref);
