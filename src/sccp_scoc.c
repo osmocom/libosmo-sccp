@@ -807,7 +807,7 @@ static void scu_gen_encode_and_send(struct sccp_connection *conn, uint32_t event
 
 
 /***********************************************************************
- * Actual SCCP Connection Oriented Control (SCOC) Finite Stte Machine
+ * Actual SCCP Connection Oriented Control (SCOC) Finite State Machine
  ***********************************************************************/
 
 /* Figure C.2/Q.714 (sheet 1 of 7) and C.3/Q.714 (sheet 1 of 6) */
