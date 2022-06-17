@@ -3,7 +3,7 @@
 # this script executes m3ua-testtool against osmo-stp.  It assumes that
 # it is called from within libosmo-sccp/contrib/test and also assumes
 # that adjacent to the libosmo-sccp, there's a check-out of
-# git://git.osmocom.org/nplab/m3ua-testtool
+# https://gitea.osmocom.org/nplab/m3ua-testtool
 
 # the top of the libosmo-sccp git repository
 TOPDIR=../../

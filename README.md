@@ -20,10 +20,9 @@ GIT Repository
 
 You can clone from the official git repository using
 
-	git clone git://git.osmocom.org/libosmo-sccp.git
-	git clone https://git.osmocom.org/libosmo-sccp.git
+	git clone https://gitea.osmocom.org/osmocom/libosmo-sccp
 
-There is a cgit interface at https://git.osmocom.org/libosmo-sccp/
+There is a web interface at <https://gitea.osmocom.org/osmocom/libosmo-sccp>
 
 Documentation
 -------------
