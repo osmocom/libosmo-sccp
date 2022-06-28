@@ -1,3 +1,37 @@
+libosmo-sccp (1.6.0) unstable; urgency=medium
+
+  [ Pau Espin Pedrol ]
+  * ss7: Use sctp value_string from libosmo-netif
+  * xua_default_lm_fsm.c: Fix typo in comment
+  * xua_asp_fsm: Fix gcc false positive warning
+  * Add ss7 instances to osmo_ss7_instances in creation order
+
+  [ Oliver Smith ]
+  * treewide: remove FSF address
+  * src/sccp_scmg: fix typo
+  * osmo_ss7_instance_destroy: use for_each_entry_safe
+  * include/osmocom/sigtran/sccp_sap.h: cosmetic fixes
+  * osmo_ss7_vty: add osmo_sccp_addr_by_name_local
+
+  [ Philipp Maier ]
+  * sccp_user: do not force the role ASP when configured differently
+
+  [ Harald Welte ]
+  * sccp_demo_user: Add command line argument to specify protocol (m3ua/ipa)
+  * sccp_demo_user: Add 'show stats' to VTY
+  * sccp_demo_user: make sure the command-line specified point codes are used
+  * sccp_demo_user: Allow user to specify logmask on command line
+  * sccp_demo_user: enable stats / rate_counter timers
+  * M3UA/SUA: Implement handling of SCON (signaling congestion)
+  * [cosmetic] sccp_scoc.c: fix comments about corresponding SCCP msg types
+  * [cosmetic] sccp_scoc: Fix typo in comment
+  * update git URLs (git -> https; gitea)
+
+  [ Vadim Yanitskiy ]
+  * tests: use 'check_PROGRAMS' instead of 'noinst_PROGRAMS'
+
+ -- Pau Espin Pedrol <pespin@sysmocom.de>  Tue, 28 Jun 2022 18:22:13 +0200
+
 libosmo-sccp (1.5.0) unstable; urgency=medium
 
   [ Harald Welte ]

@@ -5,7 +5,7 @@ Priority: optional
 Build-Depends: debhelper (>= 9),
                autotools-dev,
                pkg-config,
-               libosmocore-dev (>= 1.5.0),
+               libosmocore-dev (>= 1.7.0),
                autoconf,
                automake,
                libtool,
@@ -13,9 +13,9 @@ Build-Depends: debhelper (>= 9),
                git,
                doxygen,
                libdpkg-perl,
-               libosmo-netif-dev (>= 1.1.0),
+               libosmo-netif-dev (>= 1.2.0),
                libsctp-dev,
-               osmo-gsm-manuals-dev (>= 1.1.0)
+               osmo-gsm-manuals-dev (>= 1.3.0)
 Standards-Version: 3.9.7
 Vcs-Git: https://gitea.osmocom.org/osmocom/libosmo-sccp
 Vcs-Browser: https://gitea.osmocom.org/osmocom/libosmo-sccp
