@@ -464,6 +464,8 @@ void xua_snm_rx_scon(struct osmo_ss7_asp *asp, struct osmo_ss7_as *as, struct xu
 	const uint32_t *cong_level = xua_msg_get_u32p(xua, M3UA_IEI_CONG_IND, &_cong_level);
 	int log_ss = osmo_ss7_asp_get_log_subsys(asp);
 
+	OSMO_ASSERT(ie_aff_pc);
+
 	LOGPASP(asp, log_ss, LOGL_NOTICE, "RX SCON(%s) for %s level=%u\n", info_str ? info_str : "",
 		format_affected_pcs_c(xua, asp->inst, ie_aff_pc), cong_level ? *cong_level : 0);
 
