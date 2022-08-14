@@ -105,7 +105,6 @@ static struct vty_app_info vty_info = {
 #define DEFAULT_LOCAL_PORT_CLIENT	M3UA_PORT
 #define DEFAULT_REMOTE_PORT_CLIENT	DEFAULT_LOCAL_PORT_SERVER
 #define DEFAULT_REMOTE_PORT_SERVER	DEFAULT_LOCAL_PORT_CLIENT
-#define DEFAULT_REMOTE_PORT_SERVER_STR	DEFAULT_LOCAL_PORT_CLIENT_STR
 #define DEFAULT_PC_SERVER	1
 #define DEFAULT_PC_CLIENT	23
 
@@ -116,13 +115,14 @@ static void usage(void) {
 			"Options:\n"
 			"  -p: protocol to use (m3ua, sua, ipa; default is ipa)\n"
 			"  -c: Run in client mode (default is server mode)\n"
+			"  -C filename  The config file to use\n"
 			"  -l: local IP address and SCTP port (default is %s:%d in server mode,\n"
 			"                                       %s:%d in client mode)\n"
 			"  -r: remote IP address and SCTP port (default is %s:%d in server mode,\n"
 			"                                       %s:%d in client mode)\n"
 			"  -L: local point code (default is %d in server mode, %d in client mode)\n"
-			"  -R: remote point code (default is %d in server mode, %d in client mode)\n",
-			"  -d: LOGMASK (libosmocore log mask string, e.g. -d DLINP,1:DLSS7,2)\n"
+			"  -R: remote point code (default is %d in server mode, %d in client mode)\n"
+			"  -d: LOGMASK (libosmocore log mask string, e.g. -d DLINP,1:DLSS7,2)\n",
 			DEFAULT_LOCAL_ADDRESS_SERVER, DEFAULT_LOCAL_PORT_SERVER,
 			DEFAULT_LOCAL_ADDRESS_CLIENT, DEFAULT_LOCAL_PORT_CLIENT,
 			DEFAULT_REMOTE_ADDRESS_SERVER, DEFAULT_REMOTE_PORT_SERVER,
