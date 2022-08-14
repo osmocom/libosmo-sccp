@@ -843,9 +843,11 @@ struct msgb *sccp_create_cr(const struct sccp_source_reference *src_ref,
 	uint8_t extra_size = 3 + 1;
 	int called_len;
 
-	if (l3_data && (l3_length < 3 || l3_length > SCCP_MAX_OPTIONAL_DATA)) {
-		LOGP(DSCCP, LOGL_ERROR, "Invalid amount of data... %zu\n", l3_length);
-		return NULL;
+	if (l3_data) {
+		if (l3_length < 3 || l3_length > SCCP_MAX_OPTIONAL_DATA) {
+			LOGP(DSCCP, LOGL_ERROR, "Invalid amount of data... %zu\n", l3_length);
+			return NULL;
+		}
 	}
 
 	if (l3_data)
