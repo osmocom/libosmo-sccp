@@ -20,6 +20,7 @@
  *
  */
 
+#include <errno.h>
 #include <string.h>
 
 #include <osmocom/core/msgb.h>
@@ -27,7 +28,7 @@
 #include <osmocom/core/logging.h>
 #include <osmocom/core/endian.h>
 #include <osmocom/gsm/tlv.h>
-
+#include <osmocom/sccp/sccp_types.h>
 #include <osmocom/sccp/sccp.h>
 
 // Unassigned debug area
@@ -226,6 +227,12 @@ int _sccp_parse_connection_request(struct msgb *msgb, struct sccp_parse_result *
 	}
 
 	if (optional_data.data_len != 0) {
+		if (optional_data.data_len > SCCP_MAX_OPTIONAL_DATA) {
+			LOGP(DSCCP, LOGL_ERROR,
+				 "optional data has length %u exceeding max of %u according to ITU-T Rec. Q.713 §4.2\n",
+				 optional_data.data_len, SCCP_MAX_OPTIONAL_DATA);
+			return -EMSGSIZE;
+		}
 		msgb->l3h = &msgb->l2h[optional_data.data_start];
 		result->data_len = optional_data.data_len;
 	} else {
@@ -260,6 +267,12 @@ int _sccp_parse_connection_released(struct msgb *msgb, struct sccp_parse_result 
 	result->destination_local_reference = &rls->destination_local_reference;
 
 	if (optional_data.data_len != 0) {
+		if (optional_data.data_len > SCCP_MAX_OPTIONAL_DATA) {
+			LOGP(DSCCP, LOGL_ERROR,
+				 "optional data has length %u exceeding max of %u according to ITU-T Rec. Q.713 §4.5\n",
+				 optional_data.data_len, SCCP_MAX_OPTIONAL_DATA);
+			return -EMSGSIZE;
+		}
 		msgb->l3h = &msgb->l2h[optional_data.data_start];
 		result->data_len = optional_data.data_len;
 	} else {
@@ -297,6 +310,12 @@ int _sccp_parse_connection_refused(struct msgb *msgb, struct sccp_parse_result *
 
 	/* optional data */
 	if (optional_data.data_len != 0) {
+		if (optional_data.data_len > SCCP_MAX_OPTIONAL_DATA) {
+			LOGP(DSCCP, LOGL_ERROR,
+				 "optional data has length %u exceeding max of %u according to ITU-T Rec. Q.713 §4.4\n",
+				 optional_data.data_len, SCCP_MAX_OPTIONAL_DATA);
+			return -EMSGSIZE;
+		}
 		msgb->l3h = &msgb->l2h[optional_data.data_start];
 		result->data_len = optional_data.data_len;
 	} else {
@@ -334,6 +353,12 @@ int _sccp_parse_connection_confirm(struct msgb *msgb, struct sccp_parse_result *
 	}
 
 	if (optional_data.data_len != 0) {
+		if (optional_data.data_len > SCCP_MAX_OPTIONAL_DATA) {
+			LOGP(DSCCP, LOGL_ERROR,
+				 "optional data has length %u exceeding max of %u according to ITU-T Rec. Q.713 §4.3\n",
+				 optional_data.data_len, SCCP_MAX_OPTIONAL_DATA);
+			return -EMSGSIZE;
+		}
 		msgb->l3h = &msgb->l2h[optional_data.data_start];
 		result->data_len = optional_data.data_len;
 	} else {
@@ -818,7 +843,7 @@ struct msgb *sccp_create_cr(const struct sccp_source_reference *src_ref,
 	uint8_t extra_size = 3 + 1;
 	int called_len;
 
-	if (l3_data && (l3_length < 3 || l3_length > 130)) {
+	if (l3_data && (l3_length < 3 || l3_length > SCCP_MAX_OPTIONAL_DATA)) {
 		LOGP(DSCCP, LOGL_ERROR, "Invalid amount of data... %zu\n", l3_length);
 		return NULL;
 	}

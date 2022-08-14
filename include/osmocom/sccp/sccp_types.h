@@ -24,6 +24,8 @@
 #include <osmocom/core/endian.h>
 #include <osmocom/core/utils.h>
 
+#define SCCP_MAX_OPTIONAL_DATA 130
+
 /* Table 1/Q.713 - SCCP message types */
 enum sccp_message_types {
 	SCCP_MSG_TYPE_CR	= 1,
