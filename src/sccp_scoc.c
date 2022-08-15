@@ -446,7 +446,7 @@ static void conn_stop_connect_timer(struct sccp_connection *conn)
 
 static void conn_destroy(struct sccp_connection *conn);
 
-static struct sccp_connection *conn_find_by_id(struct osmo_sccp_instance *inst, uint32_t id)
+static struct sccp_connection *conn_find_by_id(const struct osmo_sccp_instance *inst, uint32_t id)
 {
 	struct sccp_connection *conn;
 
@@ -455,6 +455,11 @@ static struct sccp_connection *conn_find_by_id(struct osmo_sccp_instance *inst, 
 			return conn;
 	}
 	return NULL;
+}
+
+bool osmo_sccp_conn_id_exists(const struct osmo_sccp_instance *inst, uint32_t id)
+{
+	return conn_find_by_id(inst, id) ? true : false;
 }
 
 #define INIT_TIMER(x, fn, priv)		do { (x)->cb = fn; (x)->data = priv; } while (0)

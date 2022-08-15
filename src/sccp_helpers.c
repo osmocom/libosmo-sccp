@@ -21,6 +21,7 @@
  *
  */
 
+#include <errno.h>
 #include <string.h>
 #include <stdbool.h>
 
@@ -152,9 +153,15 @@ int osmo_sccp_tx_conn_req_msg(struct osmo_sccp_user *scu, uint32_t conn_id,
 int osmo_sccp_tx_data(struct osmo_sccp_user *scu, uint32_t conn_id,
 		      const uint8_t *data, unsigned int len)
 {
-	struct msgb *msg = scu_msgb_alloc(__func__);
+	struct msgb *msg;
 	struct osmo_scu_prim *prim;
 
+	if (!osmo_sccp_conn_id_exists(scu->inst, conn_id)) {
+		LOGP(DLSCCP, LOGL_ERROR, "N-DATA.req TX error: unable to find connection ID (local_ref) %u\n", conn_id);
+		return -ENOTCONN;
+	}
+
+	msg = scu_msgb_alloc(__func__);
 	prim = (struct osmo_scu_prim *) msgb_put(msg, sizeof(*prim));
 	osmo_prim_init(&prim->oph, SCCP_SAP_USER,
 			OSMO_SCU_PRIM_N_DATA,
@@ -183,10 +190,16 @@ int osmo_sccp_tx_disconn(struct osmo_sccp_user *scu, uint32_t conn_id,
 			 const struct osmo_sccp_addr *resp_addr,
 			 uint32_t cause)
 {
-	struct msgb *msg = scu_msgb_alloc(__func__);
+	struct msgb *msg;
 	struct osmo_scu_prim *prim;
 	struct osmo_scu_disconn_param *param;
 
+	if (!osmo_sccp_conn_id_exists(scu->inst, conn_id)) {
+		LOGP(DLSCCP, LOGL_ERROR, "N-DISCONNECT.req TX error: unable to find connection ID (local_ref) %u\n", conn_id);
+		return -ENOTCONN;
+	}
+
+	msg = scu_msgb_alloc(__func__);
 	prim = (struct osmo_scu_prim *) msgb_put(msg, sizeof(*prim));
 	osmo_prim_init(&prim->oph, SCCP_SAP_USER,
 			OSMO_SCU_PRIM_N_DISCONNECT,
@@ -209,6 +222,11 @@ int osmo_sccp_tx_conn_resp_msg(struct osmo_sccp_user *scu, uint32_t conn_id,
 {
 	struct osmo_scu_prim *prim;
 	struct osmo_scu_connect_param *param;
+
+	if (!osmo_sccp_conn_id_exists(scu->inst, conn_id)) {
+		LOGP(DLSCCP, LOGL_ERROR, "N-CONNECT.resp TX error: unable to find connection ID (local_ref) %u\n", conn_id);
+		return -ENOTCONN;
+	}
 
 	msg->l2h = msg->data;
 

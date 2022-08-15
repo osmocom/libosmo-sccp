@@ -67,5 +67,7 @@ int osmo_sccp_addr_to_id_buf(char *buf, size_t buf_len, const struct osmo_ss7_in
 			      const struct osmo_sccp_addr *addr);
 char *osmo_sccp_addr_to_id_c(void *ctx, const struct osmo_ss7_instance *ss7, const struct osmo_sccp_addr *addr);
 
+bool osmo_sccp_conn_id_exists(const struct osmo_sccp_instance *inst, uint32_t id);
+
 char *osmo_sccp_addr_name(const struct osmo_ss7_instance *ss7, const struct osmo_sccp_addr *addr);
 char *osmo_sccp_inst_addr_name(const struct osmo_sccp_instance *sccp, const struct osmo_sccp_addr *addr);

@@ -41,11 +41,16 @@ DEFUN(scu_conn_req, scu_conn_req_cmd,
 	"Connection ID\n")
 {
 	struct osmo_sccp_user *scu = vty->index;
-	int conn_id = atoi(argv[0]);
+	int rc, conn_id = atoi(argv[0]);
 	const char *data = argv[1];
 
-	osmo_sccp_tx_conn_req(scu, conn_id, &g_calling_addr, &g_called_addr,
-				(const uint8_t *)data, data ? strlen(data)+1 : 0);
+	rc = osmo_sccp_tx_conn_req(scu, conn_id, &g_calling_addr, &g_called_addr,
+							   (const uint8_t *)data, data ? strlen(data) + 1 : 0);
+	if (rc < 0) {
+		vty_out(vty, "Error while sending N-CONNECT.req: %s%s", strerror(-rc), VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
 	return CMD_SUCCESS;
 }
 
