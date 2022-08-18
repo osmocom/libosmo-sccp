@@ -180,13 +180,15 @@ static const uint16_t coit_mand_ies[] = {
 	SUA_IEI_ROUTE_CTX, SUA_IEI_PROTO_CLASS, SUA_IEI_SRC_REF,
 	SUA_IEI_DEST_REF, 0
 };
+
+/* ITU-T Rec Q.713 */
 static const struct value_string sua_co_msgt_names[] = {
 	{ SUA_CO_CODT,		"CODT" },
 	{ SUA_CO_CODA,		"CODA" },
-	{ SUA_CO_CORE,		"CORE" },
-	{ SUA_CO_COAK,		"COAK" },
-	{ SUA_CO_COREF,		"COREF" },
-	{ SUA_CO_RELRE,		"RELRE" },
+	{ SUA_CO_CORE,		"CORE" },  /* §4.2 Connection request (CR) */
+	{ SUA_CO_COAK,		"COAK" },  /* §4.3 Connection confirm (CC) */
+	{ SUA_CO_COREF,		"COREF" }, /* §4.4 Connection refused (CREF) */
+	{ SUA_CO_RELRE,		"RELRE" }, /* §4.5 Released (RLSD) */
 	{ SUA_CO_RELCO,		"RELCO" },
 	{ SUA_CO_RESRE,		"RESRE" },
 	{ SUA_CO_RESCO,		"RESCO" },
