@@ -25,6 +25,7 @@
 #include <osmocom/core/utils.h>
 
 #define SCCP_MAX_OPTIONAL_DATA 130
+#define SCCP_MAX_DATA 256
 
 /* Table 1/Q.713 - SCCP message types */
 enum sccp_message_types {

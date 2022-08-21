@@ -29,6 +29,7 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 
+#include <osmocom/sccp/sccp_types.h>
 #include <osmocom/sigtran/sccp_sap.h>
 #include <osmocom/sigtran/sccp_helpers.h>
 
@@ -159,6 +160,12 @@ int osmo_sccp_tx_data(struct osmo_sccp_user *scu, uint32_t conn_id,
 	if (!osmo_sccp_conn_id_exists(scu->inst, conn_id)) {
 		LOGP(DLSCCP, LOGL_ERROR, "N-DATA.req TX error: unable to find connection ID (local_ref) %u\n", conn_id);
 		return -ENOTCONN;
+	}
+
+	if (len > SCCP_MAX_DATA) {
+		LOGP(DLSCCP, LOGL_ERROR, "N-DATA.req TX error: amount of data %u > %u - ITU-T Rec. Q.713 §4.7 limit\n",
+			 len, SCCP_MAX_DATA);
+		return -EMSGSIZE;
 	}
 
 	msg = scu_msgb_alloc(__func__);
