@@ -273,7 +273,7 @@ struct osmo_scu_prim {
 
 #define msgb_scu_prim(msg) ((struct osmo_scu_prim *)(msg)->l1h)
 
-char *osmo_scu_prim_name(struct osmo_prim_hdr *oph);
+char *osmo_scu_prim_name(const struct osmo_prim_hdr *oph);
 
 struct osmo_ss7_instance;
 struct osmo_sccp_instance;

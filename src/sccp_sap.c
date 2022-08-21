@@ -43,7 +43,7 @@ const struct value_string osmo_scu_prim_names[] = {
 
 static char prim_name_buf[128];
 
-char *osmo_scu_prim_name(struct osmo_prim_hdr *oph)
+char *osmo_scu_prim_name(const struct osmo_prim_hdr *oph)
 {
 	const char *name = get_value_string(osmo_scu_prim_names, oph->primitive);
 

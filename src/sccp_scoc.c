@@ -572,7 +572,7 @@ static int xua_gen_relre_and_send(struct sccp_connection *conn, uint32_t cause,
 /* generate a 'struct xua_msg' of requested type from connection +
  * primitive data */
 static struct xua_msg *xua_gen_msg_co(struct sccp_connection *conn, uint32_t event,
-				      struct osmo_scu_prim *prim, int msg_type)
+				      const struct osmo_scu_prim *prim, int msg_type)
 {
 	struct xua_msg *xua = xua_msg_alloc();
 
@@ -689,7 +689,7 @@ prim_needed:
 
 /* generate xua_msg, encode it and send it to SCRC */
 static int xua_gen_encode_and_send(struct sccp_connection *conn, uint32_t event,
-				   struct osmo_scu_prim *prim, int msg_type)
+				   const struct osmo_scu_prim *prim, int msg_type)
 {
 	struct xua_msg *xua;
 
