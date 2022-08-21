@@ -46,6 +46,7 @@
  *  * use of multiple Routing Contexts in SUA case
  */
 
+#include <errno.h>
 #include <string.h>
 
 #include <osmocom/core/utils.h>
@@ -687,7 +688,9 @@ prim_needed:
 	return NULL;
 }
 
-/* generate xua_msg, encode it and send it to SCRC */
+/* generate xua_msg, encode it and send it to SCRC
+ * returns 0 on success, negative on error
+ */
 static int xua_gen_encode_and_send(struct sccp_connection *conn, uint32_t event,
 				   const struct osmo_scu_prim *prim, int msg_type)
 {
@@ -695,7 +698,7 @@ static int xua_gen_encode_and_send(struct sccp_connection *conn, uint32_t event,
 
 	xua = xua_gen_msg_co(conn, event, prim, msg_type);
 	if (!xua)
-		return -1;
+		return -ENOMEM;
 
 	/* amend this with point code information; Many CO msgs
 	 * includes neither called nor calling party address! */
@@ -817,6 +820,7 @@ static void scoc_fsm_idle(struct osmo_fsm_inst *fi, uint32_t event, void *data)
 	struct osmo_scu_prim *prim = NULL;
 	struct osmo_scu_connect_param *uconp;
 	struct xua_msg *xua = NULL;
+	int rc;
 
 	switch (event) {
 	case SCOC_E_SCU_N_CONN_REQ:
@@ -827,10 +831,14 @@ static void scoc_fsm_idle(struct osmo_fsm_inst *fi, uint32_t event, void *data)
 		conn->calling_addr = uconp->calling_addr;
 		conn->sccp_class = uconp->sccp_class;
 		/* generate + send CR PDU to SCRC */
-		xua_gen_encode_and_send(conn, event, prim, SUA_CO_CORE);
-		/* start connection timer */
-		conn_start_connect_timer(conn);
-		osmo_fsm_inst_state_chg(fi, S_CONN_PEND_OUT, 0, 0);
+		rc = xua_gen_encode_and_send(conn, event, prim, SUA_CO_CORE);
+		if (rc < 0)
+			LOGPFSML(fi, LOGL_ERROR, "Failed to initiate connection: %s\n", strerror(-rc));
+		else {
+			/* start connection timer */
+			conn_start_connect_timer(conn);
+			osmo_fsm_inst_state_chg(fi, S_CONN_PEND_OUT, 0, 0);
+		}
 		break;
 #if 0
 	case SCOC_E_SCU_N_TYPE1_REQ:
