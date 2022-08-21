@@ -1,0 +1,21 @@
+This example code is handy in illustrating libosmo-sigtran library use as well as experimenting with SCCP protocol.
+
+Run it as follows:
+Server:
+./sccp_demo_user -d DLINP,5:DLSS7,5:DLSCCP,1:DSCCP,1:DMAIN,1
+Client:
+./sccp_demo_user -d DLINP,5:DLSS7,5:DLSCCP,1:DSCCP,1:DMAIN,1 -c
+Server's vty:
+telnet 127.0.0.1 2324
+Client's vty:
+telnet 127.0.0.2 2325
+
+On the client side, after entering privileged mode by typing 'enable', you can switch to demo user mode with 'sccp-user' command.
+
+This gives several additional commands, for example:
+'called-addr-ssn 202' - selecting "echo" application (201 is "refuser", 203 is "callback")
+'connect-req 10 aaaaaaaaaaaaaaaaaaa' - sending N-CONNECT message with ID=12 and optional data
+
+See vty's help for further details.
+
+Calling 'show cs7 instance 0 sccp connections' in privileged mode on the server will show currently active SCCP connections.
