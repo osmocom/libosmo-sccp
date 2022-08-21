@@ -94,14 +94,16 @@ DEFUN(scu_unitdata_req, scu_unitdata_req_cmd,
 }
 
 DEFUN(scu_disc_req, scu_disc_req_cmd,
-	"disconnect-req <0-16777216>",
+	"disconnect-req <0-16777216> [DATA]",
 	"N-DISCONNT.req\n"
-	"Connection ID\n")
+	"Connection ID\n"
+	"Optional Data\n")
 {
 	struct osmo_sccp_user *scu = vty->index;
 	int conn_id = atoi(argv[0]);
 
-	osmo_sccp_tx_disconn(scu, conn_id, NULL, 42);
+	osmo_sccp_tx_disconn_data(scu, conn_id, NULL, 42, (const uint8_t *)argv[1], (argc > 1) ? strlen(argv[1]) + 1 : 0);
+
 	return CMD_SUCCESS;
 }
 

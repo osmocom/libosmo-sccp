@@ -44,6 +44,10 @@ int osmo_sccp_tx_disconn(struct osmo_sccp_user *scu, uint32_t conn_id,
 			 const struct osmo_sccp_addr *resp_addr,
 			 uint32_t cause);
 
+int osmo_sccp_tx_disconn_data(struct osmo_sccp_user *scu, uint32_t conn_id,
+				const struct osmo_sccp_addr *resp_addr,
+				uint32_t cause, const uint8_t *data, size_t len);
+
 int osmo_sccp_tx_conn_resp_msg(struct osmo_sccp_user *scu, uint32_t conn_id,
 				const struct osmo_sccp_addr *resp_addr,
 				struct msgb *msg);

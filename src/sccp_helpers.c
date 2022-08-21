@@ -193,9 +193,9 @@ int osmo_sccp_tx_data_msg(struct osmo_sccp_user *scu, uint32_t conn_id,
 }
 
 /* N-DISCONNECT.req */
-int osmo_sccp_tx_disconn(struct osmo_sccp_user *scu, uint32_t conn_id,
-			 const struct osmo_sccp_addr *resp_addr,
-			 uint32_t cause)
+int osmo_sccp_tx_disconn_data(struct osmo_sccp_user *scu, uint32_t conn_id,
+				const struct osmo_sccp_addr *resp_addr,
+				uint32_t cause, const uint8_t *data, size_t len)
 {
 	struct msgb *msg;
 	struct osmo_scu_prim *prim;
@@ -219,7 +219,19 @@ int osmo_sccp_tx_disconn(struct osmo_sccp_user *scu, uint32_t conn_id,
 	param->conn_id = conn_id;
 	param->cause = cause;
 
+	if (data && len) {
+		msg->l2h = msgb_put(msg, len);
+		memcpy(msg->l2h, data, len);
+	}
+
 	return osmo_sccp_user_sap_down(scu, &prim->oph);
+}
+
+int osmo_sccp_tx_disconn(struct osmo_sccp_user *scu, uint32_t conn_id,
+			 const struct osmo_sccp_addr *resp_addr,
+			 uint32_t cause)
+{
+	return osmo_sccp_tx_disconn_data(scu, conn_id, resp_addr, cause, NULL, 0);
 }
 
 /* N-CONNECT.resp */
