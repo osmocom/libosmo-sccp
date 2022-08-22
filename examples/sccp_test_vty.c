@@ -38,14 +38,15 @@ DEFUN(scu_called_ssn, scu_called_ssn_cmd,
 DEFUN(scu_conn_req, scu_conn_req_cmd,
 	"connect-req <0-16777216> [DATA]",
 	"N-CONNECT.req\n"
-	"Connection ID\n")
+	"Connection ID\n"
+	"Optional Data\n")
 {
 	struct osmo_sccp_user *scu = vty->index;
 	int rc, conn_id = atoi(argv[0]);
-	const char *data = argv[1];
 
 	rc = osmo_sccp_tx_conn_req(scu, conn_id, &g_calling_addr, &g_called_addr,
-							   (const uint8_t *)data, data ? strlen(data) + 1 : 0);
+							   (const uint8_t *)argv[1], (argc > 1) ? strlen(argv[1]) + 1 : 0);
+
 	if (rc < 0) {
 		vty_out(vty, "Error while sending N-CONNECT.req: %s%s", strerror(-rc), VTY_NEWLINE);
 		return CMD_WARNING;
@@ -57,21 +58,22 @@ DEFUN(scu_conn_req, scu_conn_req_cmd,
 DEFUN(scu_conn_resp, scu_conn_resp_cmd,
 	"connect-resp <0-16777216> [DATA]",
 	"N-CONNET.resp\n"
-	"Connection ID\n")
+	"Connection ID\n"
+	"Optional Data\n")
 {
 	struct osmo_sccp_user *scu = vty->index;
 	int conn_id = atoi(argv[0]);
-	const char *data = argv[1];
 
-	osmo_sccp_tx_conn_resp(scu, conn_id, NULL,
-				(const uint8_t *)data, data ? strlen(data)+1 : 0);
+	osmo_sccp_tx_conn_resp(scu, conn_id, NULL, (const uint8_t *)argv[1], (argc > 1) ? strlen(argv[1]) + 1 : 0);
+
 	return CMD_SUCCESS;
 }
 
 DEFUN(scu_data_req, scu_data_req_cmd,
 	"data-req <0-16777216> DATA",
-	"N-DATA.req\n"
-	"Connection ID\n")
+	  "N-DATA.req\n"
+	  "Connection ID\n"
+	  "Data\n")
 {
 	struct osmo_sccp_user *scu = vty->index;
 	int conn_id = atoi(argv[0]);
