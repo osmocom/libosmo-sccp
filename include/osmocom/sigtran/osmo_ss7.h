@@ -155,13 +155,24 @@ enum osmo_ss7_link_adm_state {
 	_NUM_OSMO_SS7_LS
 };
 
+enum osmo_ss7_link_type {
+	OSMO_SS7_LINK_TYPE_TDM,
+	OSMO_SS7_LINK_TYPE_M2PA,
+};
+
 struct osmo_ss7_linkset;
 struct osmo_ss7_link;
+struct osmo_m2pa_link;
 
 struct osmo_ss7_link {
 	/*! \ref osmo_ss7_linkset to which we belong */
 	struct osmo_ss7_linkset *linkset;
+	union {
+		struct osmo_m2pa_peer *m2pa;
+	} u;
+
 	struct {
+		enum osmo_ss7_link_type type;
 		char *name;
 		char *description;
 		uint32_t id;
