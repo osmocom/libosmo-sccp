@@ -992,6 +992,14 @@ static void scoc_fsm_idle(struct osmo_fsm_inst *fi, uint32_t event, void *data)
 	switch (event) {
 	case SCOC_E_SCU_N_CONN_REQ:
 		prim = data;
+		if (msgb_l2len(prim->oph.msg) > SCCP_CR_MAX_DATA_LEN) {
+			LOGPFSML(fi, LOGL_ERROR, "N-CONNECT.req with DATA length > %u "
+				"not permitted by Q.713\n", SCCP_CR_MAX_DATA_LEN);
+			/* FIXME: send empty CR and send data in later DT1 */
+			scu_gen_encode_and_send(conn, event, NULL, OSMO_SCU_PRIM_N_DISCONNECT,
+						PRIM_OP_INDICATION);
+			break;
+		}
 		uconp = &prim->u.connect;
 		/* copy relevant parameters from prim to conn */
 		conn->called_addr = uconp->called_addr;
@@ -1070,6 +1078,12 @@ static void scoc_fsm_conn_pend_in(struct osmo_fsm_inst *fi, uint32_t event, void
 	switch (event) {
 	case SCOC_E_SCU_N_CONN_RESP:
 		prim = data;
+		if (msgb_l2len(prim->oph.msg) > SCCP_CC_MAX_DATA_LEN) {
+			LOGPFSML(fi, LOGL_ERROR, "N-CONNECT.resp with DATA length > %u "
+				"not permitted by Q.713\n", SCCP_CC_MAX_DATA_LEN);
+			/* FIXME: send CC with empty body and use DT1 to transfer data afterwards! */
+			break;
+		}
 		/* FIXME: assign local reference (only now?) */
 		/* FIXME: assign sls, protocol class and credit */
 		xua_gen_encode_and_send(conn, event, prim, SUA_CO_COAK);
@@ -1080,6 +1094,12 @@ static void scoc_fsm_conn_pend_in(struct osmo_fsm_inst *fi, uint32_t event, void
 		break;
 	case SCOC_E_SCU_N_DISC_REQ:
 		prim = data;
+		if (msgb_l2len(prim->oph.msg) > SCCP_CREF_MAX_DATA_LEN) {
+			LOGPFSML(fi, LOGL_ERROR, "N-DISCONNECT.req with DATA length > %u "
+				"not permitted by Q.713\n", SCCP_CREF_MAX_DATA_LEN);
+			/* FIXME: refuse without payload! */
+			break;
+		}
 		/* release resources: implicit */
 		xua_gen_encode_and_send(conn, event, prim, SUA_CO_COREF);
 		/* N. B: we've ignored CREF sending errors as there's no recovery option anyway */
@@ -1230,6 +1250,12 @@ static void scoc_fsm_active(struct osmo_fsm_inst *fi, uint32_t event, void *data
 		/* fall-through */
 	case SCOC_E_SCU_N_DISC_REQ:
 		prim = data;
+		if (msgb_l2len(prim->oph.msg) > SCCP_RLSD_MAX_DATA_LEN) {
+			LOGPFSML(fi, LOGL_ERROR, "N-DISCONNECT.req with DATA length > %u "
+				"not permitted by Q.713\n", SCCP_RLSD_MAX_DATA_LEN);
+			/* FIXME: send DT1 followed by empty RLSD */
+			break;
+		}
 		/* stop inact timers */
 		conn_stop_inact_timers(conn);
 		/* send RLSD to SCRC */
