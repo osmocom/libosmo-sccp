@@ -596,10 +596,12 @@ static struct xua_msg *xua_gen_msg_co(struct sccp_connection *conn, uint32_t eve
 		/* optional: sequence number (class 3 only) */
 		if (conn->calling_addr.presence)
 			xua_msg_add_sccp_addr(xua, SUA_IEI_SRC_ADDR, &conn->calling_addr);
-		/* optional: hop count; importance; priority; credit */
+		/* optional: data */
 		if (prim && msgb_l2(prim->oph.msg) && msgb_l2len(prim->oph.msg))
 			xua_msg_add_data(xua, SUA_IEI_DATA, msgb_l2len(prim->oph.msg),
 					 msgb_l2(prim->oph.msg));
+		/* optional: hop count */
+		/* optional: importance */
 		break;
 	case SUA_CO_COAK: /* Connect Acknowledge == SCCP CC */
 		xua->hdr = XUA_HDR(SUA_MSGC_CO, SUA_CO_COAK);
@@ -617,9 +619,11 @@ static struct xua_msg *xua_gen_msg_co(struct sccp_connection *conn, uint32_t eve
 		 * parameter */
 		if (conn->calling_addr.presence)
 			xua_msg_add_sccp_addr(xua, SUA_IEI_DEST_ADDR, &conn->calling_addr);
+		/* optional: data */
 		if (prim && msgb_l2(prim->oph.msg) && msgb_l2len(prim->oph.msg))
 			xua_msg_add_data(xua, SUA_IEI_DATA, msgb_l2len(prim->oph.msg),
 					 msgb_l2(prim->oph.msg));
+		/* optional: importance */
 		break;
 	case SUA_CO_RELRE: /* Release Request == SCCP RLSD */
 		if (!prim)
@@ -629,17 +633,17 @@ static struct xua_msg *xua_gen_msg_co(struct sccp_connection *conn, uint32_t eve
 		xua_msg_add_u32(xua, SUA_IEI_DEST_REF, conn->remote_ref);
 		xua_msg_add_u32(xua, SUA_IEI_SRC_REF, conn->conn_id);
 		xua_msg_add_u32(xua, SUA_IEI_CAUSE, SUA_CAUSE_T_RELEASE | prim->u.disconnect.cause);
-		/* optional: importance */
+		/* optional: data */
 		if (prim && msgb_l2(prim->oph.msg) && msgb_l2len(prim->oph.msg))
 			xua_msg_add_data(xua, SUA_IEI_DATA, msgb_l2len(prim->oph.msg),
 					 msgb_l2(prim->oph.msg));
+		/* optional: importance */
 		break;
 	case SUA_CO_RELCO: /* Release Confirm == SCCP RLC */
 		xua->hdr = XUA_HDR(SUA_MSGC_CO, SUA_CO_RELCO);
 		xua_msg_add_u32(xua, SUA_IEI_ROUTE_CTX, conn->inst->route_ctx);
 		xua_msg_add_u32(xua, SUA_IEI_DEST_REF, conn->remote_ref);
 		xua_msg_add_u32(xua, SUA_IEI_SRC_REF, conn->conn_id);
-		/* optional: importance */
 		break;
 	case SUA_CO_CODT: /* Connection Oriented Data Transfer == SCCP DT1 */
 		if (!prim)
@@ -672,11 +676,11 @@ static struct xua_msg *xua_gen_msg_co(struct sccp_connection *conn, uint32_t eve
 		/* conditional: dest addr */
 		if (conn->calling_addr.presence)
 			xua_msg_add_sccp_addr(xua, SUA_IEI_DEST_ADDR, &conn->calling_addr);
-		/* optional: importance */
 		/* optional: data */
 		if (prim && msgb_l2(prim->oph.msg) && msgb_l2len(prim->oph.msg))
 			xua_msg_add_data(xua, SUA_IEI_DATA, msgb_l2len(prim->oph.msg),
 					 msgb_l2(prim->oph.msg));
+		/* optional: importance */
 		break;
 	/* FIXME */
 	default:
