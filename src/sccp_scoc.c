@@ -49,12 +49,13 @@
 #include <errno.h>
 #include <string.h>
 
+#include <osmocom/core/msgb.h>
 #include <osmocom/core/utils.h>
 #include <osmocom/core/linuxlist.h>
 #include <osmocom/core/logging.h>
 #include <osmocom/core/timer.h>
 #include <osmocom/core/fsm.h>
-
+#include <osmocom/sigtran/sccp_helpers.h>
 #include <osmocom/sigtran/sccp_sap.h>
 #include <osmocom/sigtran/protocol/sua.h>
 #include <osmocom/sccp/sccp_types.h>
@@ -98,6 +99,8 @@ struct sccp_connection {
 	uint32_t importance;
 	uint32_t sccp_class;
 	uint32_t release_cause; /* WAIT_CONN_CONF */
+
+	struct msgb *opt_data_cache;
 
 	/* incoming (true) or outgoing (false) */
 	bool incoming;
@@ -514,10 +517,20 @@ static struct sccp_connection *conn_create(struct osmo_sccp_user *user)
 	return conn_create_id(user, conn_id);
 }
 
+static void conn_opt_data_clear_cache(struct sccp_connection *conn)
+{
+	if (conn->opt_data_cache) {
+		msgb_free(conn->opt_data_cache);
+		conn->opt_data_cache = NULL;
+	}
+}
+
 /* destroy a SCCP connection state, releasing all timers, terminating
  * FSM and releasing associated memory */
 static void conn_destroy(struct sccp_connection *conn)
 {
+	conn_opt_data_clear_cache(conn);
+
 	conn_stop_connect_timer(conn);
 	conn_stop_inact_timers(conn);
 	conn_stop_release_timers(conn);
@@ -575,11 +588,112 @@ static int xua_gen_relre_and_send(struct sccp_connection *conn, uint32_t cause,
 	return 0;
 }
 
+/* Send cached optional data (if any) from expected message type and clear cache */
+static void xua_opt_data_send_cache(struct sccp_connection *conn, int exp_type, uint8_t msg_class)
+{
+	const struct xua_dialect *dialect = &xua_dialect_sua;
+	const struct xua_msg_class *xmc = dialect->class[msg_class];
+
+	if (!conn->opt_data_cache)
+		return;
+
+	if (conn->opt_data_cache->cb[0] != exp_type) {
+		/* Caller (from the FSM) knows what was the source of Optional Data we're sending.
+		 * Compare this information with source of Optional Data recorded while caching
+		 * to make sure we're on the same page.
+		 */
+		LOGP(DLSCCP, LOGL_ERROR, "unexpected message type %s != cache source %s\n",
+			 xua_class_msg_name(xmc, exp_type), xua_class_msg_name(xmc, conn->opt_data_cache->cb[0]));
+	} else {
+		osmo_sccp_tx_data(conn->user, conn->conn_id, msgb_data(conn->opt_data_cache), msgb_length(conn->opt_data_cache));
+	}
+
+	conn_opt_data_clear_cache(conn);
+}
+
+/* Check if optional data should be dropped, log given error message if so */
+static bool xua_drop_data_check_drop(const struct osmo_scu_prim *prim, unsigned lim, const char *message)
+{
+	if (msgb_l2len(prim->oph.msg) > lim) {
+		LOGP(DLSCCP, LOGL_ERROR,
+			 "%s: dropping optional data with length %u > %u - %s\n",
+			 osmo_scu_prim_name(&prim->oph), msgb_l2len(prim->oph.msg), lim, message);
+		return true;
+	}
+	return false;
+}
+
+/* Cache the optional data (if necessary)
+ * returns true if Optional Data should be kept while encoding the message */
+static bool xua_opt_data_cache_keep(struct sccp_connection *conn, const struct osmo_scu_prim *prim, int msg_type)
+{
+	uint8_t *buf;
+
+	if (xua_drop_data_check_drop(prim, SCCP_MAX_DATA, "cache overrun"))
+		return false;
+
+	if (msgb_l2len(prim->oph.msg) > SCCP_MAX_OPTIONAL_DATA) {
+		if (conn->opt_data_cache) {
+			/* Caching optional data, but there already is optional data occupying the cache: */
+			LOGP(DLSCCP, LOGL_ERROR, "replacing unsent %u bytes of optional data cache with %s optional data\n",
+				 msgb_length(conn->opt_data_cache), osmo_scu_prim_name(&prim->oph));
+			msgb_trim(conn->opt_data_cache, 0);
+		} else {
+			conn->opt_data_cache = msgb_alloc_c(conn, SCCP_MAX_DATA, "SCCP optional data cache for CR/CC/RLSD");
+		}
+
+		buf = msgb_put(conn->opt_data_cache, msgb_l2len(prim->oph.msg));
+		memcpy(buf, msgb_l2(prim->oph.msg), msgb_l2len(prim->oph.msg));
+
+		conn->opt_data_cache->cb[0] = msg_type;
+
+		return false;
+	}
+	return true;
+}
+
+/* Check optional Data size limit, cache if necessary, return indication whether original opt data should be sent */
+static bool xua_opt_data_length_lim(struct sccp_connection *conn, const struct osmo_scu_prim *prim, int msg_type)
+{
+	if (!(prim && msgb_l2(prim->oph.msg) && msgb_l2len(prim->oph.msg)))
+		return false;
+
+	switch (msg_type) {
+	case SUA_CO_CORE: /* §4.2 Connection request (CR) */
+	case SUA_CO_COAK: /* §4.3 Connection confirm (CC) */
+		return xua_opt_data_cache_keep(conn, prim, msg_type);
+	case SUA_CO_COREF: /* §4.4 Connection refused (CREF) */
+		if (xua_drop_data_check_drop(prim, SCCP_MAX_OPTIONAL_DATA, "over ITU-T Rec. Q.713 §4.4 limit")) {
+			/* From the state diagrams in ITU-T Rec Q.714, there's no way to send DT1 neither before nor after CREF
+			 * at this point, so the only option we have is to drop optional data:
+			 * see Figure C.3 / Q.714 (sheet 2 of 6) */
+			return false;
+		}
+		break;
+	case SUA_CO_RELRE: /* §4.5 Released (RLSD) */
+		if (msgb_l2len(prim->oph.msg) > SCCP_MAX_OPTIONAL_DATA) {
+			if (xua_drop_data_check_drop(prim, SCCP_MAX_DATA, "protocol error"))
+				return false;
+			/* There's no need to cache the optional data since the connection is still active at this point:
+			 * Send the Optional Data in a DT1 ahead of the RLSD, because it is too large to be sent in one message.
+			 */
+			osmo_sccp_tx_data(conn->user, conn->conn_id, msgb_l2(prim->oph.msg), msgb_l2len(prim->oph.msg));
+			return false;
+		}
+		break;
+	default:
+		return true;
+	}
+
+	return true;
+}
+
 /* generate a 'struct xua_msg' of requested type from connection +
  * primitive data */
 static struct xua_msg *xua_gen_msg_co(struct sccp_connection *conn, uint32_t event,
 				      const struct osmo_scu_prim *prim, int msg_type)
 {
+	bool encode_opt_data = xua_opt_data_length_lim(conn, prim, msg_type);
 	struct xua_msg *xua = xua_msg_alloc();
 
 	if (!xua)
@@ -597,9 +711,8 @@ static struct xua_msg *xua_gen_msg_co(struct sccp_connection *conn, uint32_t eve
 		if (conn->calling_addr.presence)
 			xua_msg_add_sccp_addr(xua, SUA_IEI_SRC_ADDR, &conn->calling_addr);
 		/* optional: data */
-		if (prim && msgb_l2(prim->oph.msg) && msgb_l2len(prim->oph.msg))
-			xua_msg_add_data(xua, SUA_IEI_DATA, msgb_l2len(prim->oph.msg),
-					 msgb_l2(prim->oph.msg));
+		if (encode_opt_data)
+			xua_msg_add_data(xua, SUA_IEI_DATA, msgb_l2len(prim->oph.msg), msgb_l2(prim->oph.msg));
 		/* optional: hop count */
 		/* optional: importance */
 		break;
@@ -620,9 +733,8 @@ static struct xua_msg *xua_gen_msg_co(struct sccp_connection *conn, uint32_t eve
 		if (conn->calling_addr.presence)
 			xua_msg_add_sccp_addr(xua, SUA_IEI_DEST_ADDR, &conn->calling_addr);
 		/* optional: data */
-		if (prim && msgb_l2(prim->oph.msg) && msgb_l2len(prim->oph.msg))
-			xua_msg_add_data(xua, SUA_IEI_DATA, msgb_l2len(prim->oph.msg),
-					 msgb_l2(prim->oph.msg));
+		if (encode_opt_data)
+			xua_msg_add_data(xua, SUA_IEI_DATA, msgb_l2len(prim->oph.msg), msgb_l2(prim->oph.msg));
 		/* optional: importance */
 		break;
 	case SUA_CO_RELRE: /* Release Request == SCCP RLSD */
@@ -634,9 +746,8 @@ static struct xua_msg *xua_gen_msg_co(struct sccp_connection *conn, uint32_t eve
 		xua_msg_add_u32(xua, SUA_IEI_SRC_REF, conn->conn_id);
 		xua_msg_add_u32(xua, SUA_IEI_CAUSE, SUA_CAUSE_T_RELEASE | prim->u.disconnect.cause);
 		/* optional: data */
-		if (prim && msgb_l2(prim->oph.msg) && msgb_l2len(prim->oph.msg))
-			xua_msg_add_data(xua, SUA_IEI_DATA, msgb_l2len(prim->oph.msg),
-					 msgb_l2(prim->oph.msg));
+		if (encode_opt_data)
+			xua_msg_add_data(xua, SUA_IEI_DATA, msgb_l2len(prim->oph.msg), msgb_l2(prim->oph.msg));
 		/* optional: importance */
 		break;
 	case SUA_CO_RELCO: /* Release Confirm == SCCP RLC */
@@ -677,9 +788,8 @@ static struct xua_msg *xua_gen_msg_co(struct sccp_connection *conn, uint32_t eve
 		if (conn->calling_addr.presence)
 			xua_msg_add_sccp_addr(xua, SUA_IEI_DEST_ADDR, &conn->calling_addr);
 		/* optional: data */
-		if (prim && msgb_l2(prim->oph.msg) && msgb_l2len(prim->oph.msg))
-			xua_msg_add_data(xua, SUA_IEI_DATA, msgb_l2len(prim->oph.msg),
-					 msgb_l2(prim->oph.msg));
+		if (encode_opt_data)
+			xua_msg_add_data(xua, SUA_IEI_DATA, msgb_l2len(prim->oph.msg), msgb_l2(prim->oph.msg));
 		/* optional: importance */
 		break;
 	/* FIXME */
@@ -918,11 +1028,13 @@ static void scoc_fsm_conn_pend_in(struct osmo_fsm_inst *fi, uint32_t event, void
 		/* start inactivity timers */
 		conn_start_inact_timers(conn);
 		osmo_fsm_inst_state_chg(fi, S_ACTIVE, 0, 0);
+		xua_opt_data_send_cache(conn, SUA_CO_COAK, SUA_MSGC_CO);
 		break;
 	case SCOC_E_SCU_N_DISC_REQ:
 		prim = data;
 		/* release resources: implicit */
 		xua_gen_encode_and_send(conn, event, prim, SUA_CO_COREF);
+		/* N. B: we've ignored CREF sending errors as there's no recovery option anyway */
 		osmo_fsm_inst_state_chg(fi, S_IDLE, 0, 0);
 		break;
 	}
@@ -999,6 +1111,11 @@ static void scoc_fsm_conn_pend_out(struct osmo_fsm_inst *fi, uint32_t event, voi
 		conn->remote_pc = xua->mtp.opc;
 
 		osmo_fsm_inst_state_chg(fi, S_ACTIVE, 0, 0);
+		/* If CR which was used to initiate this connection had excessive Optional Data which we had to cache,
+		 * now is the time to send it: the connection is already active but we hadn't notified upper layers about it
+		 * so we have the connection all to ourselves and can use it to transmit "leftover" data via DT1 */
+		xua_opt_data_send_cache(conn, SUA_CO_CORE, xua->hdr.msg_class);
+
 		/* N-CONNECT.conf to user */
 		scu_gen_encode_and_send(conn, event, xua, OSMO_SCU_PRIM_N_CONNECT,
 					PRIM_OP_CONFIRM);
