@@ -5,6 +5,8 @@ Documentation=https://osmocom.org/projects/osmo-stp/wiki
 [Service]
 Type=simple
 Restart=always
+StateDirectory=osmocom
+WorkingDirectory=%S/osmocom
 ExecStart=/usr/bin/osmo-stp -c /etc/osmocom/osmo-stp.cfg
 RestartSec=2
 
