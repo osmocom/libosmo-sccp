@@ -100,7 +100,8 @@ Multi-Arch: same
 Section: net
 Depends: libosmo-sigtran9,
          ${shlibs:Depends},
-         ${misc:Depends}
+         ${misc:Depends},
+         adduser
 Description: Osmocom SIGTRAN STP (Signaling Transfer Point)
   This is the Osmocom (Open Source Mobile Communications) implementation
   of a Signaling Transfer Point (STP) for SS7/SIGTRAN telecommunication

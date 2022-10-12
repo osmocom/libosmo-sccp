@@ -141,9 +141,24 @@ make %{?_smp_mflags} check || (find . -name testsuite.log -exec cat {} +)
 %if 0%{?suse_version}
 %preun  -n osmo-stp %service_del_preun osmo-stp.service
 %postun -n osmo-stp %service_del_postun osmo-stp.service
-%pre    -n osmo-stp %service_add_pre osmo-stp.service
-%post   -n osmo-stp %service_add_post osmo-stp.service
 %endif
+%pre    -n osmo-stp
+getent group osmocom >/dev/null || groupadd --system osmocom
+getent passwd osmocom >/dev/null || useradd --system --gid osmocom --home-dir /var/lib/osmocom \
+                                            --shell /sbin/nologin --comment "Open Source Mobile Communications" osmocom
+%if 0%{?suse_version}
+%service_add_pre osmo-stp.service
+%endif
+
+%post   -n osmo-stp
+%if 0%{?suse_version}
+%service_add_post osmo-stp.service
+%endif
+chown osmocom:osmocom /etc/osmocom/osmo-stp.cfg
+chmod 0660 /etc/osmocom/osmo-stp.cfg
+chown root:osmocom /etc/osmocom
+chmod 2775 /etc/osmocom
+
 
 %files -n libosmo-mtp-devel
 %dir %{_includedir}/%{name}
