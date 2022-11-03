@@ -77,6 +77,7 @@ if test x"$werror" = x"yes"
 then
 	WERROR_FLAGS="-Werror"
 	WERROR_FLAGS+=" -Wno-error=deprecated -Wno-error=deprecated-declarations"
+	WERROR_FLAGS+=" -Werror=implicit-int -Werror=int-conversion -Werror=old-style-definition"
 	WERROR_FLAGS+=" -Wno-error=cpp" # "#warning"
 	CFLAGS="$CFLAGS $WERROR_FLAGS"
 	CPPFLAGS="$CPPFLAGS $WERROR_FLAGS"
