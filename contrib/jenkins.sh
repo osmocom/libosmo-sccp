@@ -50,6 +50,7 @@ set -x
 autoreconf --install --force
 ./configure --enable-sanitize --enable-werror --enable-external-tests $CONFIG
 $MAKE $PARALLEL_MAKE
+$MAKE $PARALLEL_MAKE check || cat-testlogs.sh
 DISTCHECK_CONFIGURE_FLAGS="--enable-external-tests $CONFIG" \
   $MAKE $PARALLEL_MAKE distcheck \
   || cat-testlogs.sh
