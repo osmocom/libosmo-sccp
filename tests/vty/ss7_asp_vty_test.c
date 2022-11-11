@@ -41,7 +41,7 @@ void *root_ctx = NULL;
 const struct log_info log_info = {
 };
 
-static void print_help()
+static void print_help(void)
 {
 	printf( "options:\n"
 		"  -h	--help		this text\n"

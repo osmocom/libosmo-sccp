@@ -572,7 +572,7 @@ static void test_rkm(void)
 	talloc_free(xua);
 }
 
-void test_sccp_addr_cmp()
+static void test_sccp_addr_cmp(void)
 {
 	int ai;
 	int bi;
