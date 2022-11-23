@@ -26,6 +26,7 @@
 #include <stdbool.h>
 #include <string.h>
 #include <errno.h>
+#include <inttypes.h>
 
 #include <osmocom/sccp/sccp.h>
 #include <osmocom/core/linuxlist.h>
@@ -1002,13 +1003,18 @@ static int xua_ies_to_sccp_opts(struct msgb *msg, uint8_t *ptr_opt,
 	return 0;
 }
 
-/* store a 'local reference' as big-eidian 24bit value at local_ref */
-static void store_local_ref(struct sccp_source_reference *local_ref, struct xua_msg *xua, uint16_t iei)
+/* store a 'local reference' as big-endian 24bit value at local_ref */
+static int store_local_ref(struct sccp_source_reference *local_ref, struct xua_msg *xua, uint16_t iei)
 {
 	uint32_t tmp32 = xua_msg_get_u32(xua, iei);
+	if (tmp32 > 0x00fffffe) {
+		LOGP(DLSUA, LOGL_ERROR, "SUA->SCCP: Local Reference value 0x%" PRIx32 " > 0x00fffffe\n", tmp32);
+		return -1;
+	}
 	local_ref->octet1 = (tmp32 >> 16) & 0xff;
 	local_ref->octet2 = (tmp32 >> 8) & 0xff;
 	local_ref->octet3 = tmp32 & 0xff;
+	return 0;
 }
 
 /*! \returns \ref xua in case of success, NULL on error (xua not freed!) */
@@ -1031,12 +1037,15 @@ static struct xua_msg *sccp_to_xua_cr(struct msgb *msg, struct xua_msg *xua)
 static int sua_to_sccp_cr(struct msgb *msg, struct xua_msg *xua)
 {
 	struct sccp_connection_request *req;
+	int rc;
 	req = (struct sccp_connection_request *) msgb_put(msg, sizeof(*req));
 
 	/* Fixed Part */
 	req->type = SCCP_MSG_TYPE_CR;
 	req->proto_class = xua_msg_get_u32(xua, SUA_IEI_PROTO_CLASS);
-	store_local_ref(&req->source_local_reference, xua, SUA_IEI_SRC_REF);
+	rc = store_local_ref(&req->source_local_reference, xua, SUA_IEI_SRC_REF);
+	if (rc < 0)
+		return rc;
 	/* Variable Part */
 	sccp_add_var_addr(msg, &req->variable_called, xua, SUA_IEI_DEST_ADDR);
 
@@ -1061,13 +1070,18 @@ static struct xua_msg *sccp_to_xua_cc(struct msgb *msg, struct xua_msg *xua)
 static int sua_to_sccp_cc(struct msgb *msg, struct xua_msg *xua)
 {
 	struct sccp_connection_confirm *cnf;
+	int rc;
 	cnf = (struct sccp_connection_confirm *) msgb_put(msg, sizeof(*cnf));
 
 	/* Fixed Part */
 	cnf->type = SCCP_MSG_TYPE_CC;
 	cnf->proto_class = xua_msg_get_u32(xua, SUA_IEI_PROTO_CLASS);
-	store_local_ref(&cnf->destination_local_reference, xua, SUA_IEI_DEST_REF);
-	store_local_ref(&cnf->source_local_reference, xua, SUA_IEI_SRC_REF);
+	rc = store_local_ref(&cnf->destination_local_reference, xua, SUA_IEI_DEST_REF);
+	if (rc < 0)
+		return rc;
+	rc = store_local_ref(&cnf->source_local_reference, xua, SUA_IEI_SRC_REF);
+	if (rc < 0)
+		return rc;
 	/* Optional Part */
 	return xua_ies_to_sccp_opts(msg, &cnf->optional_start, cnf->type, xua);
 }
@@ -1088,11 +1102,14 @@ static struct xua_msg *sccp_to_xua_cref(struct msgb *msg, struct xua_msg *xua)
 static int sua_to_sccp_cref(struct msgb *msg, struct xua_msg *xua)
 {
 	struct sccp_connection_refused *ref;
+	int rc;
 	ref = (struct sccp_connection_refused *) msgb_put(msg, sizeof(*ref));
 
 	/* Fixed Part */
 	ref->type = SCCP_MSG_TYPE_CREF;
-	store_local_ref(&ref->destination_local_reference, xua, SUA_IEI_DEST_REF);
+	rc = store_local_ref(&ref->destination_local_reference, xua, SUA_IEI_DEST_REF);
+	if (rc < 0)
+		return rc;
 	ref->cause = xua_msg_get_u32(xua, SUA_IEI_CAUSE) & 0xff;
 	/* Optional Part */
 	return xua_ies_to_sccp_opts(msg, &ref->optional_start, ref->type, xua);
@@ -1114,12 +1131,17 @@ static struct xua_msg *sccp_to_xua_rlsd(struct msgb *msg, struct xua_msg *xua)
 static int sua_to_sccp_rlsd(struct msgb *msg, struct xua_msg *xua)
 {
 	struct sccp_connection_released *rlsd;
+	int rc;
 	rlsd =(struct sccp_connection_released *) msgb_put(msg, sizeof(*rlsd));
 
 	/* Fixed Part */
 	rlsd->type = SCCP_MSG_TYPE_RLSD;
-	store_local_ref(&rlsd->destination_local_reference, xua, SUA_IEI_DEST_REF);
-	store_local_ref(&rlsd->source_local_reference, xua, SUA_IEI_SRC_REF);
+	rc = store_local_ref(&rlsd->destination_local_reference, xua, SUA_IEI_DEST_REF);
+	if (rc < 0)
+		return rc;
+	rc = store_local_ref(&rlsd->source_local_reference, xua, SUA_IEI_SRC_REF);
+	if (rc < 0)
+		return rc;
 	rlsd->release_cause = xua_msg_get_u32(xua, SUA_IEI_CAUSE) & 0xff;
 
 	/* Optional Part */
@@ -1141,12 +1163,17 @@ static struct xua_msg *sccp_to_xua_rlc(struct msgb *msg, struct xua_msg *xua)
 static int sua_to_sccp_rlc(struct msgb *msg, struct xua_msg *xua)
 {
 	struct sccp_connection_release_complete *rlc;
+	int rc;
 	rlc = (struct sccp_connection_release_complete *) msgb_put(msg, sizeof(*rlc));
 
 	/* Fixed Part */
 	rlc->type = SCCP_MSG_TYPE_RLC;
-	store_local_ref(&rlc->destination_local_reference, xua, SUA_IEI_DEST_REF);
-	store_local_ref(&rlc->source_local_reference, xua, SUA_IEI_SRC_REF);
+	rc = store_local_ref(&rlc->destination_local_reference, xua, SUA_IEI_DEST_REF);
+	if (rc < 0)
+		return rc;
+	rc = store_local_ref(&rlc->source_local_reference, xua, SUA_IEI_SRC_REF);
+	if (rc < 0)
+		return rc;
 	return 0;
 }
 
@@ -1168,11 +1195,14 @@ static struct xua_msg *sccp_to_xua_dt1(struct msgb *msg, struct xua_msg *xua)
 static int sua_to_sccp_dt1(struct msgb *msg, struct xua_msg *xua)
 {
 	struct sccp_data_form1 *dt1;
+	int rc;
 	dt1 = (struct sccp_data_form1 *) msgb_put(msg, sizeof(*dt1));
 
 	/* Fixed Part */
 	dt1->type = SCCP_MSG_TYPE_DT1;
-	store_local_ref(&dt1->destination_local_reference, xua, SUA_IEI_DEST_REF);
+	rc = store_local_ref(&dt1->destination_local_reference, xua, SUA_IEI_DEST_REF);
+	if (rc < 0)
+		return rc;
 	dt1->segmenting = xua_msg_get_u32(xua, SUA_IEI_SEGMENTATION);
 	/* Variable Part */
 	sccp_add_variable_part(msg, &dt1->variable_start, xua, SUA_IEI_DATA);
@@ -1365,13 +1395,18 @@ static struct xua_msg *sccp_to_xua_it(struct msgb *msg, struct xua_msg *xua)
 static int sua_to_sccp_it(struct msgb *msg, struct xua_msg *xua)
 {
 	struct sccp_data_it *it;
+	int rc;
 	it = (struct sccp_data_it *) msgb_put(msg, sizeof(*it));
 
 	/* Fixed Part */
 	it->type = SCCP_MSG_TYPE_IT;
 	it->proto_class = xua_msg_get_u32(xua, SUA_IEI_PROTO_CLASS);
-	store_local_ref(&it->destination_local_reference, xua, SUA_IEI_DEST_REF);
-	store_local_ref(&it->source_local_reference, xua, SUA_IEI_SRC_REF);
+	rc = store_local_ref(&it->destination_local_reference, xua, SUA_IEI_DEST_REF);
+	if (rc < 0)
+		return rc;
+	rc = store_local_ref(&it->source_local_reference, xua, SUA_IEI_SRC_REF);
+	if (rc < 0)
+		return rc;
 	if ((it->proto_class & 0xF) == 3) {
 		//it->sequencing
 		it->credit = xua_msg_get_u32(xua, SUA_IEI_CREDIT);
@@ -1394,11 +1429,14 @@ static struct xua_msg *sccp_to_xua_err(struct msgb *msg, struct xua_msg *xua)
 static int sua_to_sccp_err(struct msgb *msg, struct xua_msg *xua)
 {
 	struct sccp_proto_err *err;
+	int rc;
 	err = (struct sccp_proto_err *) msgb_put(msg, sizeof(*err));
 
 	/* Fixed Part */
 	err->type = SCCP_MSG_TYPE_ERR;
-	store_local_ref(&err->destination_local_reference, xua, SUA_IEI_DEST_REF);
+	rc = store_local_ref(&err->destination_local_reference, xua, SUA_IEI_DEST_REF);
+	if (rc < 0)
+		return rc;
 	err->error_cause = xua_msg_get_u32(xua, SUA_IEI_CAUSE) & 0xff;
 	return 0;
 }
