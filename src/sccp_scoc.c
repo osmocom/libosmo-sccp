@@ -1726,7 +1726,8 @@ static void sccp_scoc_rx_inval_opc(struct sccp_connection *conn,
 				   struct xua_msg *xua)
 {
 	LOGP(DLSCCP, LOGL_NOTICE,
-	     "Received message for opc=%u=%s on conn with mismatching remote pc=%u=%s\n",
+	     "Received message %s for opc=%u=%s on conn with mismatching remote pc=%u=%s\n",
+	     xua_hdr_dump(xua, &xua_dialect_sua),
 	     xua->mtp.opc, osmo_ss7_pointcode_print(conn->inst->ss7, xua->mtp.opc),
 	     conn->remote_pc, osmo_ss7_pointcode_print2(conn->inst->ss7, conn->remote_pc));
 	/* we have received a message with invalid origin PC and thus
