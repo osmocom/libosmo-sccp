@@ -1731,7 +1731,7 @@ static void sccp_scoc_rx_inval_opc(struct sccp_connection *conn,
 	     xua->mtp.opc, osmo_ss7_pointcode_print(conn->inst->ss7, xua->mtp.opc),
 	     conn->remote_pc, osmo_ss7_pointcode_print2(conn->inst->ss7, conn->remote_pc));
 	/* we have received a message with invalid origin PC and thus
-	 * apply the action indiacted in Table B.2/Q.714 */
+	 * apply the action indicated in Table B.2/Q.714 */
 	switch (xua->hdr.msg_type) {
 	case SUA_CO_RELRE: /* RLSD */
 	case SUA_CO_RESRE: /* RSR */
