@@ -1,3 +1,35 @@
+libosmo-sccp (1.7.0) unstable; urgency=medium
+
+  [ Pau Espin Pedrol ]
+  * xua_snm: assert to guard against NULL ptr
+  * sccp: Validate local references > 0x00fffffe are not used
+
+  [ Max ]
+  * cosmetic: improve usage help of example code
+  * SCCP: enforce optional data length limits
+  * SCCP: Log more data on CR size error
+  * [cosmetic] sccp_scoc.c: constify function parameters
+  * Add basic readme for example code
+  * SIGTRAN: don't advance FSM on failed connection request
+  * SIGTRAN: add function to check connection existence
+  * SIGTRAN: error if attempting to send exceedingly big data
+  * SIGTRAN: add osmo_sccp_tx_disconn_data() helper
+  * examples: update vty code
+  * SIGTRAN: arrange the comments in the encoder to match the spec
+  * SIGTRAN: cache Optional Data for SCCP CR/CC/RLSD
+  * Set working directory in systemd service file
+
+  [ Harald Welte ]
+  * Add -Werror=implicit-int -Werror=int-conversion -Werror=old-style-definition
+  * SCOC: dump SUA header when logging "mismatching remote pc"
+  * cosmetic: fix typo in comment
+
+  [ Oliver Smith ]
+  * tests: fix old-style function definition
+  * contrib/jenkins.sh: add missing 'make check'
+
+ -- Pau Espin Pedrol <pespin@sysmocom.de>  Tue, 07 Feb 2023 14:37:23 +0100
+
 libosmo-sccp (1.6.0) unstable; urgency=medium
 
   [ Pau Espin Pedrol ]

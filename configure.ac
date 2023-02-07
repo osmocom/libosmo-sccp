@@ -36,10 +36,10 @@ if test "x$PKG_CONFIG_INSTALLED" = "xno"; then
 fi
 PKG_PROG_PKG_CONFIG([0.20])
 
-PKG_CHECK_MODULES(LIBOSMOCORE, libosmocore >= 1.7.0)
-PKG_CHECK_MODULES(LIBOSMOVTY, libosmovty >= 1.7.0)
-PKG_CHECK_MODULES(LIBOSMOGSM, libosmogsm >= 1.7.0)
-PKG_CHECK_MODULES(LIBOSMONETIF, libosmo-netif >= 1.2.0)
+PKG_CHECK_MODULES(LIBOSMOCORE, libosmocore >= 1.8.0)
+PKG_CHECK_MODULES(LIBOSMOVTY, libosmovty >= 1.8.0)
+PKG_CHECK_MODULES(LIBOSMOGSM, libosmogsm >= 1.8.0)
+PKG_CHECK_MODULES(LIBOSMONETIF, libosmo-netif >= 1.3.0)
 
 old_LIBS=$LIBS
 AC_SEARCH_LIBS([sctp_recvmsg], [sctp], [
