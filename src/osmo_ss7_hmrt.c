@@ -228,6 +228,12 @@ static int hmrt_message_for_routing(struct osmo_ss7_instance *inst,
 				       dpc, osmo_ss7_pointcode_print(inst, dpc), rt_name);
 			}
 
+			if (osmo_ss7_as_down(as)) {
+				LOGP(DLSS7, LOGL_ERROR, "Unable to route HMRT message: the AS %s is down\n",
+				     as->cfg.name);
+				return -ENETDOWN;
+			}
+
 			rate_ctr_inc2(as->ctrg, SS7_AS_CTR_TX_MSU_TOTAL);
 
 			switch (as->cfg.proto) {

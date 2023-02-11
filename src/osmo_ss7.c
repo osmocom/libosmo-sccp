@@ -1143,6 +1143,18 @@ bool osmo_ss7_as_active(const struct osmo_ss7_as *as)
 	return as->fi->state == XUA_AS_S_ACTIVE;
 }
 
+/*! Determine if given AS is in the down state.
+ *  \param[in] as Application Server.
+ *  \returns true in case as is down; false otherwise. */
+bool osmo_ss7_as_down(const struct osmo_ss7_as *as)
+{
+	OSMO_ASSERT(as);
+
+	if (!as->fi)
+		return true;
+	return as->fi->state == XUA_AS_S_DOWN;
+}
+
 /***********************************************************************
  * SS7 Application Server Process
  ***********************************************************************/

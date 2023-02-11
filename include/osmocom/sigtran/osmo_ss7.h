@@ -352,6 +352,7 @@ int osmo_ss7_as_del_asp(struct osmo_ss7_as *as, const char *asp_name);
 void osmo_ss7_as_destroy(struct osmo_ss7_as *as);
 bool osmo_ss7_as_has_asp(const struct osmo_ss7_as *as,
 			 const struct osmo_ss7_asp *asp);
+bool osmo_ss7_as_down(const struct osmo_ss7_as *as);
 bool osmo_ss7_as_active(const struct osmo_ss7_as *as);
 bool osmo_ss7_as_tmode_compatible_xua(struct osmo_ss7_as *as, uint32_t m3ua_tmt);
 void osmo_ss7_asp_disconnect(struct osmo_ss7_asp *asp);
