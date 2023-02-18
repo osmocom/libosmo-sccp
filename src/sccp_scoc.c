@@ -333,6 +333,8 @@ static void sccp_timer_schedule(const struct sccp_connection *conn,
 				enum osmo_sccp_timer timer_name)
 {
 	const struct osmo_sccp_timer_val *val = osmo_sccp_timer_get(conn->inst, timer_name, true);
+	LOGP(DLSCCP, LOGL_DEBUG, "sccp_timer_schedule(conn_id=%u, timer_name=%s, s=%u, us=%u)\n",
+	     conn->conn_id, osmo_sccp_timer_name(timer_name), val->s, val->us);
 	osmo_timer_schedule(timer, val->s, val->us);
 }
 
@@ -400,6 +402,7 @@ static void conn_start_inact_timers(struct sccp_connection *conn)
 /* Stop both Rx and Tx inactivity timers */
 static void conn_stop_inact_timers(struct sccp_connection *conn)
 {
+	LOGP(DLSCCP, LOGL_DEBUG, "conn_stop_inact_timers(conn_id=%u, ias, iar)\n", conn->conn_id);
 	osmo_timer_del(&conn->t_ias);
 	osmo_timer_del(&conn->t_iar);
 }
@@ -425,6 +428,7 @@ static void conn_start_int_timer(struct sccp_connection *conn)
 /* Stop all release related timers: T(rel), T(int) and T(rep_rel) */
 static void conn_stop_release_timers(struct sccp_connection *conn)
 {
+	LOGP(DLSCCP, LOGL_DEBUG, "conn_stop_release_timers(conn_id=%u, rel, int, rep_rel)\n", conn->conn_id);
 	osmo_timer_del(&conn->t_rel);
 	osmo_timer_del(&conn->t_int);
 	osmo_timer_del(&conn->t_rep_rel);
@@ -439,6 +443,7 @@ static void conn_start_connect_timer(struct sccp_connection *conn)
 /* Stop connect timer T(conn) */
 static void conn_stop_connect_timer(struct sccp_connection *conn)
 {
+	LOGP(DLSCCP, LOGL_DEBUG, "conn_stop_connect_timer(conn_id=%u, conn)\n", conn->conn_id);
 	osmo_timer_del(&conn->t_conn);
 }
 
