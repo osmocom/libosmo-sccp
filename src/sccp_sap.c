@@ -45,14 +45,29 @@ static char prim_name_buf[128];
 
 char *osmo_scu_prim_name(const struct osmo_prim_hdr *oph)
 {
-	const char *name = get_value_string(osmo_scu_prim_names, oph->primitive);
-
-	snprintf(prim_name_buf, sizeof(prim_name_buf), "%s.%s", name,
-		 get_value_string(osmo_prim_op_names, oph->operation));
-
+	osmo_scu_prim_name_buf(prim_name_buf, sizeof(prim_name_buf), oph);
 	return prim_name_buf;
 }
 
+int osmo_scu_prim_name_buf(char *buf, size_t buflen, const struct osmo_prim_hdr *oph)
+{
+	struct osmo_strbuf sb = { .buf = buf, .len = buflen };
+
+	if (!oph) {
+		OSMO_STRBUF_PRINTF(sb, "null");
+		return sb.chars_needed;
+	}
+
+	OSMO_STRBUF_PRINTF(sb, "%s.%s",
+			   get_value_string(osmo_scu_prim_names, oph->primitive),
+			   get_value_string(osmo_prim_op_names, oph->operation));
+	return sb.chars_needed;
+}
+
+char *osmo_scu_prim_name_c(void *ctx, const struct osmo_prim_hdr *oph)
+{
+	OSMO_NAME_C_IMPL(ctx, 32, "ERROR", osmo_scu_prim_name_buf, oph)
+}
 
 #include <osmocom/sigtran/sigtran_sap.h>
 
