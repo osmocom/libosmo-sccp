@@ -273,9 +273,15 @@ struct osmo_scu_prim {
 
 #define msgb_scu_prim(msg) ((struct osmo_scu_prim *)(msg)->l1h)
 
+extern const struct value_string osmo_scu_prim_type_names[];
+static inline const char *osmo_scu_prim_type_name(enum osmo_scu_prim_type val)
+{
+	return get_value_string(osmo_scu_prim_type_names, val);
+}
+
+int osmo_scu_prim_hdr_name_buf(char *buf, size_t buflen, const struct osmo_prim_hdr *oph);
+char *osmo_scu_prim_hdr_name_c(void *ctx, const struct osmo_prim_hdr *oph);
 char *osmo_scu_prim_name(const struct osmo_prim_hdr *oph);
-int osmo_scu_prim_name_buf(char *buf, size_t buflen, const struct osmo_prim_hdr *oph);
-char *osmo_scu_prim_name_c(void *ctx, const struct osmo_prim_hdr *oph);
 
 struct osmo_ss7_instance;
 struct osmo_sccp_instance;

@@ -25,7 +25,7 @@
 
 #include <osmocom/sigtran/sccp_sap.h>
 
-const struct value_string osmo_scu_prim_names[] = {
+const struct value_string osmo_scu_prim_type_names[] = {
 	{ OSMO_SCU_PRIM_N_CONNECT,		"N-CONNECT" },
 	{ OSMO_SCU_PRIM_N_DATA,			"N-DATA" },
 	{ OSMO_SCU_PRIM_N_EXPEDITED_DATA,	"N-EXPEDITED-DATA" },
@@ -45,11 +45,11 @@ static char prim_name_buf[128];
 
 char *osmo_scu_prim_name(const struct osmo_prim_hdr *oph)
 {
-	osmo_scu_prim_name_buf(prim_name_buf, sizeof(prim_name_buf), oph);
+	osmo_scu_prim_hdr_name_buf(prim_name_buf, sizeof(prim_name_buf), oph);
 	return prim_name_buf;
 }
 
-int osmo_scu_prim_name_buf(char *buf, size_t buflen, const struct osmo_prim_hdr *oph)
+int osmo_scu_prim_hdr_name_buf(char *buf, size_t buflen, const struct osmo_prim_hdr *oph)
 {
 	struct osmo_strbuf sb = { .buf = buf, .len = buflen };
 
@@ -59,14 +59,14 @@ int osmo_scu_prim_name_buf(char *buf, size_t buflen, const struct osmo_prim_hdr 
 	}
 
 	OSMO_STRBUF_PRINTF(sb, "%s.%s",
-			   get_value_string(osmo_scu_prim_names, oph->primitive),
-			   get_value_string(osmo_prim_op_names, oph->operation));
+			   osmo_scu_prim_type_name(oph->primitive),
+			   osmo_prim_operation_name(oph->operation));
 	return sb.chars_needed;
 }
 
-char *osmo_scu_prim_name_c(void *ctx, const struct osmo_prim_hdr *oph)
+char *osmo_scu_prim_hdr_name_c(void *ctx, const struct osmo_prim_hdr *oph)
 {
-	OSMO_NAME_C_IMPL(ctx, 32, "ERROR", osmo_scu_prim_name_buf, oph)
+	OSMO_NAME_C_IMPL(ctx, 32, "ERROR", osmo_scu_prim_hdr_name_buf, oph)
 }
 
 #include <osmocom/sigtran/sigtran_sap.h>
