@@ -294,6 +294,9 @@ static int scmg_prim_cb(struct osmo_prim_hdr *oph, void *_scu)
 		scmg->affected_pc = osmo_load16le(&scmg->affected_pc);
 		rc = scmg_rx(scu, &param->calling_addr, &param->called_addr, scmg);
 		break;
+	case OSMO_PRIM(OSMO_SCU_PRIM_N_PCSTATE, PRIM_OP_INDICATION):
+		LOGP(DLSCCP, LOGL_DEBUG, "Ignoring SCCP user primitive %s\n", osmo_scu_prim_name(oph));
+		break;
 	default:
 		LOGP(DLSCCP, LOGL_ERROR, "unsupported SCCP user primitive %s\n",
 			osmo_scu_prim_name(oph));
