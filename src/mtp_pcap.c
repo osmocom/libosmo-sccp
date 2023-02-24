@@ -24,8 +24,6 @@
 
 #include <unistd.h>
 
-#define static_assert(exp, name) typedef int dummy##name [(exp) ? 1 : -1];
-
 /*
  * pcap writing of the misdn load
  * pcap format is from http://wiki.wireshark.org/Development/LibpcapFileFormat
