@@ -285,8 +285,7 @@ int main(int argc, char **argv)
 		}
 	}
 
-	rc = telnet_init_dynif(NULL, NULL, config_file ? vty_get_bind_addr() : local_address,
-			       2324+client);
+	rc = telnet_init_default(NULL, NULL, 2324 + client);
 	if (rc < 0) {
 		perror("Error binding VTY port");
 		exit(1);

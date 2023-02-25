@@ -182,7 +182,7 @@ int main(int argc, char **argv)
 		}
 	}
 
-	rc = telnet_init_dynif(root_ctx, NULL, vty_get_bind_addr(), 42043);
+	rc = telnet_init_default(root_ctx, NULL, 42043);
 	if (rc < 0)
 		return 2;
 

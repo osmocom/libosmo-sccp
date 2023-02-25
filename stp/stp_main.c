@@ -243,7 +243,7 @@ int main(int argc, char **argv)
 		exit(1);
 	}
 
-	rc = telnet_init_dynif(tall_stp_ctx, NULL, vty_get_bind_addr(), OSMO_VTY_PORT_STP);
+	rc = telnet_init_default(tall_stp_ctx, NULL, OSMO_VTY_PORT_STP);
 	if (rc < 0) {
 		perror("Error binding VTY port\n");
 		exit(1);
