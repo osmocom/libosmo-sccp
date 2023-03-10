@@ -507,10 +507,22 @@ static struct sccp_connection *conn_create(struct osmo_sccp_user *user)
 {
 	uint32_t conn_id;
 
+	/* SUA: RFC3868 sec 3.10.4:
+	*    The source reference number is a 4 octet long integer.
+	*    This is allocated by the source SUA instance.
+	* M3UA/SCCP: ITU-T Q.713 sec 3.3:
+	*    The "source local reference" parameter field is a three-octet field containing a
+	*    reference number which is generated and used by the local node to identify the
+	*    connection section after the connection section is set up.
+	*    The coding "all ones" is reserved for future use.
+	* Hence, as we currently use the connection ID also as local reference,
+	* let's simply use 24 bit ids to fit all link types (excluding 0x00ffffff).
+	*/
 	do {
-		/* modulo 2^24 as we currently use the connection ID also as local
-		 * reference, and that is limited to 24 bits */
-		user->inst->next_id = (user->inst->next_id + 1) %  (1 << 24);
+		/* Optimized modulo operation (% 0x00FFFFFE) using bitwise AND plus CMP: */
+		user->inst->next_id = (user->inst->next_id + 1) & 0x00FFFFFF;
+		if (OSMO_UNLIKELY(user->inst->next_id == 0x00FFFFFF))
+			user->inst->next_id = 0;
 		conn_id = user->inst->next_id;
 	} while (conn_find_by_id(user->inst, conn_id));
 
