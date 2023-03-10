@@ -505,7 +505,7 @@ static struct sccp_connection *conn_create_id(struct osmo_sccp_user *user, uint3
 /* Search for next free connection ID and allocate conn */
 static struct sccp_connection *conn_create(struct osmo_sccp_user *user)
 {
-	uint32_t conn_id;
+	struct osmo_sccp_instance *sccp = user->inst;
 
 	/* SUA: RFC3868 sec 3.10.4:
 	*    The source reference number is a 4 octet long integer.
@@ -520,13 +520,12 @@ static struct sccp_connection *conn_create(struct osmo_sccp_user *user)
 	*/
 	do {
 		/* Optimized modulo operation (% 0x00FFFFFE) using bitwise AND plus CMP: */
-		user->inst->next_id = (user->inst->next_id + 1) & 0x00FFFFFF;
-		if (OSMO_UNLIKELY(user->inst->next_id == 0x00FFFFFF))
-			user->inst->next_id = 0;
-		conn_id = user->inst->next_id;
-	} while (conn_find_by_id(user->inst, conn_id));
+		sccp->next_id = (sccp->next_id + 1) & 0x00FFFFFF;
+		if (OSMO_UNLIKELY(sccp->next_id == 0x00FFFFFF))
+			sccp->next_id = 0;
+	} while (conn_find_by_id(sccp, sccp->next_id));
 
-	return conn_create_id(user, conn_id);
+	return conn_create_id(user, sccp->next_id);
 }
 
 static void conn_opt_data_clear_cache(struct sccp_connection *conn)
