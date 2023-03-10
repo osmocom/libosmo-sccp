@@ -229,7 +229,6 @@ osmo_sccp_instance_create(struct osmo_ss7_instance *ss7, void *priv)
 
 	inst->ss7 = ss7;
 	inst->priv = priv;
-	INIT_LLIST_HEAD(&inst->connections);
 	INIT_LLIST_HEAD(&inst->users);
 
 	inst->ss7_user.inst = ss7;

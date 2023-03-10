@@ -52,6 +52,7 @@
 #include <osmocom/core/msgb.h>
 #include <osmocom/core/utils.h>
 #include <osmocom/core/linuxlist.h>
+#include <osmocom/core/linuxrbtree.h>
 #include <osmocom/core/logging.h>
 #include <osmocom/core/timer.h>
 #include <osmocom/core/fsm.h>
@@ -72,8 +73,8 @@
 
 /* a logical connection within the SCCP instance */
 struct sccp_connection {
-	/* part of osmo_sccp_instance.list */
-	struct llist_head list;
+	/* entry in (struct sccp_instance)->connections */
+	struct rb_node node;
 	/* which instance are we part of? */
 	struct osmo_sccp_instance *inst;
 	/* which user owns us? */
@@ -452,12 +453,45 @@ static void conn_destroy(struct sccp_connection *conn);
 static struct sccp_connection *conn_find_by_id(const struct osmo_sccp_instance *inst, uint32_t id)
 {
 	struct sccp_connection *conn;
+	const struct rb_node *node = inst->connections.rb_node;
 
-	llist_for_each_entry(conn, &inst->connections, list) {
-		if (conn->conn_id == id)
+	while (node) {
+		conn = container_of(node, struct sccp_connection, node);
+		if (id < conn->conn_id)
+			node = node->rb_left;
+		else if (id > conn->conn_id)
+			node = node->rb_right;
+		else
 			return conn;
 	}
 	return NULL;
+}
+
+static int conn_add_node(struct osmo_sccp_instance *inst, struct sccp_connection *conn)
+{
+	struct rb_node **n = &(inst->connections.rb_node);
+	struct rb_node *parent = NULL;
+
+	while (*n) {
+		struct sccp_connection *it;
+
+		it = container_of(*n, struct sccp_connection, node);
+
+		parent = *n;
+		if (conn->conn_id < it->conn_id) {
+			n = &((*n)->rb_left);
+		} else if (conn->conn_id > it->conn_id) {
+			n = &((*n)->rb_right);
+		} else {
+			LOGP(DLSCCP, LOGL_ERROR,
+			     "Trying to reserve already reserved conn_id %u\n", conn->conn_id);
+			return -EEXIST;
+		}
+	}
+
+	rb_link_node(&conn->node, parent, n);
+	rb_insert_color(&conn->node, &inst->connections);
+	return 0;
 }
 
 bool osmo_sccp_conn_id_exists(const struct osmo_sccp_instance *inst, uint32_t id)
@@ -477,7 +511,10 @@ static struct sccp_connection *conn_create_id(struct osmo_sccp_user *user, uint3
 	conn->inst = user->inst;
 	conn->user = user;
 
-	llist_add_tail(&conn->list, &user->inst->connections);
+	if (conn_add_node(user->inst, conn) < 0) {
+		talloc_free(conn);
+		return NULL;
+	}
 
 	INIT_TIMER(&conn->t_conn, conn_tmr_cb, conn);
 	INIT_TIMER(&conn->t_ias, tx_inact_tmr_cb, conn);
@@ -494,7 +531,7 @@ static struct sccp_connection *conn_create_id(struct osmo_sccp_user *user, uint3
 	conn->fi = osmo_fsm_inst_alloc(&sccp_scoc_fsm, conn, conn,
 					LOGL_DEBUG, name);
 	if (!conn->fi) {
-		llist_del(&conn->list);
+		rb_erase(&conn->node, &user->inst->connections);
 		talloc_free(conn);
 		return NULL;
 	}
@@ -545,7 +582,7 @@ static void conn_destroy(struct sccp_connection *conn)
 	conn_stop_connect_timer(conn);
 	conn_stop_inact_timers(conn);
 	conn_stop_release_timers(conn);
-	llist_del(&conn->list);
+	rb_erase(&conn->node, &conn->inst->connections);
 
 	osmo_fsm_inst_term(conn->fi, OSMO_FSM_TERM_REQUEST, NULL);
 
@@ -1934,10 +1971,12 @@ int osmo_sccp_user_sap_down(struct osmo_sccp_user *scu, struct osmo_prim_hdr *op
 
 void sccp_scoc_flush_connections(struct osmo_sccp_instance *inst)
 {
-	struct sccp_connection *conn, *conn2;
-
-	llist_for_each_entry_safe(conn, conn2, &inst->connections, list)
+	struct rb_node *node;
+	while ((node = rb_first(&inst->connections))) {
+		struct sccp_connection *conn = container_of(node, struct sccp_connection, node);
 		conn_destroy(conn);
+	}
+
 }
 
 #include <osmocom/vty/vty.h>
@@ -1970,11 +2009,14 @@ static void vty_show_connection(struct vty *vty, struct sccp_connection *conn)
 void sccp_scoc_show_connections(struct vty *vty, struct osmo_sccp_instance *inst)
 {
 	struct sccp_connection *conn;
+	struct rb_node *node;
 
 	vty_out(vty, "I Local              Conn.            Remote            %s", VTY_NEWLINE);
 	vty_out(vty, "O Ref    SSN PC      State            Ref    SSN PC     %s", VTY_NEWLINE);
 	vty_out(vty, "- ------ --- ------- ---------------- ------ --- -------%s", VTY_NEWLINE);
 
-	llist_for_each_entry(conn, &inst->connections, list)
+	for (node = rb_first(&inst->connections); node; node = rb_next(node)) {
+		conn = container_of(node, struct sccp_connection, node);
 		vty_show_connection(vty, conn);
+	}
 }

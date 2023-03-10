@@ -2,6 +2,8 @@
 
 #include <osmocom/core/fsm.h>
 #include <osmocom/core/prim.h>
+#include <osmocom/core/linuxlist.h>
+#include <osmocom/core/linuxrbtree.h>
 #include <osmocom/sigtran/sccp_sap.h>
 #include <osmocom/sigtran/osmo_ss7.h>
 #include <osmocom/sigtran/protocol/mtp.h>
@@ -42,8 +44,8 @@ static inline const char *osmo_sccp_timer_description(enum osmo_sccp_timer val)
 struct osmo_sccp_instance {
 	/* entry in global list of ss7 instances */
 	struct llist_head list;
-	/* list of 'struct sccp_connection' in this instance */
-	struct llist_head connections;
+	/* rbtree root of 'struct sccp_connection' in this instance */
+	struct rb_root connections;
 	/* list of SCCP users in this instance */
 	struct llist_head users;
 	/* routing context to be used in all outbound messages */
