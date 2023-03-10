@@ -120,7 +120,7 @@ int sccp_connection_close(struct sccp_connection *connection, int cause);
 int sccp_connection_free(struct sccp_connection *connection);
 
 /**
- * internal.. 
+ * internal..
  */
 int sccp_connection_force_free(struct sccp_connection *conn);
 
