@@ -293,6 +293,8 @@ struct osmo_sccp_instance *osmo_sccp_instance_create(struct osmo_ss7_instance *s
 void osmo_sccp_instance_destroy(struct osmo_sccp_instance *inst);
 struct osmo_ss7_instance *osmo_sccp_get_ss7(const struct osmo_sccp_instance *sccp);
 struct osmo_sccp_instance *osmo_sccp_get_sccp(const struct osmo_sccp_user *scu);
+void osmo_sccp_set_priv(struct osmo_sccp_instance *sccp, void *priv);
+void *osmo_sccp_get_priv(struct osmo_sccp_instance *sccp);
 
 void osmo_sccp_user_unbind(struct osmo_sccp_user *scu);
 void osmo_sccp_user_set_priv(struct osmo_sccp_user *scu, void *priv);

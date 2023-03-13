@@ -264,6 +264,16 @@ void osmo_sccp_instance_destroy(struct osmo_sccp_instance *inst)
 	talloc_free(inst);
 }
 
+void osmo_sccp_set_priv(struct osmo_sccp_instance *sccp, void *priv)
+{
+	sccp->priv = priv;
+}
+
+void *osmo_sccp_get_priv(struct osmo_sccp_instance *sccp)
+{
+	return sccp->priv;
+}
+
 /*! \brief derive a basic local SCCP-Address from a given SCCP instance.
  *  \param[out] dest_addr pointer to output address memory
  *  \param[in] inst SCCP instance
