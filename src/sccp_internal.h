@@ -4,11 +4,35 @@
 #include <osmocom/core/prim.h>
 #include <osmocom/core/linuxlist.h>
 #include <osmocom/core/linuxrbtree.h>
+#include <osmocom/core/rate_ctr.h>
 #include <osmocom/sigtran/sccp_sap.h>
 #include <osmocom/sigtran/osmo_ss7.h>
 #include <osmocom/sigtran/protocol/mtp.h>
 
 #define SCCP_STR "Signalling Connection Control Part\n"
+
+enum sccp_user_ctr {
+	SCU_CTR_CLDT_OUT_COUNT,
+	SCU_CTR_CLDT_OUT_BYTES,
+	SCU_CTR_CLDT_IN_COUNT,
+	SCU_CTR_CLDT_IN_BYTES,
+
+	SCU_CTR_CONN_DISC_TIAR_EXP,	/* number of T(iar) expirations (peer dead) */
+
+	SCU_CTR_CONN_OUT_REQ,	/* number of outgoing SCCP connections requested */
+	SCU_CTR_CONN_OUT_EST,	/* number of outgoing SCCP connections established */
+	SCU_CTR_CONN_OUT_TIMEOUT,
+	SCU_CTR_CONN_OUT_CREF,
+	SCU_CTR_CONN_OUT_RLSD,
+	SCU_CTR_CONN_OUT_DATA_COUNT,
+	SCU_CTR_CONN_OUT_DATA_BYTES,
+
+	SCU_CTR_CONN_IN_REQ,	/* number of incoming SCCP connections requested */
+	SCU_CTR_CONN_IN_EST,	/* number of incoming SCCP connections requested */
+	SCU_CTR_CONN_IN_CREF,
+	SCU_CTR_CONN_IN_DATA_COUNT,
+	SCU_CTR_CONN_IN_DATA_BYTES,
+};
 
 /* Appendix C.4 of Q.714 */
 enum osmo_sccp_timer {
@@ -81,6 +105,9 @@ struct osmo_sccp_user {
 
 	/* Application Server FSM Instance */
 	struct osmo_fsm_inst *as_fi;
+
+	/* Rate counters for this user */
+	struct rate_ctr_group *ctrg;
 };
 
 extern int DSCCP;

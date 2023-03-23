@@ -130,6 +130,8 @@ int sccp_sclc_user_sap_down_nofree(struct osmo_sccp_user *scu, struct osmo_prim_
 	switch (OSMO_PRIM_HDR(&prim->oph)) {
 	case OSMO_PRIM(OSMO_SCU_PRIM_N_UNITDATA, PRIM_OP_REQUEST):
 		/* Connectionless by-passes this altogether */
+		rate_ctr_inc2(scu->ctrg, SCU_CTR_CLDT_OUT_COUNT);
+		rate_ctr_add2(scu->ctrg, SCU_CTR_CLDT_OUT_BYTES, msgb_l2len(prim->oph.msg));
 		return xua_gen_encode_and_send(scu, -1, prim, SUA_CL_CLDT);
 	default:
 		LOGP(DLSCCP, LOGL_ERROR, "Received unknown SCCP User "
@@ -191,6 +193,9 @@ static int sclc_rx_cldt(struct osmo_sccp_instance *inst, struct xua_msg *xua)
 		msgb_free(upmsg);
 		return 0;
 	}
+
+	rate_ctr_inc2(scu->ctrg, SCU_CTR_CLDT_IN_COUNT);
+	rate_ctr_add2(scu->ctrg, SCU_CTR_CLDT_IN_BYTES, data_ie->len);
 
 	/* copy data */
 	upmsg->l2h = msgb_put(upmsg, data_ie->len);

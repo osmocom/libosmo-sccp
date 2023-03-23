@@ -846,6 +846,12 @@ static struct xua_msg *xua_gen_msg_co(struct sccp_connection *conn, uint32_t eve
 		xua_msg_free(xua);
 		return NULL;
 	}
+
+	if (encode_opt_data) {
+		rate_ctr_inc2(conn->user->ctrg, SCU_CTR_CONN_OUT_DATA_COUNT);
+		rate_ctr_add2(conn->user->ctrg, SCU_CTR_CONN_OUT_DATA_BYTES, msgb_l2len(prim->oph.msg));
+	}
+
 	return xua;
 
 prim_needed:
@@ -972,6 +978,11 @@ static void scu_gen_encode_and_send(struct sccp_connection *conn, uint32_t event
 		return;
 	}
 
+	if (msgb_l2(scu_prim->oph.msg)) {
+		rate_ctr_inc2(conn->user->ctrg, SCU_CTR_CONN_IN_DATA_COUNT);
+		rate_ctr_add2(conn->user->ctrg, SCU_CTR_CONN_IN_DATA_BYTES, msgb_l2len(scu_prim->oph.msg));
+	}
+
 	sccp_user_prim_up(conn->user, scu_prim);
 }
 
@@ -993,11 +1004,12 @@ static void scoc_fsm_idle(struct osmo_fsm_inst *fi, uint32_t event, void *data)
 	case SCOC_E_SCU_N_CONN_REQ:
 		prim = data;
 		uconp = &prim->u.connect;
+		/* generate + send CR PDU to SCRC */
 		/* copy relevant parameters from prim to conn */
 		conn->called_addr = uconp->called_addr;
 		conn->calling_addr = uconp->calling_addr;
 		conn->sccp_class = uconp->sccp_class;
-		/* generate + send CR PDU to SCRC */
+		rate_ctr_inc2(conn->user->ctrg, SCU_CTR_CONN_OUT_REQ);
 		rc = xua_gen_encode_and_send(conn, event, prim, SUA_CO_CORE);
 		if (rc < 0)
 			LOGPFSML(fi, LOGL_ERROR, "Failed to initiate connection: %s\n", strerror(-rc));
@@ -1030,6 +1042,7 @@ static void scoc_fsm_idle(struct osmo_fsm_inst *fi, uint32_t event, void *data)
 	/* Figure C.3 / Q.714 (sheet 1 of 6) */
 	case SCOC_E_RCOC_CONN_IND:
 		xua = data;
+		rate_ctr_inc2(conn->user->ctrg, SCU_CTR_CONN_IN_REQ);
 		/* copy relevant parameters from xua to conn */
 		sua_addr_parse(&conn->calling_addr, xua, SUA_IEI_SRC_ADDR);
 		sua_addr_parse(&conn->called_addr, xua, SUA_IEI_DEST_ADDR);
@@ -1070,6 +1083,7 @@ static void scoc_fsm_conn_pend_in(struct osmo_fsm_inst *fi, uint32_t event, void
 	switch (event) {
 	case SCOC_E_SCU_N_CONN_RESP:
 		prim = data;
+		rate_ctr_inc2(conn->user->ctrg, SCU_CTR_CONN_IN_EST);
 		/* FIXME: assign local reference (only now?) */
 		/* FIXME: assign sls, protocol class and credit */
 		xua_gen_encode_and_send(conn, event, prim, SUA_CO_COAK);
@@ -1080,6 +1094,7 @@ static void scoc_fsm_conn_pend_in(struct osmo_fsm_inst *fi, uint32_t event, void
 		break;
 	case SCOC_E_SCU_N_DISC_REQ:
 		prim = data;
+		rate_ctr_inc2(conn->user->ctrg, SCU_CTR_CONN_IN_CREF);
 		/* release resources: implicit */
 		xua_gen_encode_and_send(conn, event, prim, SUA_CO_COREF);
 		/* N. B: we've ignored CREF sending errors as there's no recovery option anyway */
@@ -1103,6 +1118,7 @@ static void scoc_fsm_conn_pend_out(struct osmo_fsm_inst *fi, uint32_t event, voi
 		/* keep conn timer running(!) */
 		break;
 	case SCOC_E_CONN_TMR_EXP:
+		rate_ctr_inc2(conn->user->ctrg, SCU_CTR_CONN_OUT_TIMEOUT);
 		/* N-DISCONNECT.ind to user */
 		scu_gen_encode_and_send(conn, event, NULL, OSMO_SCU_PRIM_N_DISCONNECT,
 					PRIM_OP_INDICATION);
@@ -1112,6 +1128,7 @@ static void scoc_fsm_conn_pend_out(struct osmo_fsm_inst *fi, uint32_t event, voi
 	case SCOC_E_RCOC_ROUT_FAIL_IND:
 	case SCOC_E_RCOC_CREF_IND:
 		xua = data;
+		rate_ctr_inc2(conn->user->ctrg, SCU_CTR_CONN_OUT_CREF);
 		/* stop conn timer */
 		conn_stop_connect_timer(conn);
 		/* release local res + ref (implicit by going to idle) */
@@ -1123,6 +1140,7 @@ static void scoc_fsm_conn_pend_out(struct osmo_fsm_inst *fi, uint32_t event, voi
 		break;
 	case SCOC_E_RCOC_RLSD_IND:
 		xua = data;
+		rate_ctr_inc2(conn->user->ctrg, SCU_CTR_CONN_OUT_RLSD);
 		/* RLC to SCRC */
 		xua_gen_encode_and_send(conn, event, NULL, SUA_CO_RELCO);
 		/* stop conn timer */
@@ -1144,6 +1162,7 @@ static void scoc_fsm_conn_pend_out(struct osmo_fsm_inst *fi, uint32_t event, voi
 		break;
 	case SCOC_E_RCOC_CC_IND:
 		xua = data;
+		rate_ctr_inc2(conn->user->ctrg, SCU_CTR_CONN_OUT_EST);
 		/* stop conn timer */
 		conn_stop_connect_timer(conn);
 		/* start inactivity timers */
@@ -1266,6 +1285,7 @@ static void scoc_fsm_active(struct osmo_fsm_inst *fi, uint32_t event, void *data
 		osmo_fsm_inst_state_chg(fi, S_IDLE, 0, 0);
 		break;
 	case SCOC_E_T_IAR_EXP:
+		rate_ctr_inc2(conn->user->ctrg, SCU_CTR_CONN_DISC_TIAR_EXP);
 		/* stop inact timers */
 		conn_stop_inact_timers(conn);
 		xua = xua_msg_alloc();

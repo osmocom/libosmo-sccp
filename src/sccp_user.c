@@ -40,6 +40,70 @@
 #include "xua_internal.h"
 #include "ss7_internal.h"
 
+static const struct rate_ctr_desc sccp_user_ctr_desc[] = {
+	[SCU_CTR_CLDT_OUT_COUNT] = {
+		"cldt.out.count", "Total number of outbound connectionless SCCP messages"
+	},
+	[SCU_CTR_CLDT_OUT_BYTES] = {
+		"cldt.out.bytes", "Total number of user bytes in outbound connectionless SCCP messages"
+	},
+	[SCU_CTR_CLDT_IN_COUNT] = {
+		"cldt.in.count", "Total number of inbound connectionless SCCP messages"
+	},
+	[SCU_CTR_CLDT_IN_BYTES] = {
+		"cldt.in.bytes", "Total number of user bytes in inbound connectionless SCCP messages"
+	},
+
+	[SCU_CTR_CONN_DISC_TIAR_EXP] = {
+		"conn.t_iar.expired", "Total number SCCP disconnects due to T(iar) expiration"
+	},
+
+	[SCU_CTR_CONN_OUT_REQ] = {
+		"conn.out.est.requested", "Total number of outbound SCCP connections requested"
+	},
+	[SCU_CTR_CONN_OUT_EST] = {
+		"conn.out.est.established", "Total number of outbound SCCP connections established"
+	},
+	[SCU_CTR_CONN_OUT_TIMEOUT] = {
+		"conn.out.est.timeout", "Total number of outbound SCCP connection attempts timing out"
+	},
+	[SCU_CTR_CONN_OUT_CREF] = {
+		"conn.out.est.refused", "Total number of outbound SCCP connection attempts refused by peer"
+	},
+	[SCU_CTR_CONN_OUT_RLSD] = {
+		"conn.out.est.released", "Total number of outbound SCCP connection attempts released by peer"
+	},
+	[SCU_CTR_CONN_OUT_DATA_COUNT] = {
+		"conn.out.data.count", "Total number of user data chunks transmitted"
+	},
+	[SCU_CTR_CONN_OUT_DATA_BYTES] = {
+		"conn.out.data.bytes", "Total number of user data bytes transmitted"
+	},
+
+	[SCU_CTR_CONN_IN_REQ] = {
+		"conn.in.est.requested", "Total number of inbound SCCP connections requested"
+	},
+	[SCU_CTR_CONN_IN_EST] = {
+		"conn.in.est.established", "Total number of inbound SCCP connections established"
+	},
+	[SCU_CTR_CONN_IN_CREF] = {
+		"conn.in.est.refused", "Total number of inbound SCCP connection attempts refused"
+	},
+	[SCU_CTR_CONN_IN_DATA_COUNT] = {
+		"conn.in.data.count", "Total number of user data chunks received"
+	},
+	[SCU_CTR_CONN_IN_DATA_BYTES] = {
+		"conn.in.data.bytes", "Total number of user data bytes received"
+	},
+};
+
+static const struct rate_ctr_group_desc sccp_user_ctrg_desc = {
+	.group_name_prefix = "sccp.user",
+	.group_description = "Counters related to one SCCP User",
+	.num_ctr = ARRAY_SIZE(sccp_user_ctr_desc),
+	.ctr_desc = sccp_user_ctr_desc,
+};
+
 /*! \brief Find a SCCP User registered for given PC+SSN or SSN only
  * First search all users with a valid PC for a full PC+SSN match.
  * If no such match was found, search all users with an invalid PC for an SSN-only match.
@@ -113,9 +177,15 @@ sccp_user_bind_pc(struct osmo_sccp_instance *inst, const char *name,
 	scu->prim_cb = prim_cb;
 	scu->ssn = ssn;
 	scu->pc = pc;
+	scu->ctrg = rate_ctr_group_alloc(scu, &sccp_user_ctrg_desc, (pc << 8) | ssn);
+	if (!scu->ctrg)
+		goto out_free;
 	llist_add_tail(&scu->list, &inst->users);
 
 	return scu;
+out_free:
+	talloc_free(scu);
+	return NULL;
 }
 
 /*! \brief Bind a given SCCP User to a given SSN+PC
@@ -153,6 +223,7 @@ void osmo_sccp_user_unbind(struct osmo_sccp_user *scu)
 		osmo_ss7_pointcode_print(scu->inst->ss7, scu->pc));
 	/* FIXME: free/release all connections held by this user? */
 	llist_del(&scu->list);
+	rate_ctr_group_free(scu->ctrg);
 	talloc_free(scu);
 }
 
