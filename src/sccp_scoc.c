@@ -1468,6 +1468,8 @@ static const struct osmo_fsm_state sccp_scoc_states[] = {
 				 S(SCOC_E_CONN_TMR_EXP) |
 				 S(SCOC_E_RCOC_CREF_IND) |
 				 S(SCOC_E_RCOC_ROUT_FAIL_IND),
+		.out_state_mask = S(S_IDLE) |
+				  S(S_DISCONN_PEND),
 	},
 };
 
