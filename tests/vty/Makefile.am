@@ -22,7 +22,7 @@ ext-tests:
 	echo "Not running python-based external tests (determined at configure-time)"
 endif
 
-vty-python-test: $(BUILT_SOURCES)
+vty-python-test: $(top_builddir)/stp/osmo-stp
 	$(srcdir)/vty_test_runner.py -w $(abs_top_builddir) -v
 
 # To update the VTY script from current application behavior,
