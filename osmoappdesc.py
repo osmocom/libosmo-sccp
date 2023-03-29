@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 
 app_configs = {
-    "osmo-stp": ["doc/examples/osmo-stp.cfg"],
+    "osmo-stp": ["doc/examples/osmo-stp.cfg",
+                 "doc/examples/osmo-stp-multihome.cfg"],
 }
 
 apps = [(4239, "stp/osmo-stp", "OsmoSTP", "osmo-stp"),
