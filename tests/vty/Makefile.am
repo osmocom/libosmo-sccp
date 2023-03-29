@@ -15,8 +15,10 @@ check_PROGRAMS = ss7_asp_vty_test
 ss7_asp_vty_test_SOURCES = ss7_asp_vty_test.c
 
 if ENABLE_EXT_TESTS
-ext-tests:
+ext-tests: $(top_builddir)/stp/osmo-stp
 	$(MAKE) vty-test
+	osmotestvty.py -p $(abs_top_srcdir) -w $(abs_top_builddir) -v
+	osmotestconfig.py -p $(abs_top_srcdir) -w $(abs_top_builddir) -v
 else
 ext-tests:
 	echo "Not running python-based external tests (determined at configure-time)"
