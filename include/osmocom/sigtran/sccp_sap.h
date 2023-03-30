@@ -262,7 +262,7 @@ struct osmo_scu_state_param {
 	uint32_t ssn_multiplicity_ind;
 };
 
-/* OSMO_ASCU_PRIM_N_PCSTATE */
+/* OSMO_SCU_PRIM_N_PCSTATE */
 struct osmo_scu_pcstate_param {
 	uint32_t affected_pc;
 	uint32_t restricted_importance_level;
