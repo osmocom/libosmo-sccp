@@ -143,6 +143,13 @@ enum osmo_sccp_sp_status {
 	OSMO_SCCP_SP_S_CONGESTED	= 2,
 	OSMO_SCCP_SP_S_ACCESSIBLE	= 3,
 };
+
+extern const struct value_string osmo_sccp_sp_status_names[];
+static inline const char *osmo_sccp_sp_status_name(enum osmo_sccp_sp_status val)
+{
+	return get_value_string(osmo_sccp_sp_status_names, val);
+}
+
 /* Q.711 6.3.2.2.6 Remote SCCP status */
 enum osmo_sccp_rem_sccp_status {
 	OSMO_SCCP_REM_SCCP_S_AVAILABLE 			= 1,
@@ -151,6 +158,12 @@ enum osmo_sccp_rem_sccp_status {
 	OSMO_SCCP_REM_SCCP_S_INACCESSIBLE		= 4,
 	OSMO_SCCP_REM_SCCP_S_CONGESTED			= 5,
 };
+
+extern const struct value_string osmo_sccp_rem_sccp_status_names[];
+static inline const char *osmo_sccp_rem_sccp_status_name(enum osmo_sccp_rem_sccp_status val)
+{
+	return get_value_string(osmo_sccp_rem_sccp_status_names, val);
+}
 
 /* legacy shim for name change */
 #define OSMO_SCCP_SSN_SMLC_BSSAP OSMO_SCCP_SSN_SMLC_BSSAP_LE

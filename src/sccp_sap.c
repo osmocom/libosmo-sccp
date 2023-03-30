@@ -120,6 +120,22 @@ const struct value_string osmo_sccp_gti_names[] = {
 	{ 0, NULL }
 };
 
+const struct value_string osmo_sccp_sp_status_names[] = {
+	{ OSMO_SCCP_SP_S_INACCESSIBLE, "INACCESSIBLE" },
+	{ OSMO_SCCP_SP_S_CONGESTED, "CONGESTED" },
+	{ OSMO_SCCP_SP_S_ACCESSIBLE, "ACCESSIBLE" },
+	{}
+};
+
+const struct value_string osmo_sccp_rem_sccp_status_names[] = {
+	{ OSMO_SCCP_REM_SCCP_S_AVAILABLE, "AVAILABLE" },
+	{ OSMO_SCCP_REM_SCCP_S_UNAVAILABLE_UNKNOWN, "UNAVAILABLE_UNKNOWN" },
+	{ OSMO_SCCP_REM_SCCP_S_UNEQUIPPED, "UNEQUIPPED" },
+	{ OSMO_SCCP_REM_SCCP_S_INACCESSIBLE, "INACCESSIBLE" },
+	{ OSMO_SCCP_REM_SCCP_S_CONGESTED, "CONGESTED" },
+	{}
+};
+
 const struct value_string osmo_sccp_ssn_names[] = {
 	{ OSMO_SCCP_SSN_MGMT,		"MGMT" },
 	{ OSMO_SCCP_SSN_ISUP,		"ISUP" },
