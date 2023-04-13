@@ -282,6 +282,34 @@ DEFUN(show_cs7_user, show_cs7_user_cmd,
 	return CMD_SUCCESS;
 }
 
+DEFUN(show_cs7_pc, show_cs7_pc_cmd,
+	"show cs7 instance <0-15> point-codes",
+	SHOW_STR CS7_STR INST_STR INST_STR "Point Codes we are responding to\n")
+{
+	int id = atoi(argv[0]);
+	struct osmo_ss7_instance *inst;
+
+	inst = osmo_ss7_instance_find(id);
+	if (!inst) {
+		vty_out(vty, "No SS7 instance %d found%s", id, VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	vty_out(vty, "CS7 Point Code Type       Status%s", VTY_NEWLINE);
+	vty_out(vty, "-------------- ---------- ---------------%s", VTY_NEWLINE);
+	if (osmo_ss7_pc_is_valid(inst->cfg.primary_pc)) {
+		vty_out(vty, "%s %s %s%s", osmo_ss7_pointcode_print(inst, inst->cfg.primary_pc),
+			"local", "active", VTY_NEWLINE);
+	}
+	if (osmo_ss7_pc_is_valid(inst->cfg.secondary_pc)) {
+		vty_out(vty, "%s %s %s%s", osmo_ss7_pointcode_print(inst, inst->cfg.secondary_pc),
+			"secondary", "active", VTY_NEWLINE);
+	}
+
+	return CMD_SUCCESS;
+}
+
+
 /* TODO: Links + Linksets */
 
 /***********************************************************************
@@ -2097,6 +2125,7 @@ static void vty_init_shared(void *ctx)
 							NO_STR "Disable quirk to work around interop issues\n",
 							"\n", "\n", 0);
 
+	install_lib_element_ve(&show_cs7_pc_cmd);
 	install_lib_element_ve(&show_cs7_user_cmd);
 	install_lib_element_ve(&show_cs7_xua_cmd);
 	install_lib_element_ve(&show_cs7_config_cmd);
