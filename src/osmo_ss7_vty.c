@@ -205,7 +205,23 @@ DEFUN_ATTR(cs7_point_code, cs7_point_code_cmd,
 	return CMD_SUCCESS;
 }
 
-/* TODO: cs7 secondary-pc */
+DEFUN_ATTR(cs7_secondary_pc, cs7_secondary_pc_cmd,
+	   "secondary-pc POINT_CODE",
+	   "Configure the local Secondary Point Code\n"
+	   "Point Code\n",
+	   CMD_ATTR_IMMEDIATE)
+{
+	struct osmo_ss7_instance *inst = vty->index;
+	int pc = osmo_ss7_pointcode_parse(inst, argv[0]);
+	if (pc < 0 || !osmo_ss7_pc_is_valid((uint32_t)pc)) {
+		vty_out(vty, "Invalid point code (%s)%s", argv[0], VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	inst->cfg.secondary_pc = pc;
+	return CMD_SUCCESS;
+}
+
 /* TODO: cs7 capability-pc */
 DEFUN_ATTR(cs7_permit_dyn_rkm, cs7_permit_dyn_rkm_cmd,
 	   "xua rkm routing-key-allocation (static-only|dynamic-permitted)",
@@ -1929,6 +1945,11 @@ static void write_one_cs7(struct vty *vty, struct osmo_ss7_instance *inst, bool 
 			osmo_ss7_pointcode_print(inst, inst->cfg.primary_pc),
 			VTY_NEWLINE);
 
+	if (osmo_ss7_pc_is_valid(inst->cfg.secondary_pc)) {
+		vty_out(vty, " secondary-pc %s%s",
+			osmo_ss7_pointcode_print(inst, inst->cfg.secondary_pc), VTY_NEWLINE);
+	}
+
 	if (inst->cfg.permit_dyn_rkm_alloc)
 		vty_out(vty, " xua rkm routing-key-allocation dynamic-permitted%s", VTY_NEWLINE);
 
@@ -2087,6 +2108,7 @@ static void vty_init_shared(void *ctx)
 	install_lib_element(L_CS7_NODE, &cfg_description_cmd);
 	install_lib_element(L_CS7_NODE, &cs7_net_ind_cmd);
 	install_lib_element(L_CS7_NODE, &cs7_point_code_cmd);
+	install_lib_element(L_CS7_NODE, &cs7_secondary_pc_cmd);
 	install_lib_element(L_CS7_NODE, &cs7_pc_format_cmd);
 	install_lib_element(L_CS7_NODE, &cs7_pc_format_def_cmd);
 	install_lib_element(L_CS7_NODE, &cs7_pc_delimiter_cmd);

@@ -96,7 +96,7 @@ struct osmo_ss7_instance {
 		char *name;
 		char *description;
 		uint32_t primary_pc;
-		/* secondary PCs */
+		uint32_t secondary_pc;
 		/* capability PCs */
 		uint8_t network_indicator;
 		struct osmo_ss7_pc_fmt pc_fmt;
