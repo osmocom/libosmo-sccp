@@ -1085,7 +1085,7 @@ static int _rout_key(struct vty *vty,
 	/* automatically add new route (see also comment above) */
 	if (cs7_role == CS7_ROLE_ASP) {
 		if (!osmo_ss7_route_create(as->inst->rtable_system, rkey->pc, 0xffffff, as->cfg.name)) {
-			vty_out(vty, "Cannot crate route (pc=%s, linkset=%s) to linkset %s", dpc, as->cfg.name, VTY_NEWLINE);
+			vty_out(vty, "Cannot create route (pc=%s, linkset=%s) to AS %s", dpc, as->cfg.name, VTY_NEWLINE);
 			return CMD_WARNING;
 		}
 	}
