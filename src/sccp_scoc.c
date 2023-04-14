@@ -539,10 +539,14 @@ static struct sccp_connection *conn_create_id(struct osmo_sccp_user *user, uint3
 	return conn;
 }
 
-/* Search for next free connection ID and allocate conn */
-static struct sccp_connection *conn_create(struct osmo_sccp_user *user)
+/* Return an unused SCCP connection ID.
+ * Callers should check the returned value: on negative return value, there are no unused IDs available.
+ * \param[in] sccp  The SCCP instance to determine a new connection ID for.
+ * \return unused ID on success (range [0x0, 0x00fffffe]) or negative on elapsed max_attempts without an unused id (<0).
+ */
+static int osmo_sccp_instance_next_conn_id(struct osmo_sccp_instance *sccp)
 {
-	struct osmo_sccp_instance *sccp = user->inst;
+	int max_attempts = 0x00FFFFFE;
 
 	/* SUA: RFC3868 sec 3.10.4:
 	*    The source reference number is a 4 octet long integer.
@@ -555,14 +559,26 @@ static struct sccp_connection *conn_create(struct osmo_sccp_user *user)
 	* Hence, as we currently use the connection ID also as local reference,
 	* let's simply use 24 bit ids to fit all link types (excluding 0x00ffffff).
 	*/
-	do {
+	while (OSMO_LIKELY((max_attempts--) > 0)) {
 		/* Optimized modulo operation (% 0x00FFFFFE) using bitwise AND plus CMP: */
 		sccp->next_id = (sccp->next_id + 1) & 0x00FFFFFF;
 		if (OSMO_UNLIKELY(sccp->next_id == 0x00FFFFFF))
 			sccp->next_id = 0;
-	} while (conn_find_by_id(sccp, sccp->next_id));
 
-	return conn_create_id(user, sccp->next_id);
+		if (!conn_find_by_id(sccp, sccp->next_id))
+			return sccp->next_id;
+	}
+
+	return -1;
+}
+
+/* Search for next free connection ID and allocate conn */
+static struct sccp_connection *conn_create(struct osmo_sccp_user *user)
+{
+	int conn_id = osmo_sccp_instance_next_conn_id(user->inst);
+	if (conn_id < 0)
+		return NULL;
+	return conn_create_id(user, conn_id);
 }
 
 static void conn_opt_data_clear_cache(struct sccp_connection *conn)
