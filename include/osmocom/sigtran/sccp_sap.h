@@ -339,3 +339,5 @@ int osmo_sccp_addr_ri_cmp(const struct osmo_sccp_addr *a, const struct osmo_sccp
 int osmo_sccp_gt_cmp(const struct osmo_sccp_gt *a, const struct osmo_sccp_gt *b);
 
 const char *osmo_sccp_user_name(struct osmo_sccp_user *scu);
+
+int osmo_sccp_instance_next_conn_id(struct osmo_sccp_instance *sccp);

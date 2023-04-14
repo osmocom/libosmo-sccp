@@ -544,7 +544,7 @@ static struct sccp_connection *conn_create_id(struct osmo_sccp_user *user, uint3
  * \param[in] sccp  The SCCP instance to determine a new connection ID for.
  * \return unused ID on success (range [0x0, 0x00fffffe]) or negative on elapsed max_attempts without an unused id (<0).
  */
-static int osmo_sccp_instance_next_conn_id(struct osmo_sccp_instance *sccp)
+int osmo_sccp_instance_next_conn_id(struct osmo_sccp_instance *sccp)
 {
 	int max_attempts = 0x00FFFFFE;
 
