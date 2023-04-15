@@ -181,8 +181,15 @@ static int xua_msg_add_asp_rctx(struct xua_msg *xua, struct osmo_ss7_asp *asp)
 		}
 	}
 	/* add xUA IE with routing contests to the message (if any) */
-	if (i)
+	if (i) {
+		/* bail out (and not add the IE) if there's only one routing context (and hence
+		 * only one AS) within this ASP, and that routing context is zero, meaning no routing
+		 * context IE shall be used */
+		if (i == 1 && rctx[0] == 0)
+			return 0;
+
 		xua_msg_add_data(xua, M3UA_IEI_ROUTE_CTX, i*sizeof(uint32_t), (uint8_t *)rctx);
+	}
 
 	/* return count of routing contexts added */
 	return i;
