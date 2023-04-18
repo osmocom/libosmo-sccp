@@ -89,6 +89,7 @@ ss7_asp_vty_test(config-cs7)# list
   sccp-address NAME
   no sccp-address NAME
   sccp-timer (conn_est|ias|iar|rel|repeat_rel|int|guard|reset|reassembly) <1-999999>
+  sccp max-optional-data (<0-999999>|standard)
 
 ss7_asp_vty_test(config-cs7)# ?
 ...
@@ -101,6 +102,7 @@ ss7_asp_vty_test(config-cs7)# ?
   as                 Configure an Application Server
   sccp-address       Create/Modify an SCCP addressbook entry
   sccp-timer         Configure SCCP timer values, see ITU-T Q.714
+  sccp               Configure SCCP behavior
 
 ss7_asp_vty_test(config-cs7)# description ?
   TEXT  Text until the end of the line
@@ -427,3 +429,43 @@ ss7_asp_vty_test(config-cs7)# sccp-timer ?
 
 ss7_asp_vty_test(config-cs7)# sccp-timer conn_est ?
   <1-999999>  Timer value, in seconds
+
+ss7_asp_vty_test(config-cs7)# sccp ?
+  max-optional-data  Adjust the upper bound for the optional data length (the payload) for CR, CC, CREF and RLSD messages. For any Optional Data part larger than this value in octets, send CR, CC, CREF and RLSD messages without any payload, and send the data payload in a separate Data Form 1 message. ITU-T Q.713 sections 4.2 thru 4.5 define a limit of 130 bytes for the 'Data' parameter. This limit can be adjusted here. May be useful for interop with nonstandard SCCP peers.
+
+ss7_asp_vty_test(config-cs7)# sccp max-optional-data ?
+  <0-999999>  Set a non-standard maximum allowed number of bytes
+  standard    Use the ITU-T Q.713 4.2 to 4.5 standard value of 130
+
+ss7_asp_vty_test(config-cs7)# show running-config
+... !sccp max-optional-data
+
+ss7_asp_vty_test(config-cs7)# sccp max-optional-data 0
+ss7_asp_vty_test(config-cs7)# show running-config
+...
+ sccp max-optional-data 0
+...
+
+ss7_asp_vty_test(config-cs7)# sccp max-optional-data 123
+ss7_asp_vty_test(config-cs7)# show running-config
+...
+ sccp max-optional-data 123
+...
+
+ss7_asp_vty_test(config-cs7)# sccp max-optional-data 999999
+ss7_asp_vty_test(config-cs7)# show running-config
+...
+cs7 instance 0
+...
+ sccp max-optional-data 999999
+...
+cs7 instance 1
+... !sccp max-optional-data
+
+ss7_asp_vty_test(config-cs7)# sccp max-optional-data standard
+ss7_asp_vty_test(config-cs7)# show running-config
+... !sccp max-optional-data
+
+ss7_asp_vty_test(config-cs7)# sccp max-optional-data 130
+ss7_asp_vty_test(config-cs7)# show running-config
+... !sccp max-optional-data

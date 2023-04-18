@@ -58,6 +58,8 @@ struct osmo_sccp_instance {
 	struct osmo_ss7_user ss7_user;
 
 	struct osmo_sccp_timer_val timers[OSMO_SCCP_TIMERS_COUNT];
+
+	uint32_t max_optional_data;
 };
 
 struct osmo_sccp_user {

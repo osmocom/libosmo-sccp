@@ -35,6 +35,7 @@
 #include <osmocom/sigtran/mtp_sap.h>
 #include <osmocom/sigtran/protocol/mtp.h>
 #include <osmocom/sigtran/sccp_helpers.h>
+#include <osmocom/sccp/sccp_types.h>
 
 #include "sccp_internal.h"
 #include "xua_internal.h"
@@ -235,6 +236,7 @@ osmo_sccp_instance_create(struct osmo_ss7_instance *ss7, void *priv)
 	inst->ss7_user.name = "SCCP";
 	inst->ss7_user.prim_cb = mtp_user_prim_cb;
 	inst->ss7_user.priv = inst;
+	inst->max_optional_data = SCCP_MAX_OPTIONAL_DATA;
 
 	rc = sccp_scmg_init(inst);
 	if (rc < 0) {

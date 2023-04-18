@@ -37,6 +37,8 @@
 #include <osmocom/sigtran/osmo_ss7.h>
 #include <osmocom/sigtran/protocol/mtp.h>
 
+#include <osmocom/sccp/sccp_types.h>
+
 #include "xua_internal.h"
 #include "sccp_internal.h"
 
@@ -165,6 +167,36 @@ DEFUN_ATTR(sccp_timer, sccp_timer_cmd,
 	return CMD_SUCCESS;
 }
 
+DEFUN_ATTR(sccp_max_optional_data, sccp_max_optional_data_cmd,
+	   "sccp max-optional-data (<0-999999>|standard)",
+	   "Configure SCCP behavior\n"
+	   "Adjust the upper bound for the optional data length (the payload) for CR, CC, CREF and RLSD messages."
+	   " For any Optional Data part larger than this value in octets, send CR, CC, CREF and RLSD"
+	   " messages without any payload, and send the data payload in a separate Data Form 1 message."
+	   " ITU-T Q.713 sections 4.2 thru 4.5 define a limit of 130 bytes for the 'Data' parameter. This limit can be"
+	   " adjusted here. May be useful for interop with nonstandard SCCP peers.\n"
+	   "Set a non-standard maximum allowed number of bytes\n"
+	   "Use the ITU-T Q.713 4.2 to 4.5 standard value of 130\n",
+	   CMD_ATTR_IMMEDIATE)
+{
+	struct osmo_ss7_instance *ss7 = vty->index;
+	int val;
+
+	if (!strcmp(argv[0], "standard"))
+		val = SCCP_MAX_OPTIONAL_DATA;
+	else
+		val = atoi(argv[0]);
+
+	osmo_ss7_ensure_sccp(ss7);
+	if (!ss7->sccp) {
+		vty_out(vty, "%% Error: cannot instantiate SCCP instance%s", VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	ss7->sccp->max_optional_data = val;
+	return CMD_SUCCESS;
+}
+
 static const char *osmo_sccp_timer_val_name(const struct osmo_sccp_timer_val *val)
 {
 	static char buf[16];
@@ -227,6 +259,8 @@ static void write_sccp_timers(struct vty *vty, const char *indent,
 void osmo_sccp_vty_write_cs7_node(struct vty *vty, const char *indent, struct osmo_sccp_instance *inst)
 {
 	write_sccp_timers(vty, indent, inst, false);
+	if (inst->max_optional_data != SCCP_MAX_OPTIONAL_DATA)
+		vty_out(vty, "%ssccp max-optional-data %u%s", indent, inst->max_optional_data, VTY_NEWLINE);
 }
 
 DEFUN(show_sccp_timers, show_sccp_timers_cmd,
@@ -262,4 +296,5 @@ void osmo_sccp_vty_init(void)
 	install_lib_element_ve(&show_sccp_timers_cmd);
 	gen_sccp_timer_cmd_strs(&sccp_timer_cmd);
 	install_lib_element(L_CS7_NODE, &sccp_timer_cmd);
+	install_lib_element(L_CS7_NODE, &sccp_max_optional_data_cmd);
 }

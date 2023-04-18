@@ -676,11 +676,12 @@ static bool xua_drop_data_check_drop(const struct osmo_scu_prim *prim, unsigned 
 static bool xua_opt_data_cache_keep(struct sccp_connection *conn, const struct osmo_scu_prim *prim, int msg_type)
 {
 	uint8_t *buf;
+	uint32_t max_optional_data = conn->inst->max_optional_data;
 
 	if (xua_drop_data_check_drop(prim, SCCP_MAX_DATA, "cache overrun"))
 		return false;
 
-	if (msgb_l2len(prim->oph.msg) > SCCP_MAX_OPTIONAL_DATA) {
+	if (msgb_l2len(prim->oph.msg) > max_optional_data) {
 		if (conn->opt_data_cache) {
 			/* Caching optional data, but there already is optional data occupying the cache: */
 			LOGP(DLSCCP, LOGL_ERROR, "replacing unsent %u bytes of optional data cache with %s optional data\n",
@@ -703,6 +704,8 @@ static bool xua_opt_data_cache_keep(struct sccp_connection *conn, const struct o
 /* Check optional Data size limit, cache if necessary, return indication whether original opt data should be sent */
 static bool xua_opt_data_length_lim(struct sccp_connection *conn, const struct osmo_scu_prim *prim, int msg_type)
 {
+	uint32_t max_optional_data = conn->inst->max_optional_data;
+
 	if (!(prim && msgb_l2(prim->oph.msg) && msgb_l2len(prim->oph.msg)))
 		return false;
 
@@ -711,7 +714,7 @@ static bool xua_opt_data_length_lim(struct sccp_connection *conn, const struct o
 	case SUA_CO_COAK: /* §4.3 Connection confirm (CC) */
 		return xua_opt_data_cache_keep(conn, prim, msg_type);
 	case SUA_CO_COREF: /* §4.4 Connection refused (CREF) */
-		if (xua_drop_data_check_drop(prim, SCCP_MAX_OPTIONAL_DATA, "over ITU-T Rec. Q.713 §4.4 limit")) {
+		if (xua_drop_data_check_drop(prim, max_optional_data, "over ITU-T Rec. Q.713 §4.4 limit")) {
 			/* From the state diagrams in ITU-T Rec Q.714, there's no way to send DT1 neither before nor after CREF
 			 * at this point, so the only option we have is to drop optional data:
 			 * see Figure C.3 / Q.714 (sheet 2 of 6) */
@@ -719,7 +722,7 @@ static bool xua_opt_data_length_lim(struct sccp_connection *conn, const struct o
 		}
 		break;
 	case SUA_CO_RELRE: /* §4.5 Released (RLSD) */
-		if (msgb_l2len(prim->oph.msg) > SCCP_MAX_OPTIONAL_DATA) {
+		if (msgb_l2len(prim->oph.msg) > max_optional_data) {
 			if (xua_drop_data_check_drop(prim, SCCP_MAX_DATA, "protocol error"))
 				return false;
 			/* There's no need to cache the optional data since the connection is still active at this point:
