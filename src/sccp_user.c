@@ -827,6 +827,24 @@ out_strings:
 	return NULL;
 }
 
+/*! Adjust the upper bound for the optional data length (the payload) for CR, CC, CREF and RLSD messages.
+ * For any Optional Data part larger than this value in octets, send CR, CC, CREF and RLSD messages without any payload,
+ * and send the data payload in a separate Data Form 1 message. ITU-T Q.713 sections 4.2 thru 4.5 define a limit of 130
+ * bytes for the 'Data' parameter. This limit can be adjusted here. May be useful for interop with nonstandard SCCP
+ * peers.
+ * \param[in] sccp  SCCP instance to reconfigure.
+ * \param[in] val  Number of bytes to set as upper bound for the optional data length, or pass a negative value to set
+ *                 the standard value of SCCP_MAX_OPTIONAL_DATA == 130, which conforms to ITU-T Q.713.
+ */
+void osmo_sccp_set_max_optional_data(struct osmo_sccp_instance *inst, int val)
+{
+	if (!inst)
+		return;
+	if (val < 0)
+		val = SCCP_MAX_OPTIONAL_DATA;
+	inst->max_optional_data = val;
+}
+
 /*! \brief get the SS7 instance that is related to the given SCCP instance
  *  \param[in] sccp SCCP instance
  *  \returns SS7 instance; NULL if sccp was NULL */

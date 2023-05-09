@@ -183,7 +183,7 @@ DEFUN_ATTR(sccp_max_optional_data, sccp_max_optional_data_cmd,
 	int val;
 
 	if (!strcmp(argv[0], "standard"))
-		val = SCCP_MAX_OPTIONAL_DATA;
+		val = -1;
 	else
 		val = atoi(argv[0]);
 
@@ -193,7 +193,7 @@ DEFUN_ATTR(sccp_max_optional_data, sccp_max_optional_data_cmd,
 		return CMD_WARNING;
 	}
 
-	ss7->sccp->max_optional_data = val;
+	osmo_sccp_set_max_optional_data(ss7->sccp, val);
 	return CMD_SUCCESS;
 }
 
