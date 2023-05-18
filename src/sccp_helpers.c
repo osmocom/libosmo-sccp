@@ -1,7 +1,7 @@
 /* SCCP User SAP helper functions */
 
 /* (C) 2015-2017 by Harald Welte <laforge@gnumonks.org>
- * (C) 2016 by sysmocom s.m.f.c. GmbH <info@sysmocom.de>
+ * (C) 2016 by sysmocom s.f.m.c. GmbH <info@sysmocom.de>
  * All Rights Reserved
  *
  * SPDX-License-Identifier: GPL-2.0+
