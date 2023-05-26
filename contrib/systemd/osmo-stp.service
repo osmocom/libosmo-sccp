@@ -1,6 +1,8 @@
 [Unit]
 Description=Osmocom STP (Signal Transfer Point)
 Documentation=https://osmocom.org/projects/osmo-stp/wiki
+After=network-online.target
+Wants=network-online.target
 
 [Service]
 Type=simple
