@@ -1,3 +1,9 @@
+libosmo-sccp (1.7.1) unstable; urgency=medium
+
+  * systemd: depend on networking-online.target
+
+ -- Oliver Smith <osmith@sysmocom.de>  Fri, 26 May 2023 14:43:19 +0200
+
 libosmo-sccp (1.7.0) unstable; urgency=medium
 
   [ Pau Espin Pedrol ]
