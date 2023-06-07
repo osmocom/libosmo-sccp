@@ -642,8 +642,30 @@ osmo_sccp_simple_client_on_ss7_id(void *ctx, uint32_t ss7_id, const char *name,
 		osmo_ss7_as_add_asp(as, asp->cfg.name);
 	}
 
-	/* Ensure that the ASP we use is set to client mode. */
-	asp->cfg.is_server = false;
+	/* Make sure that the sctp-role of this ASP is set to "client" unless the user
+	 * made a conscious decision about the role via the VTY */
+	if (!asp->cfg.sctp_role_set_by_vty)
+		asp->cfg.is_server = false;
+
+	/* If ASP was configured through VTY it may be explicitly configured as
+	 * SCTP server. It may be a bit confusing since this function is to create
+	 * a "SCCP simple client", but this allows users of this API such as
+	 * osmo-hnbgw to support SCTP-role server if properly configured through VTY.
+	 */
+	if (asp->cfg.is_server) {
+		struct osmo_xua_server *xs;
+		LOGP(DLSCCP, LOGL_NOTICE,
+		     "%s: Requesting an SCCP simple client on ASP %s configured with 'sctp-role server'\n",
+		     name, asp->cfg.name);
+		xs = osmo_ss7_xua_server_find(ss7, prot, asp->cfg.local.port);
+		if (!xs) {
+			LOGP(DLSCCP, LOGL_ERROR,
+			     "%s: Requesting an SCCP simple client on ASP %s configured with 'sctp-role server' "
+			     "but no matching xUA server was configured!\n",
+			     name, asp->cfg.name);
+			goto out_asp;
+		}
+	}
 
 	/* Make sure that the role of this ASP is set to ASP unless the user
 	 * made a conscious decision about the role via the VTY */
