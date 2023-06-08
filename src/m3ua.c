@@ -1005,6 +1005,8 @@ static int m3ua_rx_snm(struct osmo_ss7_asp *asp, struct xua_msg *xua)
 		return m3ua_rx_snm_sg(asp, xua);
 	case OSMO_SS7_ASP_ROLE_ASP:
 		return m3ua_rx_snm_asp(asp, xua);
+	case OSMO_SS7_ASP_ROLE_IPSP:
+		/* RFC 4666 Section 1.5.2: there is no MTP3 network management status information */
 	default:
 		return M3UA_ERR_UNSUPP_MSG_CLASS;
 	}
