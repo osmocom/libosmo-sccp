@@ -67,6 +67,7 @@ stp/osmo-stp
 
 *.pc
 config.*
+*.pyc
 
 tags
 /Doxyfile
