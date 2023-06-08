@@ -766,8 +766,7 @@ DEFUN_ATTR(asp_role, asp_role_cmd,
 	} else if (!strcmp(argv[0], "asp")) {
 		asp->cfg.role = OSMO_SS7_ASP_ROLE_ASP;
 	} else if (!strcmp(argv[0], "ipsp")) {
-		vty_out(vty, "IPSP role isn't supported yet%s", VTY_NEWLINE);
-		return CMD_WARNING;
+		asp->cfg.role = OSMO_SS7_ASP_ROLE_IPSP;
 	} else
 		OSMO_ASSERT(0);
 
