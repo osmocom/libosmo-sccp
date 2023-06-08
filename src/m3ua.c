@@ -576,7 +576,13 @@ static int m3ua_rx_xfer(struct osmo_ss7_asp *asp, struct xua_msg *xua)
 		xua_msg_free_tag(xua, M3UA_IEI_ROUTE_CTX);
 	}
 
-	return m3ua_hmdc_rx_from_l2(asp->inst, xua);
+	/* an IPSP by definition is a peer-to-peer service that doesn't
+	 * use a signaling gateway, and hence doesn't route messages.
+	 * See RFC 4666 Section 1.4.3.4. */
+	if (asp->cfg.role == OSMO_SS7_ASP_ROLE_IPSP)
+		return hmdt_message_for_distribution(asp->inst, xua);
+	else
+		return m3ua_hmdc_rx_from_l2(asp->inst, xua);
 	/* xua will be freed by caller m3ua_rx_msg() */
 }
 

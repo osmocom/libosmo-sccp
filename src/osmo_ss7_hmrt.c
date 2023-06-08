@@ -98,7 +98,7 @@ static int deliver_to_mtp_user(const struct osmo_ss7_user *osu,
 /* HMDC -> HMDT: Message for distribution; Figure 25/Q.704 */
 /* This means it is a message we received from remote/L2, and it is to
  * be routed to a local user part */
-static int hmdt_message_for_distribution(struct osmo_ss7_instance *inst, struct xua_msg *xua)
+int hmdt_message_for_distribution(struct osmo_ss7_instance *inst, struct xua_msg *xua)
 {
 	struct m3ua_data_hdr *mdh;
 	const struct osmo_ss7_user *osu;

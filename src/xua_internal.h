@@ -125,3 +125,5 @@ int osmo_sccp_addr_parse(struct osmo_sccp_addr *out,
 int osmo_sccp_addr_encode(struct msgb *msg, const struct osmo_sccp_addr *in);
 
 int ss7_asp_rx_unknown(struct osmo_ss7_asp *asp, int ppid_mux, struct msgb *msg);
+
+int hmdt_message_for_distribution(struct osmo_ss7_instance *inst, struct xua_msg *xua);
