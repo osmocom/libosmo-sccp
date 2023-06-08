@@ -80,7 +80,7 @@ static int get_local_role(struct osmo_ss7_as *as)
 {
 	unsigned int i;
 
-	/* this is a bit tricky. "osmo_ss7_as" has no configuation of a role,
+	/* this is a bit tricky. "osmo_ss7_as" has no configuration of a role,
 	 * only the ASPs have.  As they all must be of the same role, let's simply
 	 * find the first one and return its role */
 	for (i = 0; i < ARRAY_SIZE(as->cfg.asps); i++) {

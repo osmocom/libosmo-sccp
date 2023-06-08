@@ -135,7 +135,7 @@ ss7_asp_vty_test(config-cs7)# xua ?
 ss7_asp_vty_test(config-cs7)# xua rkm ?
   routing-key-allocation  Routing Key Management Allocation Policy
 ss7_asp_vty_test(config-cs7)# xua rkm routing-key-allocation ?
-  static-only        Only static (pre-confgured) Routing Keys permitted
+  static-only        Only static (pre-configured) Routing Keys permitted
   dynamic-permitted  Dynamically allocate Routing Keys for what ASPs request
 
 ss7_asp_vty_test(config-cs7)# asp ?

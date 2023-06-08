@@ -646,7 +646,7 @@ osmo_sccp_simple_client_on_ss7_id(void *ctx, uint32_t ss7_id, const char *name,
 	asp->cfg.is_server = false;
 
 	/* Make sure that the role of this ASP is set to ASP unless the user
-	 * made a concious decision about the role via the VTY */
+	 * made a conscious decision about the role via the VTY */
 	if (!asp->cfg.role_set_by_vty)
 		asp->cfg.role = OSMO_SS7_ASP_ROLE_ASP;
 

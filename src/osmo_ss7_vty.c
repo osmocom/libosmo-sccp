@@ -211,7 +211,7 @@ DEFUN_ATTR(cs7_permit_dyn_rkm, cs7_permit_dyn_rkm_cmd,
 	   "xua rkm routing-key-allocation (static-only|dynamic-permitted)",
 	   "SIGTRAN xxxUA related\n" "Routing Key Management\n"
 	   "Routing Key Management Allocation Policy\n"
-	   "Only static (pre-confgured) Routing Keys permitted\n"
+	   "Only static (pre-configured) Routing Keys permitted\n"
 	   "Dynamically allocate Routing Keys for what ASPs request\n",
 	   CMD_ATTR_IMMEDIATE)
 {
@@ -514,7 +514,7 @@ DEFUN_ATTR(xua_local_ip, xua_local_ip_cmd,
 DEFUN_ATTR(xua_accept_dyn_asp, xua_accept_dyn_asp_cmd,
 	   "accept-asp-connections (pre-configured|dynamic-permitted)",
 	   "Define what kind of ASP connections to accept\n"
-	   "Accept only pre-confiugred ASPs (source IP/prt)\n"
+	   "Accept only pre-configured ASPs (source IP/port)\n"
 	   "Accept any connection and dynamically create an ASP definition\n",
 	   CMD_ATTR_IMMEDIATE)
 {

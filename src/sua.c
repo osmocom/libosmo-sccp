@@ -258,7 +258,7 @@ static struct xua_msg *sua_gen_error_msg(uint32_t err_code, struct msgb *msg)
 }
 
 /***********************************************************************
- * Transmitting SUA messsages to SCTP
+ * Transmitting SUA messages to SCTP
  ***********************************************************************/
 
 static struct msgb *sua_to_msg(struct xua_msg *xua)
@@ -316,7 +316,7 @@ int sua_tx_xua_as(struct osmo_ss7_as *as, struct xua_msg *xua)
 		return -1;
 
 	/* send the msg to the AS for transmission.  The AS FSM might
-	 * (depending on its state) enqueue it before trnsmission */
+	 * (depending on its state) enqueue it before transmission */
 	rc = osmo_fsm_inst_dispatch(as->fi, XUA_AS_E_TRANSFER_REQ, msg);
 	if (rc < 0)
 		msgb_free(msg);
@@ -324,7 +324,7 @@ int sua_tx_xua_as(struct osmo_ss7_as *as, struct xua_msg *xua)
 }
 
 /***********************************************************************
- * Receiving SUA messsages from SCTP
+ * Receiving SUA messages from SCTP
  ***********************************************************************/
 
 /*! \brief Decode SUA Global Title according to RFC3868 Section 3.10.2.3
@@ -427,7 +427,7 @@ int sua_addr_parse_part(struct osmo_sccp_addr *out,
 	 * probably want to have a separate general parsing function storing
 	 * the subparts in xua_msg_part. But before we do, we should find more
 	 * users of this subpart parsing and be aware of the performance
-	 * tradeoff.
+	 * trade-off.
 	 */
 
 	while (pos + sizeof(*par) < param->len) {
@@ -619,7 +619,7 @@ static int sua_rx_mgmt_ntfy(struct osmo_ss7_asp *asp, struct xua_msg *xua)
 	if (ntfy.info_string)
 		talloc_free(ntfy.info_string);
 
-	/* TODO: should we report this soemwhere? */
+	/* TODO: should we report this somewhere? */
 	return 0;
 }
 
@@ -680,7 +680,7 @@ int sua_rx_msg(struct osmo_ss7_asp *asp, struct msgb *msg)
 	OSMO_ASSERT(asp->cfg.proto == OSMO_SS7_ASP_PROT_SUA);
 
 	/* caller owns msg memory, we shall neither free it here nor
-	 * keep references beyon the execution of this function and its
+	 * keep references beyond the execution of this function and its
 	 * callees. */
 
 	if (!asp->inst->sccp) {

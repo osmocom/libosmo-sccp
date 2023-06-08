@@ -504,7 +504,7 @@ int m3ua_tx_xua_as(struct osmo_ss7_as *as, struct xua_msg *xua)
 		return -1;
 
 	/* send the msg to the AS for transmission.  The AS FSM might
-	 * (depending on its state) enqueue it before trnsmission */
+	 * (depending on its state) enqueue it before transmission */
 	rc = osmo_fsm_inst_dispatch(as->fi, XUA_AS_E_TRANSFER_REQ, msg);
 	if (rc < 0)
 		msgb_free(msg);
