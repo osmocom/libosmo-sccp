@@ -630,6 +630,10 @@ osmo_sccp_simple_client_on_ss7_id(void *ctx, uint32_t ss7_id, const char *name,
 			if (!asp)
 				goto out_rt;
 			asp_created = true;
+			/* Ensure that the ASP we use is set to sctp-role client. */
+			asp->cfg.is_server = false;
+			/* Ensure that the ASP we use is set to role ASP. */
+			asp->cfg.role = OSMO_SS7_ASP_ROLE_ASP;
 			if (default_local_ip)
 				osmo_ss7_asp_peer_set_hosts(&asp->cfg.local, asp, &default_local_ip, 1);
 			if (default_remote_ip)
@@ -641,11 +645,6 @@ osmo_sccp_simple_client_on_ss7_id(void *ctx, uint32_t ss7_id, const char *name,
 
 		osmo_ss7_as_add_asp(as, asp->cfg.name);
 	}
-
-	/* Make sure that the sctp-role of this ASP is set to "client" unless the user
-	 * made a conscious decision about the role via the VTY */
-	if (!asp->cfg.sctp_role_set_by_vty)
-		asp->cfg.is_server = false;
 
 	/* If ASP was configured through VTY it may be explicitly configured as
 	 * SCTP server. It may be a bit confusing since this function is to create
@@ -666,11 +665,6 @@ osmo_sccp_simple_client_on_ss7_id(void *ctx, uint32_t ss7_id, const char *name,
 			goto out_asp;
 		}
 	}
-
-	/* Make sure that the role of this ASP is set to ASP unless the user
-	 * made a conscious decision about the role via the VTY */
-	if (!asp->cfg.role_set_by_vty)
-		asp->cfg.role = OSMO_SS7_ASP_ROLE_ASP;
 
 	/* Restart ASP */
 	if (prot != OSMO_SS7_ASP_PROT_IPA)

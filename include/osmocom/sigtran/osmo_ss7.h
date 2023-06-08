@@ -430,8 +430,6 @@ struct osmo_ss7_asp {
 		enum osmo_ss7_asp_admin_state adm_state;
 		bool is_server;
 		enum osmo_ss7_asp_role role;
-		bool role_set_by_vty;
-		bool sctp_role_set_by_vty;
 
 		struct osmo_ss7_asp_peer local;
 		struct osmo_ss7_asp_peer remote;

@@ -715,8 +715,6 @@ DEFUN_ATTR(asp_role, asp_role_cmd,
 		return CMD_WARNING;
 	} else
 		OSMO_ASSERT(0);
-
-	asp->cfg.role_set_by_vty = true;
 	return CMD_SUCCESS;
 }
 
@@ -735,8 +733,6 @@ DEFUN_ATTR(sctp_role, asp_sctp_role_cmd,
 		asp->cfg.is_server = true;
 	else
 		OSMO_ASSERT(0);
-
-	asp->cfg.sctp_role_set_by_vty = true;
 	return CMD_SUCCESS;
 }
 
@@ -851,12 +847,9 @@ static void write_one_asp(struct vty *vty, struct osmo_ss7_asp *asp, bool show_d
 	}
 	if (asp->cfg.qos_class)
 		vty_out(vty, "  qos-class %u%s", asp->cfg.qos_class, VTY_NEWLINE);
-	if (asp->cfg.role_set_by_vty) {
-		vty_out(vty, "  role %s%s", osmo_str_tolower(get_value_string(osmo_ss7_asp_role_names, asp->cfg.role)),
-			VTY_NEWLINE);
-	}
-	if (asp->cfg.sctp_role_set_by_vty || !asp->cfg.is_server)
-		vty_out(vty, "  sctp-role %s%s", asp->cfg.is_server ? "server" : "client", VTY_NEWLINE);
+	vty_out(vty, "  role %s%s", osmo_str_tolower(get_value_string(osmo_ss7_asp_role_names, asp->cfg.role)),
+		VTY_NEWLINE);
+	vty_out(vty, "  sctp-role %s%s", asp->cfg.is_server ? "server" : "client", VTY_NEWLINE);
 	for (i = 0; i < sizeof(uint32_t) * 8; i++) {
 		if (!(asp->cfg.quirks & ((uint32_t) 1 << i)))
 			continue;
