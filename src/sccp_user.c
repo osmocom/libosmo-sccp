@@ -646,23 +646,41 @@ osmo_sccp_simple_client_on_ss7_id(void *ctx, uint32_t ss7_id, const char *name,
 		osmo_ss7_as_add_asp(as, asp->cfg.name);
 	}
 
-	/* If ASP was configured through VTY it may be explicitly configured as
-	 * SCTP server. It may be a bit confusing since this function is to create
-	 * a "SCCP simple client", but this allows users of this API such as
-	 * osmo-hnbgw to support SCTP-role server if properly configured through VTY.
-	 */
-	if (asp->cfg.is_server) {
-		struct osmo_xua_server *xs;
-		LOGP(DLSCCP, LOGL_NOTICE,
-		     "%s: Requesting an SCCP simple client on ASP %s configured with 'sctp-role server'\n",
-		     name, asp->cfg.name);
-		xs = osmo_ss7_xua_server_find(ss7, prot, asp->cfg.local.port);
-		if (!xs) {
+	/* Extra sanity checks if the ASP asp-clnt-* was pre-configured over VTY: */
+	if (!asp->simple_client_allocated) {
+		/* Forbid ASPs defined through VTY that are not entirely
+		 * configured. "role" and "sctp-role" must be explicitly provided:
+		 */
+		if (!asp->cfg.role_set_by_vty) {
 			LOGP(DLSCCP, LOGL_ERROR,
-			     "%s: Requesting an SCCP simple client on ASP %s configured with 'sctp-role server' "
-			     "but no matching xUA server was configured!\n",
+			     "%s: ASP %s defined in VTY but 'role' was not set there, please set it.\n",
 			     name, asp->cfg.name);
 			goto out_asp;
+		}
+		if (!asp->cfg.sctp_role_set_by_vty) {
+			LOGP(DLSCCP, LOGL_ERROR,
+			     "%s: ASP %s defined in VTY but 'sctp-role' was not set there, please set it.\n",
+			     name, asp->cfg.name);
+			goto out_asp;
+		}
+
+		/* If ASP was configured through VTY it may be explicitly configured as
+		 * SCTP server. It may be a bit confusing since this function is to create
+		 * a "SCCP simple client", but this allows users of this API such as
+		 * osmo-hnbgw to support SCTP-role server if properly configured through VTY.
+		*/
+		if (asp->cfg.is_server) {
+			struct osmo_xua_server *xs;
+			LOGP(DLSCCP, LOGL_NOTICE,
+			     "%s: Requesting an SCCP simple client on ASP %s configured with 'sctp-role server'\n",
+			     name, asp->cfg.name);
+			xs = osmo_ss7_xua_server_find(ss7, prot, asp->cfg.local.port);
+			if (!xs) {
+				LOGP(DLSCCP, LOGL_ERROR, "%s: Requesting an SCCP simple client on ASP %s configured "
+				     "with 'sctp-role server' but no matching xUA server was configured!\n",
+				     name, asp->cfg.name);
+				goto out_asp;
+			}
 		}
 	}
 

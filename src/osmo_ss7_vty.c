@@ -715,6 +715,8 @@ DEFUN_ATTR(asp_role, asp_role_cmd,
 		return CMD_WARNING;
 	} else
 		OSMO_ASSERT(0);
+
+	asp->cfg.role_set_by_vty = true;
 	return CMD_SUCCESS;
 }
 
@@ -733,6 +735,8 @@ DEFUN_ATTR(sctp_role, asp_sctp_role_cmd,
 		asp->cfg.is_server = true;
 	else
 		OSMO_ASSERT(0);
+
+	asp->cfg.sctp_role_set_by_vty = true;
 	return CMD_SUCCESS;
 }
 
