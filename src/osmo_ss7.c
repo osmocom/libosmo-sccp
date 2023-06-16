@@ -1623,6 +1623,7 @@ int osmo_ss7_asp_restart(struct osmo_ss7_asp *asp)
 				" client for ASP %s\n", asp->cfg.name);
 			return -1;
 		}
+		osmo_stream_cli_set_name(asp->client, asp->cfg.name);
 		osmo_stream_cli_set_nodelay(asp->client, true);
 		osmo_stream_cli_set_addrs(asp->client, (const char**)asp->cfg.remote.host, asp->cfg.remote.host_cnt);
 		osmo_stream_cli_set_port(asp->client, asp->cfg.remote.port);
@@ -2089,9 +2090,11 @@ static int xua_accept_cb(struct osmo_stream_srv_link *link, int fd)
 	 * connection came in */
 	asp->server = srv;
 	asp->xua_server = oxs;
+
 	/* update the ASP socket name */
 	talloc_free(asp->sock_name);
 	asp->sock_name = talloc_reparent(link, asp, sock_name);
+	osmo_stream_srv_set_name(asp->server, asp->cfg.name);
 	/* make sure the conn_cb() is called with the asp as private
 	 * data */
 	osmo_stream_srv_set_data(srv, asp);
@@ -2206,6 +2209,7 @@ osmo_ss7_xua_server_create(struct osmo_ss7_instance *inst, enum osmo_ss7_asp_pro
 	oxs->cfg.local.port = local_port;
 
 	oxs->server = osmo_stream_srv_link_create(oxs);
+	osmo_stream_srv_link_set_name(oxs->server, osmo_ss7_asp_protocol_name(proto));
 	osmo_stream_srv_link_set_data(oxs->server, oxs);
 	osmo_stream_srv_link_set_accept_cb(oxs->server, xua_accept_cb);
 

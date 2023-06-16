@@ -8,5 +8,6 @@
 # If any interfaces have been removed or changed since the last public release: c:r:0.
 #library	what		description / commit summary line
 libosmocore	>1.8.0		uses new osmo_prim_operation_name()
+libosmo-netif	> 1.3.0		uses osmo_stream_*_set_name()
 libosmo-sccp	add API		osmo_ss7_asp_get_name(), osmo_ss7_asp_get_proto()
 osmo_sccp_simple_client_on_ss7_id() behavior change: ASPs asp-clnt-* defined through VTY must explicitly configure "role" and "sctp-role"
