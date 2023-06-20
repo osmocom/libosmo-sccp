@@ -471,6 +471,8 @@ int osmo_ss7_asp_restart(struct osmo_ss7_asp *asp);
 int osmo_ss7_asp_use_default_lm(struct osmo_ss7_asp *asp, int log_level);
 bool osmo_ss7_asp_active(const struct osmo_ss7_asp *asp);
 int osmo_ss7_asp_get_log_subsys(const struct osmo_ss7_asp *asp);
+const char *osmo_ss7_asp_get_name(const struct osmo_ss7_asp *asp);
+enum osmo_ss7_asp_protocol osmo_ss7_asp_get_proto(const struct osmo_ss7_asp *asp);
 
 /*! Weak function to handle payload for unknown/unsupported PPID or IPA StreamID.
  *  This function can be overridden by application code to implement whatever handling

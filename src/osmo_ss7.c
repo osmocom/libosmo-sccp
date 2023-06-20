@@ -2432,6 +2432,24 @@ int osmo_ss7_asp_get_log_subsys(const struct osmo_ss7_asp *asp)
 	}
 }
 
+/*! \brief Get the name of a given ASP
+ *  \param[in] asp The ASP for which the name is requested
+ *  \returns The name of the ASP, or NULL if not set
+ */
+const char *osmo_ss7_asp_get_name(const struct osmo_ss7_asp *asp)
+{
+	return asp->cfg.name;
+}
+
+/*! \brief Get the proto of a given ASP
+ *  \param[in] asp The ASP for which the proto is requested
+ *  \returns The proto of the ASP
+ */
+enum osmo_ss7_asp_protocol osmo_ss7_asp_get_proto(const struct osmo_ss7_asp *asp)
+{
+	return asp->cfg.proto;
+}
+
 /*! Register a call-back function for unknown SCTP PPID / IPA Stream ID */
 void osmo_ss7_register_rx_unknown_cb(osmo_ss7_asp_rx_unknown_cb *cb)
 {
