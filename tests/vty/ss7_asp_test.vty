@@ -244,10 +244,10 @@ ss7_asp_vty_test(config-cs7-asp)# ?
 ss7_asp_vty_test(config-cs7-asp)# remote-ip 127.0.0.200
 ss7_asp_vty_test(config-cs7-asp)# local-ip 127.0.0.100
 ss7_asp_vty_test(config-cs7-asp)# do show cs7 instance 0 asp
-                                                          Effect Primary
-ASP Name      AS Name       State          Type Remote IP Addr:Rmt Port SCTP
-------------  ------------  -------------  ---- ----------------------- ----------
-my-asp        ?             uninitialized  m3ua  127.0.0.200:12345            
+                                                       Current Primary Link
+ASP Name      AS Name       State          Type  Role  Remote IPaddr & Port     SCTP Role
+------------  ------------  -------------  ----  ----  -----------------------  ---------
+my-asp        ?             uninitialized  m3ua  sg    127.0.0.200:12345        server   
 ss7_asp_vty_test(config-cs7-asp)# exit
 
 ss7_asp_vty_test(config-cs7)# as my-ass m3ua
@@ -308,26 +308,26 @@ ss7_asp_vty_test(config-cs7-as)# asp my-asp
 ss7_asp_vty_test(config-cs7-as)# routing-key 0 3.2.1
 
 ss7_asp_vty_test(config-cs7-as)# do show cs7 instance 0 asp
-                                                          Effect Primary
-ASP Name      AS Name       State          Type Remote IP Addr:Rmt Port SCTP
-------------  ------------  -------------  ---- ----------------------- ----------
-my-asp        ?             ASP_DOWN       m3ua  127.0.0.200:12345            
+                                                       Current Primary Link
+ASP Name      AS Name       State          Type  Role  Remote IPaddr & Port     SCTP Role
+------------  ------------  -------------  ----  ----  -----------------------  ---------
+my-asp        my-ass        ASP_DOWN       m3ua  sg    127.0.0.200:12345        server   
 
 ss7_asp_vty_test(config-cs7-as)# exit
 ss7_asp_vty_test(config-cs7)# do show cs7 instance 0 asp
-                                                          Effect Primary
-ASP Name      AS Name       State          Type Remote IP Addr:Rmt Port SCTP
-------------  ------------  -------------  ---- ----------------------- ----------
-my-asp        ?             ASP_DOWN       m3ua  127.0.0.200:12345            
+                                                       Current Primary Link
+ASP Name      AS Name       State          Type  Role  Remote IPaddr & Port     SCTP Role
+------------  ------------  -------------  ----  ----  -----------------------  ---------
+my-asp        my-ass        ASP_DOWN       m3ua  sg    127.0.0.200:12345        server   
 
 ss7_asp_vty_test(config-cs7)# exit
 
 
 ss7_asp_vty_test(config)# do show cs7 instance 0 asp
-                                                          Effect Primary
-ASP Name      AS Name       State          Type Remote IP Addr:Rmt Port SCTP
-------------  ------------  -------------  ---- ----------------------- ----------
-my-asp        ?             ASP_DOWN       m3ua  127.0.0.200:12345            
+                                                       Current Primary Link
+ASP Name      AS Name       State          Type  Role  Remote IPaddr & Port     SCTP Role
+------------  ------------  -------------  ----  ----  -----------------------  ---------
+my-asp        my-ass        ASP_DOWN       m3ua  sg    127.0.0.200:12345        server   
 
 ss7_asp_vty_test(config)# do show cs7 instance 0 as all
                           Routing    Routing Key                          Cic   Cic   Traffic
@@ -368,9 +368,9 @@ No ASP named 'unknown-asp' found
 ss7_asp_vty_test(config-cs7)# no asp my-asp
 
 ss7_asp_vty_test(config-cs7)# do show cs7 instance 0 asp
-                                                          Effect Primary
-ASP Name      AS Name       State          Type Remote IP Addr:Rmt Port SCTP
-------------  ------------  -------------  ---- ----------------------- ----------
+                                                       Current Primary Link
+ASP Name      AS Name       State          Type  Role  Remote IPaddr & Port     SCTP Role
+------------  ------------  -------------  ----  ----  -----------------------  ---------
 
 ss7_asp_vty_test(config-cs7)# do show cs7 instance 0 as all
                           Routing    Routing Key                          Cic   Cic   Traffic

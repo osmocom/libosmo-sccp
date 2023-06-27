@@ -790,6 +790,24 @@ DEFUN_ATTR(asp_no_quirk, asp_no_quirk_cmd,
 	return CMD_SUCCESS;
 }
 
+static char *as_list_for_asp(const struct osmo_ss7_asp *asp, char *buf, size_t buf_len)
+{
+	struct osmo_strbuf sb = { .buf = buf, .len = buf_len };
+	const struct osmo_ss7_as *as;
+	unsigned int count = 0;
+	llist_for_each_entry(as, &asp->inst->as_list, list) {
+		if (!osmo_ss7_as_has_asp(as, asp))
+			continue;
+		OSMO_STRBUF_PRINTF(sb, "%s%s", count != 0 ? "," : "", as->cfg.name);
+		count++;
+		break;
+	}
+
+	if (count == 0)
+		OSMO_STRBUF_PRINTF(sb, "?");
+	return buf;
+}
+
 DEFUN(show_cs7_asp, show_cs7_asp_cmd,
 	"show cs7 instance <0-15> asp",
 	SHOW_STR CS7_STR INST_STR INST_STR "Application Server Process (ASP)\n")
@@ -797,6 +815,7 @@ DEFUN(show_cs7_asp, show_cs7_asp_cmd,
 	struct osmo_ss7_instance *inst;
 	struct osmo_ss7_asp *asp;
 	char buf[512];
+	char as_buf[64];
 	int id = atoi(argv[0]);
 
 	inst = osmo_ss7_instance_find(id);
@@ -805,9 +824,9 @@ DEFUN(show_cs7_asp, show_cs7_asp_cmd,
 		return CMD_WARNING;
 	}
 
-	vty_out(vty, "                                                          Effect Primary%s", VTY_NEWLINE);
-	vty_out(vty, "ASP Name      AS Name       State          Type Remote IP Addr:Rmt Port SCTP%s", VTY_NEWLINE);
-	vty_out(vty, "------------  ------------  -------------  ---- ----------------------- ----------%s", VTY_NEWLINE);
+	vty_out(vty, "                                                       Current Primary Link%s", VTY_NEWLINE);
+	vty_out(vty, "ASP Name      AS Name       State          Type  Role  Remote IPaddr & Port     SCTP Role%s", VTY_NEWLINE);
+	vty_out(vty, "------------  ------------  -------------  ----  ----  -----------------------  ---------%s", VTY_NEWLINE);
 
 	llist_for_each_entry(asp, &inst->asp_list, list) {
 		if (asp->cfg.proto == OSMO_SS7_ASP_PROT_IPA && asp->cfg.remote.port == 0 && asp->server) {
@@ -819,11 +838,15 @@ DEFUN(show_cs7_asp, show_cs7_asp_cmd,
 			snprintf(buf, sizeof(buf), "%s:%s", hostbuf, portbuf);
 		} else
 			osmo_ss7_asp_peer_snprintf(buf, sizeof(buf), &asp->cfg.remote);
-		vty_out(vty, "%-12s  %-12s  %-13s  %-4s  %-14s  %-10s%s",
-			asp->cfg.name, "?",
+		vty_out(vty, "%-12s  %-12s  %-13s  %-4s  %-4s  %-23s  %-9s%s",
+			asp->cfg.name,
+			as_list_for_asp(asp, as_buf, sizeof(as_buf)),
 			asp->fi? osmo_fsm_inst_state_name(asp->fi) : "uninitialized",
 			get_value_string(osmo_ss7_asp_protocol_vals, asp->cfg.proto),
-			buf, "", VTY_NEWLINE);
+			osmo_str_tolower(get_value_string(osmo_ss7_asp_role_names, asp->cfg.role)),
+			buf,
+			asp->cfg.is_server ? "server" : "client",
+			VTY_NEWLINE);
 	}
 	return CMD_SUCCESS;
 }
