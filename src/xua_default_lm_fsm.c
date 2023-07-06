@@ -167,6 +167,7 @@ static int lm_timer_cb(struct osmo_fsm_inst *fi)
 	case T_WAIT_ASP_UP:
 		/* we have been waiting for the ASP to come up, but it
 		 * failed to do so */
+		LOGPFSML(fi, LOGL_NOTICE, "Peer didn't send any ASP_UP in time! Restarting ASP\n");
 		restart_asp(fi);
 		break;
 	case T_WAIT_NOTIFY:
