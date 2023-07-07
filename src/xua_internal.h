@@ -1,5 +1,6 @@
 #pragma once
 
+#include <osmocom/core/tdef.h>
 #include <osmocom/sigtran/osmo_ss7.h>
 #include <osmocom/sigtran/xua_msg.h>
 
@@ -84,6 +85,22 @@ void xua_asp_send_xlm_prim_simple(struct osmo_ss7_asp *asp,
 
 void xua_snm_pc_available(struct osmo_ss7_as *as, const uint32_t *aff_pc,
                           unsigned int num_aff_pc, const char *info_str, bool available);
+
+enum ss7_asp_lm_timer {
+	/* 0 kept unused on purpose since it's handled specially by osmo_fsm */
+	SS7_ASP_LM_T_WAIT_ASP_UP = 1,
+	SS7_ASP_LM_T_WAIT_NOTIFY,
+	SS7_ASP_LM_T_WAIT_NOTIY_RKM,
+	SS7_ASP_LM_T_WAIT_RK_REG_RESP,
+	/* This must remain the last item: */
+	SS7_ASP_LM_TIMERS_LEN
+};
+
+extern const struct osmo_tdef ss7_asp_lm_timer_defaults[SS7_ASP_LM_TIMERS_LEN];
+
+extern const struct value_string ss7_asp_lm_timer_names[];
+static inline const char *ss7_asp_lm_timer_name(enum ss7_asp_lm_timer val)
+{ return get_value_string(ss7_asp_lm_timer_names, val); }
 
 extern struct osmo_fsm xua_default_lm_fsm;
 extern const struct value_string m3ua_rkm_reg_status_vals[];

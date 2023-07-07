@@ -76,16 +76,52 @@ static const struct value_string lm_event_names[] = {
 	{ 0, NULL }
 };
 
-enum lm_timer {
-	T_WAIT_ASP_UP,
-	T_WAIT_NOTIFY,
-	T_WAIT_NOTIFY_RKM,
-	T_WAIT_RK_REG_RESP,
+/***********************************************************************
+ * Timer Handling
+ ***********************************************************************/
+
+const struct osmo_tdef ss7_asp_lm_timer_defaults[SS7_ASP_LM_TIMERS_LEN] = {
+	{ .T = SS7_ASP_LM_T_WAIT_ASP_UP,	.default_val = 20,	.unit = OSMO_TDEF_S,
+	  .desc = "Restart ASP after timeout waiting for ASP UP (SG role) / ASP UP ACK (ASP role) (s)" },
+	{ .T = SS7_ASP_LM_T_WAIT_NOTIFY,	.default_val = 2,	.unit = OSMO_TDEF_S,
+	  .desc = "Restart ASP after timeout waiting for NOTIFY (s)" },
+	{ .T = SS7_ASP_LM_T_WAIT_NOTIY_RKM,	.default_val = 20,	.unit = OSMO_TDEF_S,
+	  .desc = "Restart ASP after timeout waiting for NOTIFY after RKM registration (s)" },
+	{ .T = SS7_ASP_LM_T_WAIT_RK_REG_RESP,	.default_val = 10,	.unit = OSMO_TDEF_S,
+	  .desc = "Restart ASP after timeout waiting for RK_REG_RESP (s)" },
+	{}
+};
+
+/* Appendix C.4 of ITU-T Q.714 */
+const struct value_string ss7_asp_lm_timer_names[] = {
+	{ SS7_ASP_LM_T_WAIT_ASP_UP, "wait_asp_up" },
+	{ SS7_ASP_LM_T_WAIT_NOTIFY, "wait_notify" },
+	{ SS7_ASP_LM_T_WAIT_NOTIY_RKM, "wait_notify_rkm" },
+	{ SS7_ASP_LM_T_WAIT_RK_REG_RESP, "wait_rk_reg_resp" },
+	{}
+};
+
+osmo_static_assert(ARRAY_SIZE(ss7_asp_lm_timer_defaults) == (SS7_ASP_LM_TIMERS_LEN) &&
+		   ARRAY_SIZE(ss7_asp_lm_timer_names) == (SS7_ASP_LM_TIMERS_LEN),
+		   assert_ss7_asp_lm_timer_count);
+
+static const struct osmo_tdef_state_timeout lm_fsm_timeouts[32] = {
+	[S_IDLE]	= { },
+	[S_WAIT_ASP_UP]	= { .T = SS7_ASP_LM_T_WAIT_ASP_UP },
+	[S_WAIT_NOTIFY]	= { .T = SS7_ASP_LM_T_WAIT_NOTIFY }, /* SS7_ASP_LM_T_WAIT_NOTIY_RKM if coming from S_RKM_REG */
+	[S_RKM_REG]	= { .T = SS7_ASP_LM_T_WAIT_RK_REG_RESP },
+	[S_ACTIVE]	= { },
 };
 
 struct lm_fsm_priv {
 	struct osmo_ss7_asp *asp;
 };
+
+#define lm_fsm_state_chg(fi, NEXT_STATE) \
+	osmo_tdef_fsm_inst_state_chg(fi, NEXT_STATE, \
+				     lm_fsm_timeouts, \
+				    ((struct lm_fsm_priv *)(fi->priv))->asp->cfg.T_defs_lm, \
+				     -1)
 
 static struct osmo_ss7_as *find_first_as_in_asp(struct osmo_ss7_asp *asp)
 {
@@ -138,8 +174,8 @@ static void lm_idle(struct osmo_fsm_inst *fi, uint32_t event, void *data)
 
 	switch (event) {
 	case LM_E_SCTP_EST_IND:
-		/* Try to transition to ASP-UP, wait for 20s */
-		osmo_fsm_inst_state_chg(fi, S_WAIT_ASP_UP, 20, T_WAIT_ASP_UP);
+		/* Try to transition to ASP-UP, wait to receive message for a few seconds */
+		lm_fsm_state_chg(fi, S_WAIT_ASP_UP);
 		osmo_fsm_inst_dispatch(lmp->asp->fi, XUA_ASP_E_M_ASP_UP_REQ, NULL);
 		break;
 	}
@@ -151,7 +187,7 @@ static void lm_wait_asp_up(struct osmo_fsm_inst *fi, uint32_t event, void *data)
 	case LM_E_ASP_UP_CONF:
 		/* ASP is up, wait for some time if any NOTIFY
 		 * indications about AS in this ASP are received */
-		osmo_fsm_inst_state_chg(fi, S_WAIT_NOTIFY, 2, T_WAIT_NOTIFY);
+		lm_fsm_state_chg(fi, S_WAIT_NOTIFY);
 		break;
 	}
 }
@@ -164,13 +200,13 @@ static int lm_timer_cb(struct osmo_fsm_inst *fi)
 	struct osmo_ss7_as *as;
 
 	switch (fi->T) {
-	case T_WAIT_ASP_UP:
+	case SS7_ASP_LM_T_WAIT_ASP_UP:
 		/* we have been waiting for the ASP to come up, but it
 		 * failed to do so */
 		LOGPFSML(fi, LOGL_NOTICE, "Peer didn't send any ASP_UP in time! Restarting ASP\n");
 		restart_asp(fi);
 		break;
-	case T_WAIT_NOTIFY:
+	case SS7_ASP_LM_T_WAIT_NOTIFY:
 		if (lmp->asp->cfg.quirks & OSMO_SS7_ASP_QUIRK_NO_NOTIFY) {
 			/* some implementations don't send the NOTIFY which they SHOULD
 			 * according to RFC4666 (see OS#5145) */
@@ -181,7 +217,7 @@ static int lm_timer_cb(struct osmo_fsm_inst *fi)
 		/* No AS has reported via NOTIFY that is was
 		 * (statically) configured at the SG for this ASP, so
 		 * let's dynamically register */
-		osmo_fsm_inst_state_chg(fi, S_RKM_REG, 10, T_WAIT_RK_REG_RESP);
+		lm_fsm_state_chg(fi, S_RKM_REG);
 		prim = xua_xlm_prim_alloc(OSMO_XLM_PRIM_M_RK_REG, PRIM_OP_REQUEST);
 		OSMO_ASSERT(prim);
 		as = find_first_as_in_asp(lmp->asp);
@@ -195,12 +231,12 @@ static int lm_timer_cb(struct osmo_fsm_inst *fi)
 		prim->u.rk_reg.traf_mode = as->cfg.mode;
 		osmo_xlm_sap_down(lmp->asp, &prim->oph);
 		break;
-	case T_WAIT_NOTIFY_RKM:
+	case SS7_ASP_LM_T_WAIT_NOTIY_RKM:
 		/* No AS has reported via NOTIFY even after dynamic RKM
 		 * configuration */
 		restart_asp(fi);
 		break;
-	case T_WAIT_RK_REG_RESP:
+	case SS7_ASP_LM_T_WAIT_RK_REG_RESP:
 		/* timeout of registration of routing key */
 		restart_asp(fi);
 		break;
@@ -220,7 +256,7 @@ static void lm_wait_notify(struct osmo_fsm_inst *fi, uint32_t event, void *data)
 		if (oxp->u.notify.status_type == M3UA_NOTIFY_T_STATCHG &&
 		    (oxp->u.notify.status_info == M3UA_NOTIFY_I_AS_INACT ||
 		     oxp->u.notify.status_info == M3UA_NOTIFY_I_AS_PEND)) {
-			osmo_fsm_inst_state_chg(fi, S_ACTIVE, 0, 0);
+			lm_fsm_state_chg(fi, S_ACTIVE);
 			osmo_fsm_inst_dispatch(lmp->asp->fi, XUA_ASP_E_M_ASP_ACTIVE_REQ, NULL);
 		}
 		break;
@@ -229,7 +265,7 @@ static void lm_wait_notify(struct osmo_fsm_inst *fi, uint32_t event, void *data)
 		 * the SG, and that this AS is currently inactive */
 		/* request the ASP to go into active state (which
 		 * hopefully will bring the AS to active, too) */
-		osmo_fsm_inst_state_chg(fi, S_ACTIVE, 0, 0);
+		lm_fsm_state_chg(fi, S_ACTIVE);
 		osmo_fsm_inst_dispatch(lmp->asp->fi, XUA_ASP_E_M_ASP_ACTIVE_REQ, NULL);
 		break;
 	}
@@ -237,6 +273,7 @@ static void lm_wait_notify(struct osmo_fsm_inst *fi, uint32_t event, void *data)
 
 static void lm_rkm_reg(struct osmo_fsm_inst *fi, uint32_t event, void *data)
 {
+	struct lm_fsm_priv *lmp = fi->priv;
 	struct osmo_xlm_prim *oxp;
 	int rc;
 
@@ -247,14 +284,15 @@ static void lm_rkm_reg(struct osmo_fsm_inst *fi, uint32_t event, void *data)
 			LOGPFSML(fi, LOGL_NOTICE, "Received RKM_REG_RSP with negative result\n");
 			restart_asp(fi);
 		} else {
+			unsigned long timeout_sec;
 			rc = handle_reg_conf(fi, oxp->u.rk_reg.key.l_rk_id, oxp->u.rk_reg.key.context);
 			if (rc < 0)
 				restart_asp(fi);
-			/* RKM registration was successful, we can
-			 * transition to WAIT_NOTIFY state and assume
-			 * that an NOTIFY/AS-INACTIVE arrives within 20
-			 * seconds */
-			osmo_fsm_inst_state_chg(fi, S_WAIT_NOTIFY, 20, T_WAIT_NOTIFY_RKM);
+			/* RKM registration was successful, we can transition to WAIT_NOTIFY
+			 * state and assume that an NOTIFY/AS-INACTIVE arrives within
+			 * T_WAIT_NOTIFY_RKM seconds */
+			timeout_sec = osmo_tdef_get(lmp->asp->cfg.T_defs_lm, SS7_ASP_LM_T_WAIT_NOTIY_RKM, OSMO_TDEF_S, -1);
+			osmo_fsm_inst_state_chg(fi, S_WAIT_NOTIFY, timeout_sec, SS7_ASP_LM_T_WAIT_NOTIY_RKM);
 		}
 		break;
 	}

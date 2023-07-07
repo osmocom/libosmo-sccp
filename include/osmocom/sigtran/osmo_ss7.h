@@ -437,6 +437,9 @@ struct osmo_ss7_asp {
 		struct osmo_ss7_asp_peer remote;
 		uint8_t qos_class;
 		uint32_t quirks;
+
+		/* T_defs used by the default_lm: */
+		struct osmo_tdef *T_defs_lm;
 	} cfg;
 };
 

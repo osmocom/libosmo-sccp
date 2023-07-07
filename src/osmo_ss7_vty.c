@@ -790,6 +790,77 @@ DEFUN_ATTR(asp_no_quirk, asp_no_quirk_cmd,
 	return CMD_SUCCESS;
 }
 
+/* timer lm <name> <1-999999>
+ * (cmdstr and doc are dynamically generated from ss7_asp_lm_timer_names.) */
+DEFUN_ATTR(asp_timer, asp_timer_cmd,
+	   NULL, NULL, CMD_ATTR_IMMEDIATE)
+{
+	struct osmo_ss7_asp *asp = vty->index;
+	enum ss7_asp_lm_timer timer = get_string_value(ss7_asp_lm_timer_names, argv[0]);
+
+	if (timer <= 0 || timer >= SS7_ASP_LM_TIMERS_LEN) {
+		vty_out(vty, "%% Invalid timer: %s%s", argv[0], VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	osmo_tdef_set(asp->cfg.T_defs_lm, timer, atoi(argv[1]), OSMO_TDEF_S);
+	return CMD_SUCCESS;
+}
+
+static void gen_asp_timer_cmd_strs(struct cmd_element *cmd)
+{
+	int i;
+	char *cmd_str = NULL;
+	char *doc_str = NULL;
+
+	OSMO_ASSERT(cmd->string == NULL);
+	OSMO_ASSERT(cmd->doc == NULL);
+
+	osmo_talloc_asprintf(tall_vty_ctx, cmd_str, "timer lm (");
+	osmo_talloc_asprintf(tall_vty_ctx, doc_str,
+			     "Configure ASP default timer values\n"
+			     "Configure ASP default lm timer values\n");
+
+	for (i = 0; ss7_asp_lm_timer_names[i].str; i++) {
+		const struct osmo_tdef *def;
+		enum ss7_asp_lm_timer timer;
+
+		timer = ss7_asp_lm_timer_names[i].value;
+		def = osmo_tdef_get_entry((struct osmo_tdef *)&ss7_asp_lm_timer_defaults, timer);
+		OSMO_ASSERT(def);
+
+		osmo_talloc_asprintf(tall_vty_ctx, cmd_str, "%s%s",
+				     i ? "|" : "",
+				     ss7_asp_lm_timer_names[i].str);
+		osmo_talloc_asprintf(tall_vty_ctx, doc_str, "%s (default: %lu)\n",
+				     def->desc,
+				     def->default_val);
+	}
+
+	osmo_talloc_asprintf(tall_vty_ctx, cmd_str, ") <1-999999>");
+	osmo_talloc_asprintf(tall_vty_ctx, doc_str,
+			     "Timer value, in seconds\n");
+
+	cmd->string = cmd_str;
+	cmd->doc = doc_str;
+}
+
+static void write_asp_timers(struct vty *vty, const char *indent,
+				struct osmo_ss7_asp *asp)
+{
+	int i;
+
+	for (i = 0; ss7_asp_lm_timer_names[i].str; i++) {
+		const struct osmo_tdef *tdef = osmo_tdef_get_entry(asp->cfg.T_defs_lm, ss7_asp_lm_timer_names[i].value);
+		if (!tdef)
+			continue;
+		if (tdef->val == tdef->default_val)
+			continue;
+		vty_out(vty, "%stimer lm %s %lu%s", indent, ss7_asp_lm_timer_names[i].str,
+			tdef->val, VTY_NEWLINE);
+	}
+}
+
 static char *as_list_for_asp(const struct osmo_ss7_asp *asp, char *buf, size_t buf_len)
 {
 	struct osmo_strbuf sb = { .buf = buf, .len = buf_len };
@@ -882,6 +953,7 @@ static void write_one_asp(struct vty *vty, struct osmo_ss7_asp *asp, bool show_d
 			continue;
 		vty_out(vty, "  quirk %s%s", get_value_string(asp_quirk_names, (1 << i)), VTY_NEWLINE);
 	}
+	write_asp_timers(vty, "  ", asp);
 }
 
 
@@ -2127,6 +2199,8 @@ static void vty_init_shared(void *ctx)
 	install_lib_element(L_CS7_ASP_NODE, &asp_shutdown_cmd);
 	install_lib_element(L_CS7_ASP_NODE, &asp_quirk_cmd);
 	install_lib_element(L_CS7_ASP_NODE, &asp_no_quirk_cmd);
+	gen_asp_timer_cmd_strs(&asp_timer_cmd);
+	install_lib_element(L_CS7_ASP_NODE, &asp_timer_cmd);
 
 	install_node(&as_node, NULL);
 	install_lib_element_ve(&show_cs7_as_cmd);

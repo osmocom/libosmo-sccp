@@ -1538,6 +1538,11 @@ osmo_ss7_asp_alloc(struct osmo_ss7_instance *inst, const char *name,
 	asp->cfg.local.port = local_port;
 	asp->cfg.proto = proto;
 	asp->cfg.name = talloc_strdup(asp, name);
+
+	asp->cfg.T_defs_lm = talloc_memdup(asp, ss7_asp_lm_timer_defaults,
+					   sizeof(ss7_asp_lm_timer_defaults));
+	osmo_tdefs_reset(asp->cfg.T_defs_lm);
+
 	llist_add_tail(&asp->list, &inst->asp_list);
 
 	/* The SUA code internally needs SCCP to work */
