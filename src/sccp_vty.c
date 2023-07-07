@@ -150,9 +150,8 @@ DEFUN_ATTR(sccp_timer, sccp_timer_cmd,
 {
 	struct osmo_ss7_instance *ss7 = vty->index;
 	enum osmo_sccp_timer timer = get_string_value(osmo_sccp_timer_names, argv[0]);
-	struct osmo_sccp_timer_val set_val = { .s = atoi(argv[1]) };
 
-	if (timer < 0 || timer >= OSMO_SCCP_TIMERS_COUNT) {
+	if (timer <= 0 || timer >= OSMO_SCCP_TIMERS_LEN) {
 		vty_out(vty, "%% Invalid timer: %s%s", argv[0], VTY_NEWLINE);
 		return CMD_WARNING;
 	}
@@ -163,7 +162,8 @@ DEFUN_ATTR(sccp_timer, sccp_timer_cmd,
 		return CMD_WARNING;
 	}
 
-	ss7->sccp->timers[timer] = set_val;
+	OSMO_ASSERT(ss7->sccp->tdefs);
+	osmo_tdef_set(ss7->sccp->tdefs, timer, atoi(argv[1]), OSMO_TDEF_S);
 	return CMD_SUCCESS;
 }
 
@@ -197,14 +197,6 @@ DEFUN_ATTR(sccp_max_optional_data, sccp_max_optional_data_cmd,
 	return CMD_SUCCESS;
 }
 
-static const char *osmo_sccp_timer_val_name(const struct osmo_sccp_timer_val *val)
-{
-	static char buf[16];
-
-	snprintf(buf, sizeof(buf), "%u", val->s);
-	return buf;
-}
-
 static void gen_sccp_timer_cmd_strs(struct cmd_element *cmd)
 {
 	int i;
@@ -219,19 +211,19 @@ static void gen_sccp_timer_cmd_strs(struct cmd_element *cmd)
 			     "Configure SCCP timer values, see ITU-T Q.714\n");
 
 	for (i = 0; osmo_sccp_timer_names[i].str; i++) {
-		const struct osmo_sccp_timer_val *def;
+		const struct osmo_tdef *def;
 		enum osmo_sccp_timer timer;
 
 		timer = osmo_sccp_timer_names[i].value;
-		def = &osmo_sccp_timer_defaults[timer];
-		OSMO_ASSERT(timer >= 0 && timer < OSMO_SCCP_TIMERS_COUNT);
+		def = osmo_tdef_get_entry((struct osmo_tdef *)&osmo_sccp_timer_defaults, timer);
+		OSMO_ASSERT(def);
 
 		osmo_talloc_asprintf(tall_vty_ctx, cmd_str, "%s%s",
 				     i ? "|" : "",
-				     osmo_sccp_timer_name(timer));
-		osmo_talloc_asprintf(tall_vty_ctx, doc_str, "%s (default: %s)\n",
-				     osmo_sccp_timer_description(timer),
-				     osmo_sccp_timer_val_name(def));
+				     osmo_sccp_timer_names[i].str);
+		osmo_talloc_asprintf(tall_vty_ctx, doc_str, "%s (default: %lu)\n",
+				     def->desc,
+				     def->default_val);
 	}
 
 	osmo_talloc_asprintf(tall_vty_ctx, cmd_str, ") <1-999999>");
@@ -247,12 +239,14 @@ static void write_sccp_timers(struct vty *vty, const char *indent,
 {
 	int i;
 
-	for (i = 0; i < ARRAY_SIZE(inst->timers); i++) {
-		const struct osmo_sccp_timer_val *val = osmo_sccp_timer_get(inst, i, default_if_unset);
-		if (!val)
+	for (i = 0; osmo_sccp_timer_names[i].str; i++) {
+		const struct osmo_tdef *tdef = osmo_tdef_get_entry(inst->tdefs, osmo_sccp_timer_names[i].value);
+		if (!tdef)
 			continue;
-		vty_out(vty, "%ssccp-timer %s %s%s", indent, osmo_sccp_timer_name(i),
-			osmo_sccp_timer_val_name(val), VTY_NEWLINE);
+		if (!default_if_unset && tdef->val == tdef->default_val)
+			continue;
+		vty_out(vty, "%ssccp-timer %s %lu%s", indent, osmo_sccp_timer_names[i].str,
+			tdef->val, VTY_NEWLINE);
 	}
 }
 

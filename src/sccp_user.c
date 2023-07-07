@@ -238,6 +238,10 @@ osmo_sccp_instance_create(struct osmo_ss7_instance *ss7, void *priv)
 	inst->ss7_user.priv = inst;
 	inst->max_optional_data = SCCP_MAX_OPTIONAL_DATA;
 
+	inst->tdefs = talloc_memdup(inst, osmo_sccp_timer_defaults,
+				    sizeof(osmo_sccp_timer_defaults));
+	osmo_tdefs_reset(inst->tdefs);
+
 	rc = sccp_scmg_init(inst);
 	if (rc < 0) {
 		talloc_free(inst);

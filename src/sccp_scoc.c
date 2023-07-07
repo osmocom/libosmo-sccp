@@ -234,6 +234,31 @@ static const struct osmo_prim_event_map scu_scoc_event_map[] = {
  * Timer Handling
  ***********************************************************************/
 
+/* Mostly pasted from Appendix C.4 of ITU-T Q.714 (05/2001) -- some of their descriptions are quite
+ * unintelligible out of context, for which we have our own description here. */
+const struct osmo_tdef osmo_sccp_timer_defaults[OSMO_SCCP_TIMERS_LEN] = {
+	{ .T = OSMO_SCCP_TIMER_CONN_EST,	.default_val = 1*60,	.unit = OSMO_TDEF_S,
+	  .desc = "Waiting for connection confirm message, 1 to 2 minutes" },
+	{ .T = OSMO_SCCP_TIMER_IAS,		.default_val = 7*60,	.unit = OSMO_TDEF_S,
+	  .desc = "Send keep-alive: on an idle connection, delay before sending an Idle Timer message, 5 to 10 minutes" }, /* RFC 3868 Ch. 8. */
+	{ .T = OSMO_SCCP_TIMER_IAR,		.default_val = 15*60,	.unit = OSMO_TDEF_S,
+	  .desc = "Receive keep-alive: on an idle connection, delay until considering a connection as stale, 11 to 21 minutes" }, /* RFC 3868 Ch. 8. */
+	{ .T = OSMO_SCCP_TIMER_REL,		.default_val = 10,	.unit = OSMO_TDEF_S,
+	  .desc = "Waiting for release complete message, 10 to 20 seconds" },
+	{ .T = OSMO_SCCP_TIMER_REPEAT_REL,	.default_val = 10,	.unit = OSMO_TDEF_S,
+	  .desc = "Waiting for release complete message; or to repeat sending released message after the initial expiry, 10 to 20 seconds" },
+	{ .T = OSMO_SCCP_TIMER_INT,		.default_val = 1*60,	.unit = OSMO_TDEF_S,
+	  .desc = "Waiting for release complete message; or to release connection resources, freeze the LRN and "
+		  "alert a maintenance function after the initial expiry, extending to 1 minute" },
+	{ .T = OSMO_SCCP_TIMER_GUARD,		.default_val = 23*60,	.unit = OSMO_TDEF_S,
+	  .desc = "Waiting to resume normal procedure for temporary connection sections during the restart procedure, 23 to 25 minutes" },
+	{ .T = OSMO_SCCP_TIMER_RESET,		.default_val = 10,	.unit = OSMO_TDEF_S,
+	  .desc = "Waiting to release temporary connection section or alert maintenance function after reset request message is sent, 10 to 20 seconds" },
+	{ .T = OSMO_SCCP_TIMER_REASSEMBLY,	.default_val = 10,	.unit = OSMO_TDEF_S,
+	  .desc = "Waiting to receive all the segments of the remaining segments, single segmented message after receiving the first segment, 10 to 20 seconds" },
+	{}
+};
+
 /* Appendix C.4 of ITU-T Q.714 */
 const struct value_string osmo_sccp_timer_names[] = {
 	{ OSMO_SCCP_TIMER_CONN_EST, "conn_est" },
@@ -248,93 +273,16 @@ const struct value_string osmo_sccp_timer_names[] = {
 	{}
 };
 
-/* Mostly pasted from Appendix C.4 of ITU-T Q.714 (05/2001) -- some of their descriptions are quite
- * unintelligible out of context, for which we have our own description here. */
-const struct value_string osmo_sccp_timer_descriptions[] = {
-	{ OSMO_SCCP_TIMER_CONN_EST,
-	  "Waiting for connection confirm message, 1 to 2 minutes" },
-	{ OSMO_SCCP_TIMER_IAS,
-	  "Send keep-alive: on an idle connection, delay before sending an Idle Timer message,"
-	  " 5 to 10 minutes" },
-	{ OSMO_SCCP_TIMER_IAR,
-	  "Receive keep-alive: on an idle connection, delay until considering a connection as stale,"
-	  " 11 to 21 minutes" },
-	{ OSMO_SCCP_TIMER_REL,
-	  "Waiting for release complete message, 10 to 20 seconds" },
-	{ OSMO_SCCP_TIMER_REPEAT_REL,
-	  "Waiting for release complete message; or to repeat sending released message after the initial"
-	  " expiry, 10 to 20 seconds" },
-	{ OSMO_SCCP_TIMER_INT,
-	  "Waiting for release complete message; or to release connection resources, freeze the LRN and"
-	  " alert a maintenance function after the initial expiry, extending to 1 minute" },
-	{ OSMO_SCCP_TIMER_GUARD,
-	  "Waiting to resume normal procedure for temporary connection sections during the restart"
-	  " procedure, 23 to 25 minutes" },
-	{ OSMO_SCCP_TIMER_RESET,
-	  "Waiting to release temporary connection section or alert maintenance function after reset"
-	  " request message is sent, 10 to 20 seconds" },
-	{ OSMO_SCCP_TIMER_REASSEMBLY,
-	  "Waiting to receive all the segments of the remaining segments, single segmented message after"
-	  " receiving the first segment, 10 to 20 seconds" },
-	{}
-};
-
-/* Appendix C.4 of ITU-T Q.714 */
-const struct osmo_sccp_timer_val osmo_sccp_timer_defaults[] = {
-	[OSMO_SCCP_TIMER_CONN_EST]	= { .s =  1 * 60, },
-	[OSMO_SCCP_TIMER_IAS]		= { .s =  7 * 60, }, /* RFC 3868 Ch. 8. */
-	[OSMO_SCCP_TIMER_IAR]		= { .s = 15 * 60, }, /* RFC 3868 Ch. 8. */
-	[OSMO_SCCP_TIMER_REL]		= { .s =      10, },
-	[OSMO_SCCP_TIMER_REPEAT_REL]	= { .s =      10, },
-	[OSMO_SCCP_TIMER_INT]		= { .s =  1 * 60, },
-	[OSMO_SCCP_TIMER_GUARD]		= { .s = 23 * 60, },
-	[OSMO_SCCP_TIMER_RESET]		= { .s =      10, },
-	[OSMO_SCCP_TIMER_REASSEMBLY]	= { .s =      10, },
-};
-
-osmo_static_assert(ARRAY_SIZE(osmo_sccp_timer_defaults) == OSMO_SCCP_TIMERS_COUNT,
+osmo_static_assert(ARRAY_SIZE(osmo_sccp_timer_defaults) == (OSMO_SCCP_TIMERS_LEN) &&
+		   ARRAY_SIZE(osmo_sccp_timer_names) == (OSMO_SCCP_TIMERS_LEN),
 		   assert_osmo_sccp_timers_count);
-
-/* Look up an SCCP timer value as configured in the osmo_ss7_instance.
- * If no user defined value is set, return the global default from osmo_sccp_timer_defaults instead.
- * However, if default_if_unset is passed false, return NULL in case there is no user defined setting, or
- * in case it is identical to the global default. */
-const struct osmo_sccp_timer_val *osmo_sccp_timer_get(const struct osmo_sccp_instance *inst,
-						      enum osmo_sccp_timer timer,
-						      bool default_if_unset)
-{
-	const struct osmo_sccp_timer_val *val;
-	const struct osmo_sccp_timer_val *def;
-
-	OSMO_ASSERT(timer >= 0
-		    && timer < ARRAY_SIZE(inst->timers)
-		    && timer < ARRAY_SIZE(osmo_sccp_timer_defaults));
-
-	val = &inst->timers[timer];
-	def = &osmo_sccp_timer_defaults[timer];
-
-	/* Assert that all timer definitions have a sane global default */
-	OSMO_ASSERT(def->s || def->us);
-
-	if (val->s || val->us) {
-		if (!default_if_unset && val->s == def->s && val->us == def->us)
-			return NULL;
-		return val;
-	}
-
-	if (!default_if_unset)
-		return NULL;
-
-	/* If unset, use the global default. */
-	return def;
-}
 
 static void sccp_timer_schedule(const struct sccp_connection *conn,
 				struct osmo_timer_list *timer,
 				enum osmo_sccp_timer timer_name)
 {
-	const struct osmo_sccp_timer_val *val = osmo_sccp_timer_get(conn->inst, timer_name, true);
-	osmo_timer_schedule(timer, val->s, val->us);
+	const unsigned long val_sec = osmo_tdef_get(conn->inst->tdefs, timer_name, OSMO_TDEF_S, -1);
+	osmo_timer_schedule(timer, val_sec, 0);
 }
 
 /* T(ias) has expired, send a COIT message to the peer */
