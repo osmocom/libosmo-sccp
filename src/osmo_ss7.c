@@ -1521,6 +1521,31 @@ osmo_ss7_asp_find(struct osmo_ss7_instance *inst, const char *name,
 	return asp;
 }
 
+static struct osmo_ss7_asp *
+osmo_ss7_asp_alloc(struct osmo_ss7_instance *inst, const char *name,
+		   uint16_t remote_port, uint16_t local_port,
+		   enum osmo_ss7_asp_protocol proto)
+{
+	struct osmo_ss7_asp *asp = talloc_zero(inst, struct osmo_ss7_asp);
+	asp->ctrg = rate_ctr_group_alloc(asp, &ss7_asp_rcgd, g_ss7_asp_rcg_idx++);
+	if (!asp->ctrg) {
+		talloc_free(asp);
+		return NULL;
+	}
+	rate_ctr_group_set_name(asp->ctrg, name);
+	asp->inst = inst;
+	asp->cfg.remote.port = remote_port;
+	asp->cfg.local.port = local_port;
+	asp->cfg.proto = proto;
+	asp->cfg.name = talloc_strdup(asp, name);
+	llist_add_tail(&asp->list, &inst->asp_list);
+
+	/* The SUA code internally needs SCCP to work */
+	if (proto == OSMO_SS7_ASP_PROT_SUA)
+		osmo_ss7_ensure_sccp(inst);
+	return asp;
+}
+
 struct osmo_ss7_asp *
 osmo_ss7_asp_find_or_create(struct osmo_ss7_instance *inst, const char *name,
 			    uint16_t remote_port, uint16_t local_port,
@@ -1530,34 +1555,15 @@ osmo_ss7_asp_find_or_create(struct osmo_ss7_instance *inst, const char *name,
 
 	OSMO_ASSERT(ss7_initialized);
 	asp = osmo_ss7_asp_find_by_name(inst, name);
-
-	if (asp && (asp->cfg.remote.port != remote_port ||
+	if (asp) {
+		if (asp->cfg.remote.port != remote_port ||
 		    asp->cfg.local.port != local_port ||
-		    asp->cfg.proto != proto))
-		return NULL;
-
-	if (!asp) {
-		/* FIXME: check if local port has SCTP? */
-		asp = talloc_zero(inst, struct osmo_ss7_asp);
-		asp->ctrg = rate_ctr_group_alloc(asp, &ss7_asp_rcgd, g_ss7_asp_rcg_idx++);
-		if (!asp->ctrg) {
-			talloc_free(asp);
+		    asp->cfg.proto != proto)
 			return NULL;
-		}
-		rate_ctr_group_set_name(asp->ctrg, name);
-		asp->inst = inst;
-		asp->cfg.remote.port = remote_port;
-		asp->cfg.local.port = local_port;
-		asp->cfg.proto = proto;
-		asp->cfg.name = talloc_strdup(asp, name);
-		llist_add_tail(&asp->list, &inst->asp_list);
-
-		/* The SUA code internally needs SCCP to work */
-		if (proto == OSMO_SS7_ASP_PROT_SUA)
-			osmo_ss7_ensure_sccp(inst);
-
+		return asp;
 	}
-	return asp;
+
+	return osmo_ss7_asp_alloc(inst, name, remote_port, local_port, proto);
 }
 
 void osmo_ss7_asp_destroy(struct osmo_ss7_asp *asp)
