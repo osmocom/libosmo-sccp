@@ -366,6 +366,8 @@ struct osmo_ss7_asp_peer {
 	char *host[OSMO_SOCK_MAX_ADDRS];
 	size_t host_cnt;
 	uint16_t port;
+	/* index in "hosts" array marking the SCTP Primary Address, -1 if no explicit Primary Address set */
+	int idx_primary;
 };
 
 enum osmo_ss7_asp_admin_state {
@@ -451,9 +453,13 @@ struct osmo_ss7_asp {
 #define OSMO_SS7_ASP_QUIRK_SNM_INACTIVE		0x00000004
 
 int osmo_ss7_asp_peer_snprintf(char* buf, size_t buf_len, struct osmo_ss7_asp_peer *peer);
+void osmo_ss7_asp_peer_init(struct osmo_ss7_asp_peer *peer);
 int osmo_ss7_asp_peer_set_hosts(struct osmo_ss7_asp_peer *peer, void *talloc_ctx,
 				const char *const*hosts, size_t host_cnt);
+int osmo_ss7_asp_peer_set_hosts2(struct osmo_ss7_asp_peer *peer, void *talloc_ctx,
+				const char *const*hosts, size_t host_cnt, int idx_primary);
 int osmo_ss7_asp_peer_add_host(struct osmo_ss7_asp_peer *peer, void *talloc_ctx, const char *host);
+int osmo_ss7_asp_peer_add_host2(struct osmo_ss7_asp_peer *peer, void *talloc_ctx, const char *host, bool is_primary_addr);
 
 struct osmo_ss7_asp *
 osmo_ss7_asp_find_by_name(struct osmo_ss7_instance *inst, const char *name);

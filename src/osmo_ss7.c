@@ -125,6 +125,59 @@ static uint32_t find_free_l_rk_id(struct osmo_ss7_instance *inst)
 	return -1;
 }
 
+static int _setsockopt_peer_primary_addr(int fd, const struct osmo_sockaddr *saddr)
+{
+	int rc;
+
+	struct sctp_setpeerprim so_sctp_setpeerprim = {0};
+
+	/* rfc6458 sec 8: "For the one-to-one style sockets and branched-off one-to-many
+	 * style sockets (see Section 9.2), this association ID parameter is ignored"
+	 */
+
+	/* NOTE: Requires setting:
+	 * - sysctl net.sctp.addip_enable = 1, otherwise EPERM is returned
+	 * - sysctl net.sctp.auth_enable = 1, RFC 5061 4.2.7 "An implementation supporting this
+	 *   extension MUST list the ASCONF,the ASCONF-ACK, and the AUTH chunks in
+	 *   its INIT and INIT-ACK parameters."
+	 */
+
+	so_sctp_setpeerprim.sspp_addr = saddr->u.sas;
+	rc = setsockopt(fd, IPPROTO_SCTP, SCTP_SET_PEER_PRIMARY_ADDR,
+			&so_sctp_setpeerprim, sizeof(so_sctp_setpeerprim));
+	if (rc < 0) {
+		char buf[128];
+		int err = errno;
+		strerror_r(err, (char *)buf, sizeof(buf));
+		LOGP(DLSS7, LOGL_ERROR, "setsockopt(SCTP_SET_PEER_PRIMARY_ADDR, %s) failed: %s%s\n",
+		     osmo_sockaddr_to_str(saddr), buf,
+		     err == EPERM ? " (EPERM: Make sure you have sysctl 'net.sctp.auth_enable' "
+				    "and 'net.sctp.addip_enable' set to 1)" : "");
+	}
+	return rc;
+}
+
+static int _setsockopt_primary_addr(int fd, const struct osmo_sockaddr *saddr)
+{
+	int rc;
+
+	struct sctp_prim so_sctp_prim = {0};
+
+	/* rfc6458 sec 8: "For the one-to-one style sockets and branched-off one-to-many
+	 * style sockets (see Section 9.2), this association ID parameter is ignored"
+	 */
+
+	so_sctp_prim.ssp_addr = saddr->u.sas;
+	rc = setsockopt(fd, IPPROTO_SCTP, SCTP_PRIMARY_ADDR,
+			&so_sctp_prim, sizeof(so_sctp_prim));
+	if (rc < 0) {
+		char buf[128];
+		strerror_r(errno, (char *)buf, sizeof(buf));
+		LOGP(DLSS7, LOGL_ERROR, "setsockopt(SCTP_PRIMARY_ADDR, %s) failed: %s\n",
+		     osmo_sockaddr_to_str(saddr), buf);
+	}
+	return rc;
+}
 
 /***********************************************************************
  * SS7 Point Code Parsing / Printing
@@ -1179,11 +1232,18 @@ static const struct rate_ctr_group_desc ss7_asp_rcgd = {
 };
 static unsigned int g_ss7_asp_rcg_idx;
 
+void osmo_ss7_asp_peer_init(struct osmo_ss7_asp_peer *peer)
+{
+	memset(peer, 0, sizeof(*peer));
+	peer->idx_primary = -1;
+}
+
 int osmo_ss7_asp_peer_snprintf(char* buf, size_t buf_len, struct osmo_ss7_asp_peer *peer)
 {
 	int len = 0, offset = 0, rem = buf_len;
 	int ret, i;
 	char *after;
+	char *primary;
 
 	if (buf_len < 3)
 		return -EINVAL;
@@ -1195,11 +1255,12 @@ int osmo_ss7_asp_peer_snprintf(char* buf, size_t buf_len, struct osmo_ss7_asp_pe
 		OSMO_SNPRINTF_RET(ret, rem, offset, len);
 	}
 	for (i = 0; i < peer->host_cnt; i++) {
+		primary = (peer->idx_primary == i) ? "*" : "";
 		if (peer->host_cnt == 1)
 			after = "";
 		else
 			after = (i == (peer->host_cnt - 1)) ? ")" : "|";
-		ret = snprintf(buf + offset, rem, "%s%s", peer->host[i] ? : "0.0.0.0", after);
+		ret = snprintf(buf + offset, rem, "%s%s%s", peer->host[i] ? : "0.0.0.0", primary, after);
 		OSMO_SNPRINTF_RET(ret, rem, offset, len);
 	}
 	ret = snprintf(buf + offset, rem, ":%u", peer->port);
@@ -1215,10 +1276,14 @@ int osmo_ss7_asp_peer_snprintf(char* buf, size_t buf_len, struct osmo_ss7_asp_pe
  *  \param[in] talloc_ctx talloc context used to allocate new addresses.
  *  \param[in] hosts Array of strings containing IP addresses.
  *  \param[in] host_cnt Number of strings in hosts
+ *  \param[in] idx_primary Index in "hosts" array marking the SCTP Primary Address, -1 if no explicit Primary Address set
  *  \returns 0 on success; negative otherwise */
-int osmo_ss7_asp_peer_set_hosts(struct osmo_ss7_asp_peer *peer, void *talloc_ctx, const char *const*hosts, size_t host_cnt)
+int osmo_ss7_asp_peer_set_hosts2(struct osmo_ss7_asp_peer *peer, void *talloc_ctx, const char *const*hosts, size_t host_cnt, int idx_primary)
 {
 	int i = 0;
+
+	if (idx_primary >= (int)host_cnt || idx_primary < -1)
+		return -EINVAL;
 
 	if (host_cnt > ARRAY_SIZE(peer->host))
 		return -EINVAL;
@@ -1231,7 +1296,19 @@ int osmo_ss7_asp_peer_set_hosts(struct osmo_ss7_asp_peer *peer, void *talloc_ctx
 	}
 
 	peer->host_cnt = host_cnt;
+	peer->idx_primary = idx_primary;
 	return 0;
+}
+
+/*! \brief Set (copy) addresses for a given ASP peer. Previous addresses are freed.
+ *  \param[in] peer Application Server Process peer whose addresses are to be set.
+ *  \param[in] talloc_ctx talloc context used to allocate new addresses.
+ *  \param[in] hosts Array of strings containing IP addresses.
+ *  \param[in] host_cnt Number of strings in hosts
+ *  \returns 0 on success; negative otherwise */
+int osmo_ss7_asp_peer_set_hosts(struct osmo_ss7_asp_peer *peer, void *talloc_ctx, const char *const*hosts, size_t host_cnt)
+{
+	return osmo_ss7_asp_peer_set_hosts2(peer, talloc_ctx, hosts, host_cnt, -1);
 }
 
 /* Is string formatted IPv4/v6 addr considered IN(6)ADDR_ANY? */
@@ -1247,36 +1324,158 @@ static inline bool host_is_ip_anyaddr(const char *host, bool is_v6)
 /*! \brief Append (copy) address to a given ASP peer. Previous addresses are kept.
  *  \param[in] peer Application Server Process peer the address is appended to.
  *  \param[in] talloc_ctx talloc context used to allocate new address.
- *  \param[in] host string containing an IP addresses.
+ *  \param[in] host string containing an IP address.
+ *  \param[in] is_primary_addr whether this IP address is to be added as SCTP Primary Address
  *  \returns 0 on success; negative otherwise */
-int osmo_ss7_asp_peer_add_host(struct osmo_ss7_asp_peer *peer, void *talloc_ctx, const char *host)
+int osmo_ss7_asp_peer_add_host2(struct osmo_ss7_asp_peer *peer, void *talloc_ctx,
+			       const char *host, bool is_primary_addr)
 {
 	int i;
 	bool new_is_v6 = osmo_ip_str_type(host) == AF_INET6;
 	bool new_is_any = host_is_ip_anyaddr(host, new_is_v6);
-	bool iter_is_v6;
+	struct osmo_sockaddr_str addr_str;
+
+	if (osmo_sockaddr_str_from_str(&addr_str, host, 0) < 0)
+		return -EINVAL;
+
+	if (new_is_any) {
+		/* Makes no sense to have INET(6)_ANY many times, or INET(6)_ANY
+		 * together with specific addresses, be it of same or different
+		 * IP version: */
+		if (peer->host_cnt != 0)
+			return -EINVAL;
+
+		/* Makes no sense to have INET(6)_ANY as primary: */
+		if (is_primary_addr)
+			return -EINVAL;
+
+		if (peer->host_cnt >= ARRAY_SIZE(peer->host))
+			return -EINVAL;
+		osmo_talloc_replace_string(talloc_ctx, &peer->host[peer->host_cnt], host);
+		peer->host_cnt++;
+		return 0;
+	}
+
+	/* Makes no sense to add specific address to set if INET(6)_ANY
+	 * is already set, be it from same or different IP version: */
+	for (i = 0; i < peer->host_cnt; i++) {
+		bool iter_is_v6 = osmo_ip_str_type(peer->host[i]) == AF_INET6;
+		if (host_is_ip_anyaddr(peer->host[i], iter_is_v6))
+			return -EINVAL;
+	}
+	/* Reached this point, no INET(6)_ANY address is set nor we are adding an INET(6)_ANY address. */
+
+	/* Check if address already exists, and then if primary flags need to be changed: */
+	for (i = 0; i < peer->host_cnt; i++) {
+		struct osmo_sockaddr_str it_addr_str;
+		bool it_is_primary;
+		osmo_sockaddr_str_from_str(&it_addr_str, peer->host[i], 0);
+
+		if (osmo_sockaddr_str_cmp(&addr_str, &it_addr_str) != 0)
+			continue;
+		it_is_primary = (peer->idx_primary == i);
+		if (is_primary_addr == it_is_primary) {
+			/* Nothing to do, return below */
+		} else if (is_primary_addr && !it_is_primary) {
+			/* Mark it as primary: */
+			peer->idx_primary = i;
+		} else { /* if (!is_primary_addr && it_is_primary) { */
+			/* mark it as non-primary: */
+			peer->idx_primary = -1;
+		}
+		return 0;
+	}
 
 	if (peer->host_cnt >= ARRAY_SIZE(peer->host))
 		return -EINVAL;
 
-	/* Makes no sense to have INET(6)_ANY many times, or INET(6)_ANY
-	   together with specific addresses, be it of same or different
-	   IP version:*/
-	if (new_is_any && peer->host_cnt != 0)
-		return -EINVAL;
-
-	if (!new_is_any) {
-		/* Makes no sense to add specific address to set if INET(6)_ANY
-		   is already set, be it from same or different IP version: */
-		for (i = 0; i < peer->host_cnt; i++) {
-				iter_is_v6 = osmo_ip_str_type(peer->host[i]) == AF_INET6;
-				if (host_is_ip_anyaddr(peer->host[i], iter_is_v6))
-					return -EINVAL;
-		}
-	}
 	osmo_talloc_replace_string(talloc_ctx, &peer->host[peer->host_cnt], host);
+	if (is_primary_addr)
+		peer->idx_primary = peer->host_cnt;
 	peer->host_cnt++;
 	return 0;
+}
+
+/*! \brief Append (copy) address to a given ASP peer. Previous addresses are kept.
+ *  \param[in] peer Application Server Process peer the address is appended to.
+ *  \param[in] talloc_ctx talloc context used to allocate new address.
+ *  \param[in] host string containing an IP address.
+ *  \returns 0 on success; negative otherwise */
+int osmo_ss7_asp_peer_add_host(struct osmo_ss7_asp_peer *peer, void *talloc_ctx,
+			       const char *host)
+{
+	return osmo_ss7_asp_peer_add_host2(peer, talloc_ctx, host, false);
+}
+
+static int asp_apply_peer_primary_address(const struct osmo_ss7_asp *asp)
+{
+	struct osmo_fd *ofd;
+	struct osmo_sockaddr_str addr_str;
+	struct osmo_sockaddr addr;
+	uint16_t local_port;
+	int rc;
+
+	/* No SCTP Peer Primary Address explicitly configured, do nothing. */
+	if (asp->cfg.local.idx_primary == -1)
+		return 0;
+	OSMO_ASSERT(asp->cfg.local.idx_primary < asp->cfg.local.host_cnt);
+
+	if (asp->cfg.is_server)
+		ofd = osmo_stream_srv_get_ofd(asp->server);
+	else
+		ofd = osmo_stream_cli_get_ofd(asp->client);
+
+	if (asp->cfg.local.port == 0) {
+		char port_buf[16];
+		osmo_sock_get_local_ip_port(ofd->fd, port_buf, sizeof(port_buf));
+		local_port = atoi(port_buf);
+	} else {
+		local_port = asp->cfg.local.port;
+	}
+	rc = osmo_sockaddr_str_from_str(&addr_str,
+					asp->cfg.local.host[asp->cfg.local.idx_primary],
+					local_port);
+	if (rc < 0)
+		return rc;
+	rc = osmo_sockaddr_str_to_sockaddr(&addr_str, &addr.u.sas);
+	if (rc < 0)
+		return rc;
+	LOGPASP(asp, DLSS7, LOGL_INFO, "Set Peer's Primary Address %s\n",
+		osmo_sockaddr_to_str(&addr));
+	rc = _setsockopt_peer_primary_addr(ofd->fd, &addr);
+
+	return rc;
+}
+
+static int asp_apply_primary_address(const struct osmo_ss7_asp *asp)
+{
+	struct osmo_fd *ofd;
+	struct osmo_sockaddr_str addr_str;
+	struct osmo_sockaddr addr;
+	int rc;
+
+	/* No SCTP Primary Address explicitly configured, do nothing. */
+	if (asp->cfg.remote.idx_primary == -1)
+		return 0;
+	OSMO_ASSERT(asp->cfg.remote.idx_primary < asp->cfg.remote.host_cnt);
+
+	if (asp->cfg.is_server)
+		ofd = osmo_stream_srv_get_ofd(asp->server);
+	else
+		ofd = osmo_stream_cli_get_ofd(asp->client);
+
+	rc = osmo_sockaddr_str_from_str(&addr_str,
+					asp->cfg.remote.host[asp->cfg.remote.idx_primary],
+					asp->cfg.remote.port);
+	if (rc < 0)
+		return rc;
+	rc = osmo_sockaddr_str_to_sockaddr(&addr_str, &addr.u.sas);
+	if (rc < 0)
+		return rc;
+	LOGPASP(asp, DLSS7, LOGL_INFO, "Set Primary Address %s\n",
+		osmo_sockaddr_to_str(&addr));
+	rc = _setsockopt_primary_addr(ofd->fd, &addr);
+	return rc;
 }
 
 static bool ipv6_sctp_supported(const char *host, bool bind)
@@ -1534,7 +1733,9 @@ osmo_ss7_asp_alloc(struct osmo_ss7_instance *inst, const char *name,
 	}
 	rate_ctr_group_set_name(asp->ctrg, name);
 	asp->inst = inst;
+	osmo_ss7_asp_peer_init(&asp->cfg.remote);
 	asp->cfg.remote.port = remote_port;
+	osmo_ss7_asp_peer_init(&asp->cfg.local);
 	asp->cfg.local.port = local_port;
 	asp->cfg.proto = proto;
 	asp->cfg.name = talloc_strdup(asp, name);
@@ -1849,12 +2050,22 @@ static int xua_cli_connect_cb(struct osmo_stream_cli *cli)
 {
 	struct osmo_fd *ofd = osmo_stream_cli_get_ofd(cli);
 	struct osmo_ss7_asp *asp = osmo_stream_cli_get_data(cli);
+	int rc = 0;
 
 	/* update the socket name */
 	talloc_free(asp->sock_name);
 	asp->sock_name = osmo_sock_get_name(asp, ofd->fd);
 
 	LOGPASP(asp, DLSS7, LOGL_INFO, "Client connected %s\n", asp->sock_name);
+
+	/* Now that we have the conn in place, the local/remote addresses are
+	 * fed and the local port is known for sure. Apply SCTP Primary addresses
+	 * if needed:
+	 */
+	if (asp->cfg.proto != OSMO_SS7_ASP_PROT_IPA) {
+		rc = asp_apply_peer_primary_address(asp);
+		rc = asp_apply_primary_address(asp);
+	}
 
 	if (asp->lm && asp->lm->prim_cb) {
 		/* Notify layer manager that a connection has been
@@ -1865,7 +2076,7 @@ static int xua_cli_connect_cb(struct osmo_stream_cli *cli)
 		osmo_fsm_inst_dispatch(asp->fi, XUA_ASP_E_M_ASP_UP_REQ, NULL);
 	}
 
-	return 0;
+	return rc;
 }
 
 static void xua_cli_close(struct osmo_stream_cli *cli)
@@ -2016,6 +2227,7 @@ static int xua_accept_cb(struct osmo_stream_srv_link *link, int fd)
 	struct osmo_ss7_asp *asp;
 	char *sock_name = osmo_sock_get_name(link, fd);
 	const char *proto_name = get_value_string(osmo_ss7_asp_protocol_vals, oxs->cfg.proto);
+	int rc = 0;
 
 	LOGP(DLSS7, LOGL_INFO, "%s: New %s connection accepted\n", sock_name, proto_name);
 
@@ -2105,11 +2317,16 @@ static int xua_accept_cb(struct osmo_stream_srv_link *link, int fd)
 	 * data */
 	osmo_stream_srv_set_data(srv, asp);
 
+	if (oxs->cfg.proto != OSMO_SS7_ASP_PROT_IPA) {
+		rc = asp_apply_peer_primary_address(asp);
+		rc = asp_apply_primary_address(asp);
+	}
+
 	/* send M-SCTP_ESTABLISH.ind to Layer Manager */
 	osmo_fsm_inst_dispatch(asp->fi, XUA_ASP_E_SCTP_EST_IND, 0);
 	xua_asp_send_xlm_prim_simple(asp, OSMO_XLM_PRIM_M_SCTP_ESTABLISH, PRIM_OP_INDICATION);
 
-	return 0;
+	return rc;
 }
 
 /*! \brief send a fully encoded msgb via a given ASP

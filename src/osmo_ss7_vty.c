@@ -656,14 +656,17 @@ DEFUN_ATTR(no_cs7_asp, no_cs7_asp_cmd,
 }
 
 DEFUN_ATTR(asp_local_ip, asp_local_ip_cmd,
-	   "local-ip " VTY_IPV46_CMD,
+	   "local-ip " VTY_IPV46_CMD " [primary]",
 	   "Specify Local IP Address from which to contact ASP\n"
 	   "Local IPv4 Address from which to contact of ASP\n"
-	   "Local IPv6 Address from which to contact of ASP\n",
+	   "Local IPv6 Address from which to contact of ASP\n"
+	   "Signal the SCTP peer to use this address as Primary Address\n",
 	   CMD_ATTR_NODE_EXIT)
 {
 	struct osmo_ss7_asp *asp = vty->index;
-	if (osmo_ss7_asp_peer_add_host(&asp->cfg.local, asp, argv[0]) != 0) {
+	bool is_primary = argc > 1;
+
+	if (osmo_ss7_asp_peer_add_host2(&asp->cfg.local, asp, argv[0], is_primary) != 0) {
 		vty_out(vty, "%% Failed adding host '%s' to set%s", argv[0], VTY_NEWLINE);
 		return CMD_WARNING;
 	}
@@ -671,14 +674,17 @@ DEFUN_ATTR(asp_local_ip, asp_local_ip_cmd,
 }
 
 DEFUN_ATTR(asp_remote_ip, asp_remote_ip_cmd,
-	   "remote-ip " VTY_IPV46_CMD,
+	   "remote-ip " VTY_IPV46_CMD " [primary]",
 	   "Specify Remote IP Address of ASP\n"
 	   "Remote IPv4 Address of ASP\n"
-	   "Remote IPv6 Address of ASP\n",
+	   "Remote IPv6 Address of ASP\n"
+	   "Set remote address as SCTP Primary Address\n",
 	   CMD_ATTR_NODE_EXIT)
 {
 	struct osmo_ss7_asp *asp = vty->index;
-	if (osmo_ss7_asp_peer_add_host(&asp->cfg.remote, asp, argv[0]) != 0) {
+	bool is_primary = argc > 1;
+
+	if (osmo_ss7_asp_peer_add_host2(&asp->cfg.remote, asp, argv[0], is_primary) != 0) {
 		vty_out(vty, "%% Failed adding host '%s' to set%s", argv[0], VTY_NEWLINE);
 		return CMD_WARNING;
 	}
@@ -937,11 +943,13 @@ static void write_one_asp(struct vty *vty, struct osmo_ss7_asp *asp, bool show_d
 		vty_out(vty, "  description %s%s", asp->cfg.description, VTY_NEWLINE);
 	for (i = 0; i < asp->cfg.local.host_cnt; i++) {
 		if (asp->cfg.local.host[i])
-			vty_out(vty, "  local-ip %s%s", asp->cfg.local.host[i], VTY_NEWLINE);
+			vty_out(vty, "  local-ip %s%s%s", asp->cfg.local.host[i],
+				asp->cfg.local.idx_primary == i ? " primary" : "", VTY_NEWLINE);
 	}
 	for (i = 0; i < asp->cfg.remote.host_cnt; i++) {
 		if (asp->cfg.remote.host[i])
-			vty_out(vty, "  remote-ip %s%s", asp->cfg.remote.host[i], VTY_NEWLINE);
+			vty_out(vty, "  remote-ip %s%s%s", asp->cfg.remote.host[i],
+				asp->cfg.remote.idx_primary == i ? " primary" : "", VTY_NEWLINE);
 	}
 	if (asp->cfg.qos_class)
 		vty_out(vty, "  qos-class %u%s", asp->cfg.qos_class, VTY_NEWLINE);

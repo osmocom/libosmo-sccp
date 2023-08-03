@@ -220,8 +220,8 @@ ss7_asp_vty_test(config-cs7)# asp my-asp 12345 54321 m3ua
 ss7_asp_vty_test(config-cs7-asp)# list
 ...
   description .TEXT
-  remote-ip (A.B.C.D|X:X::X:X)
-  local-ip (A.B.C.D|X:X::X:X)
+  remote-ip (A.B.C.D|X:X::X:X) [primary]
+  local-ip (A.B.C.D|X:X::X:X) [primary]
   qos-class <0-255>
   role (sg|asp|ipsp)
   sctp-role (client|server)
@@ -255,6 +255,40 @@ ss7_asp_vty_test(config-cs7-asp)# do show cs7 instance 0 asp
 ASP Name      AS Name       State          Type  Role  Remote IPaddr & Port     SCTP Role
 ------------  ------------  -------------  ----  ----  -----------------------  ---------
 my-asp        ?             uninitialized  m3ua  sg    (127.0.0.200|127.0.0.201):12345  server   
+ss7_asp_vty_test(config-cs7-asp)# ! Mark as primary:
+ss7_asp_vty_test(config-cs7-asp)# remote-ip 127.0.0.201 primary
+ss7_asp_vty_test(config-cs7-asp)# ! 'local-ip 127.0.0.101 primary' cannot be tested here since output may be different based on sysctl available
+ss7_asp_vty_test(config-cs7-asp)# local-ip 127.0.0.101
+...
+ss7_asp_vty_test(config-cs7-asp)# do show cs7 instance 0 asp
+                                                       Current Primary Link
+ASP Name      AS Name       State          Type  Role  Remote IPaddr & Port     SCTP Role
+------------  ------------  -------------  ----  ----  -----------------------  ---------
+my-asp        ?             uninitialized  m3ua  sg    (127.0.0.200|127.0.0.201*):12345  server   
+ss7_asp_vty_test(config-cs7-asp)# show running-config
+...
+  local-ip 127.0.0.100
+  local-ip 127.0.0.101
+  remote-ip 127.0.0.200
+  remote-ip 127.0.0.201 primary
+...
+end
+ss7_asp_vty_test(config-cs7-asp)# ! Mark as non-primary:
+ss7_asp_vty_test(config-cs7-asp)# remote-ip 127.0.0.201
+ss7_asp_vty_test(config-cs7-asp)# local-ip 127.0.0.101
+ss7_asp_vty_test(config-cs7-asp)# do show cs7 instance 0 asp
+                                                       Current Primary Link
+ASP Name      AS Name       State          Type  Role  Remote IPaddr & Port     SCTP Role
+------------  ------------  -------------  ----  ----  -----------------------  ---------
+my-asp        ?             uninitialized  m3ua  sg    (127.0.0.200|127.0.0.201):12345  server   
+ss7_asp_vty_test(config-cs7-asp)# show running-config
+...
+  local-ip 127.0.0.100
+  local-ip 127.0.0.101
+  remote-ip 127.0.0.200
+  remote-ip 127.0.0.201
+...
+end
 ss7_asp_vty_test(config-cs7-asp)# exit
 
 ss7_asp_vty_test(config-cs7)# as my-ass m3ua
