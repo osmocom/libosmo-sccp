@@ -1216,7 +1216,7 @@ int osmo_ss7_asp_peer_snprintf(char* buf, size_t buf_len, struct osmo_ss7_asp_pe
  *  \param[in] hosts Array of strings containing IP addresses.
  *  \param[in] host_cnt Number of strings in hosts
  *  \returns 0 on success; negative otherwise */
-int osmo_ss7_asp_peer_set_hosts(struct osmo_ss7_asp_peer *peer, void *talloc_ctx, const char* const* hosts, size_t host_cnt)
+int osmo_ss7_asp_peer_set_hosts(struct osmo_ss7_asp_peer *peer, void *talloc_ctx, const char *const*hosts, size_t host_cnt)
 {
 	int i = 0;
 

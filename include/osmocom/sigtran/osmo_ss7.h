@@ -452,7 +452,7 @@ struct osmo_ss7_asp {
 
 int osmo_ss7_asp_peer_snprintf(char* buf, size_t buf_len, struct osmo_ss7_asp_peer *peer);
 int osmo_ss7_asp_peer_set_hosts(struct osmo_ss7_asp_peer *peer, void *talloc_ctx,
-				const char* const* hosts, size_t host_cnt);
+				const char *const*hosts, size_t host_cnt);
 int osmo_ss7_asp_peer_add_host(struct osmo_ss7_asp_peer *peer, void *talloc_ctx, const char *host);
 
 struct osmo_ss7_asp *
