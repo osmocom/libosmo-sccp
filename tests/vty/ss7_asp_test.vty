@@ -248,6 +248,13 @@ ss7_asp_vty_test(config-cs7-asp)# do show cs7 instance 0 asp
 ASP Name      AS Name       State          Type  Role  Remote IPaddr & Port     SCTP Role
 ------------  ------------  -------------  ----  ----  -----------------------  ---------
 my-asp        ?             uninitialized  m3ua  sg    127.0.0.200:12345        server   
+ss7_asp_vty_test(config-cs7-asp)# remote-ip 127.0.0.201
+ss7_asp_vty_test(config-cs7-asp)# local-ip 127.0.0.101
+ss7_asp_vty_test(config-cs7-asp)# do show cs7 instance 0 asp
+                                                       Current Primary Link
+ASP Name      AS Name       State          Type  Role  Remote IPaddr & Port     SCTP Role
+------------  ------------  -------------  ----  ----  -----------------------  ---------
+my-asp        ?             uninitialized  m3ua  sg    (127.0.0.200|127.0.0.201):12345  server   
 ss7_asp_vty_test(config-cs7-asp)# exit
 
 ss7_asp_vty_test(config-cs7)# as my-ass m3ua
@@ -311,14 +318,14 @@ ss7_asp_vty_test(config-cs7-as)# do show cs7 instance 0 asp
                                                        Current Primary Link
 ASP Name      AS Name       State          Type  Role  Remote IPaddr & Port     SCTP Role
 ------------  ------------  -------------  ----  ----  -----------------------  ---------
-my-asp        my-ass        ASP_DOWN       m3ua  sg    127.0.0.200:12345        server   
+my-asp        my-ass        ASP_DOWN       m3ua  sg    (127.0.0.200|127.0.0.201):12345  server   
 
 ss7_asp_vty_test(config-cs7-as)# exit
 ss7_asp_vty_test(config-cs7)# do show cs7 instance 0 asp
                                                        Current Primary Link
 ASP Name      AS Name       State          Type  Role  Remote IPaddr & Port     SCTP Role
 ------------  ------------  -------------  ----  ----  -----------------------  ---------
-my-asp        my-ass        ASP_DOWN       m3ua  sg    127.0.0.200:12345        server   
+my-asp        my-ass        ASP_DOWN       m3ua  sg    (127.0.0.200|127.0.0.201):12345  server   
 
 ss7_asp_vty_test(config-cs7)# exit
 
@@ -327,7 +334,7 @@ ss7_asp_vty_test(config)# do show cs7 instance 0 asp
                                                        Current Primary Link
 ASP Name      AS Name       State          Type  Role  Remote IPaddr & Port     SCTP Role
 ------------  ------------  -------------  ----  ----  -----------------------  ---------
-my-asp        my-ass        ASP_DOWN       m3ua  sg    127.0.0.200:12345        server   
+my-asp        my-ass        ASP_DOWN       m3ua  sg    (127.0.0.200|127.0.0.201):12345  server   
 
 ss7_asp_vty_test(config)# do show cs7 instance 0 as all
                           Routing    Routing Key                          Cic   Cic   Traffic
@@ -342,7 +349,9 @@ ss7_asp_vty_test(config)# show running-config
 cs7 instance 0
  asp my-asp 12345 54321 m3ua
   local-ip 127.0.0.100
+  local-ip 127.0.0.101
   remote-ip 127.0.0.200
+  remote-ip 127.0.0.201
   role sg
   sctp-role server
  as my-ass m3ua
