@@ -1729,6 +1729,17 @@ static void log_sctp_notification(struct osmo_ss7_asp *asp, const char *pfx,
 		LOGPASP(asp, DLSS7, log_level, "%s SCTP_ASSOC_CHANGE: %s\n",
 			pfx, osmo_sctp_assoc_chg_str(notif->sn_assoc_change.sac_state));
 		break;
+	case SCTP_PEER_ADDR_CHANGE:
+		{
+		char addr_str[INET6_ADDRSTRLEN + 10];
+		struct sockaddr_storage sa = notif->sn_paddr_change.spc_aaddr;
+		osmo_sockaddr_to_str_buf(addr_str, sizeof(addr_str), (const struct osmo_sockaddr *)&sa);
+		LOGPASP(asp, DLSS7, log_level, "%s SCTP_PEER_ADDR_CHANGE: %s %s err=%s\n",
+			pfx, osmo_sctp_paddr_chg_str(notif->sn_paddr_change.spc_state), addr_str,
+			(notif->sn_paddr_change.spc_state == SCTP_ADDR_UNREACHABLE) ?
+			osmo_sctp_sn_error_str(notif->sn_paddr_change.spc_error) : "None");
+		}
+		break;
 	default:
 		LOGPASP(asp, DLSS7, log_level, "%s %s\n",
 			pfx, osmo_sctp_sn_type_str(notif->sn_header.sn_type));
