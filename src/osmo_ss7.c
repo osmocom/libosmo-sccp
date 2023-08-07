@@ -1781,22 +1781,43 @@ static int ipa_srv_conn_cb(struct osmo_stream_srv *conn)
 /* netif code tells us we can read something from the socket */
 static int xua_srv_conn_cb(struct osmo_stream_srv *conn)
 {
-	struct osmo_fd *ofd = osmo_stream_srv_get_ofd(conn);
 	struct osmo_ss7_asp *asp = osmo_stream_srv_get_data(conn);
 	struct msgb *msg = m3ua_msgb_alloc("xUA Server Rx");
-	struct sctp_sndrcvinfo sinfo;
 	unsigned int ppid;
-	int flags = 0;
+	int flags;
 	int rc;
 
 	if (!msg)
 		return -ENOMEM;
 
 	/* read xUA message from socket and process it */
-	rc = sctp_recvmsg(ofd->fd, msgb_data(msg), msgb_tailroom(msg),
-			  NULL, NULL, &sinfo, &flags);
+	rc = osmo_stream_srv_recv(conn, msg);
+	flags = msgb_sctp_msg_flags(msg);
+
 	LOGPASP(asp, DLSS7, LOGL_DEBUG, "%s(): sctp_recvmsg() returned %d (flags=0x%x)\n",
 		__func__, rc, flags);
+
+	if (flags & OSMO_STREAM_SCTP_MSG_FLAGS_NOTIFICATION) {
+		union sctp_notification *notif = (union sctp_notification *) msgb_data(msg);
+		log_sctp_notification(asp, "xUA CLNT", notif);
+
+		switch (notif->sn_header.sn_type) {
+		case SCTP_ASSOC_CHANGE:
+			if (notif->sn_assoc_change.sac_state == SCTP_RESTART)
+				xua_asp_send_xlm_prim_simple(asp, OSMO_XLM_PRIM_M_SCTP_RESTART,
+							     PRIM_OP_INDICATION);
+		default:
+			break;
+		}
+
+		if (rc == 0) {
+			osmo_stream_srv_destroy(conn);
+			rc = -EBADF;
+		} else {
+			rc = 0;
+		}
+		goto out;
+	}
 	if (rc < 0) {
 		osmo_stream_srv_destroy(conn);
 		rc = -EBADF;
@@ -1805,38 +1826,10 @@ static int xua_srv_conn_cb(struct osmo_stream_srv *conn)
 		osmo_stream_srv_destroy(conn);
 		rc = -EBADF;
 		goto out;
-	} else {
-		msgb_put(msg, rc);
 	}
 
-	if (flags & MSG_NOTIFICATION) {
-		union sctp_notification *notif = (union sctp_notification *) msgb_data(msg);
-
-		log_sctp_notification(asp, "xUA SRV", notif);
-
-		switch (notif->sn_header.sn_type) {
-		case SCTP_SHUTDOWN_EVENT:
-			osmo_stream_srv_destroy(conn);
-			rc = -EBADF;
-			break;
-		case SCTP_ASSOC_CHANGE:
-			if (notif->sn_assoc_change.sac_state == SCTP_RESTART)
-				xua_asp_send_xlm_prim_simple(asp, OSMO_XLM_PRIM_M_SCTP_RESTART,
-							     PRIM_OP_INDICATION);
-			rc = 0;
-			break;
-		default:
-			rc = 0;
-			break;
-		}
-		goto out;
-	}
-
-	ppid = ntohl(sinfo.sinfo_ppid);
-	msgb_sctp_ppid(msg) = ppid;
-	msgb_sctp_stream(msg) = sinfo.sinfo_stream;
+	ppid = msgb_sctp_ppid(msg);
 	msg->dst = asp;
-
 	rate_ctr_inc2(asp->ctrg, SS7_ASP_CTR_PKT_RX_TOTAL);
 
 	if (ppid == SUA_PPID && asp->cfg.proto == OSMO_SS7_ASP_PROT_SUA)
@@ -1924,40 +1917,27 @@ static int ipa_cli_read_cb(struct osmo_stream_cli *conn)
 
 static int xua_cli_read_cb(struct osmo_stream_cli *conn)
 {
-	struct osmo_fd *ofd = osmo_stream_cli_get_ofd(conn);
 	struct osmo_ss7_asp *asp = osmo_stream_cli_get_data(conn);
 	struct msgb *msg = m3ua_msgb_alloc("xUA Client Rx");
-	struct sctp_sndrcvinfo sinfo;
 	unsigned int ppid;
-	int flags = 0;
+	int flags;
 	int rc;
 
 	if (!msg)
 		return -ENOMEM;
 
 	/* read xUA message from socket and process it */
-	rc = sctp_recvmsg(ofd->fd, msgb_data(msg), msgb_tailroom(msg),
-			  NULL, NULL, &sinfo, &flags);
+	rc = osmo_stream_cli_recv(conn, msg);
+	flags = msgb_sctp_msg_flags(msg);
+
 	LOGPASP(asp, DLSS7, LOGL_DEBUG, "%s(): sctp_recvmsg() returned %d (flags=0x%x)\n",
 		__func__, rc, flags);
-	if (rc < 0) {
-		xua_cli_close_and_reconnect(conn);
-		goto out;
-	} else if (rc == 0) {
-		xua_cli_close_and_reconnect(conn);
-	} else {
-		msgb_put(msg, rc);
-	}
 
-	if (flags & MSG_NOTIFICATION) {
+	if (flags & OSMO_STREAM_SCTP_MSG_FLAGS_NOTIFICATION) {
 		union sctp_notification *notif = (union sctp_notification *) msgb_data(msg);
-
 		log_sctp_notification(asp, "xUA CLNT", notif);
 
 		switch (notif->sn_header.sn_type) {
-		case SCTP_SHUTDOWN_EVENT:
-			xua_cli_close_and_reconnect(conn);
-			break;
 		case SCTP_ASSOC_CHANGE:
 			if (notif->sn_assoc_change.sac_state == SCTP_RESTART)
 				xua_asp_send_xlm_prim_simple(asp, OSMO_XLM_PRIM_M_SCTP_RESTART,
@@ -1965,18 +1945,22 @@ static int xua_cli_read_cb(struct osmo_stream_cli *conn)
 		default:
 			break;
 		}
+
+		if (rc == 0)
+			xua_cli_close_and_reconnect(conn);
 		rc = 0;
 		goto out;
 	}
-
-	if (rc == 0)
+	if (rc < 0) {
+		xua_cli_close_and_reconnect(conn);
 		goto out;
+	} else if (rc == 0) {
+		xua_cli_close_and_reconnect(conn);
+		goto out;
+	}
 
-	ppid = ntohl(sinfo.sinfo_ppid);
-	msgb_sctp_ppid(msg) = ppid;
-	msgb_sctp_stream(msg) = sinfo.sinfo_stream;
+	ppid = msgb_sctp_ppid(msg);
 	msg->dst = asp;
-
 	rate_ctr_inc2(asp->ctrg, SS7_ASP_CTR_PKT_RX_TOTAL);
 
 	if (ppid == SUA_PPID && asp->cfg.proto == OSMO_SS7_ASP_PROT_SUA)
