@@ -1478,6 +1478,76 @@ static int asp_apply_primary_address(const struct osmo_ss7_asp *asp)
 	return rc;
 }
 
+/* Returns whether the address signalled in the SCTP_PEER_ADDR_CHANGE matches
+ * the user-configured Primary Address. */
+static bool sctp_peer_addr_change_ev_addr_matches_our_primary(const struct osmo_ss7_asp *asp,
+							      const union sctp_notification *notif)
+{
+	const char *primary_str;
+	int primary_str_type;
+	struct osmo_sockaddr ev_addr, primary;
+
+	OSMO_ASSERT(asp->cfg.remote.idx_primary >= 0);
+
+	primary_str = asp->cfg.remote.host[asp->cfg.remote.idx_primary];
+	primary_str_type = osmo_ip_str_type(primary_str);
+	memcpy(&ev_addr.u.sas, &notif->sn_paddr_change.spc_aaddr, sizeof(ev_addr.u.sas));
+
+	/* This whole switch is to properly compare addresses (take into account v6mapped IPv4 addresses): */
+	switch (ev_addr.u.sa.sa_family) {
+	case AF_INET:
+		switch (primary_str_type) {
+		case AF_INET:
+			primary = ev_addr; /* Copy AF + port */
+			inet_pton(AF_INET, primary_str, &primary.u.sin.sin_addr);
+			return (osmo_sockaddr_cmp(&primary, &ev_addr) == 0);
+		case AF_INET6:
+			/* for sure not the same */
+			return false;
+		}
+		return false;
+	case AF_INET6:
+		/* "ev_addr" can either be a IPv6 addr or a v6-mapped IPv4
+		 * address. Compare both as IPv6 (or v6-mapped IPv4) addresses. */
+		primary = ev_addr; /* Copy AF + port */
+		inet_pton(AF_INET6, primary_str, &primary.u.sin6.sin6_addr);
+		return (osmo_sockaddr_cmp(&primary, &ev_addr) == 0);
+	default:
+		return false;
+	}
+}
+
+/* Simple SCTP Path-manager tracking/driving the VTY-user-configured primary
+ * address against the kernel when assoc state changes: */
+static void asp_handle_sctp_notif_monitor_primary_address(const struct osmo_ss7_asp *asp,
+							  const union sctp_notification *notif)
+{
+	bool match;
+
+	if (asp->cfg.remote.idx_primary == -1)
+		return;
+	if (notif->sn_header.sn_type != SCTP_PEER_ADDR_CHANGE)
+		return;
+
+	switch (notif->sn_paddr_change.spc_state) {
+	case SCTP_ADDR_AVAILABLE:
+	case SCTP_ADDR_ADDED:
+	case SCTP_ADDR_CONFIRMED:
+		/* If our primary addr became available/added/confirmed, set it */
+		match = sctp_peer_addr_change_ev_addr_matches_our_primary(asp, notif);
+		if (match)
+			asp_apply_primary_address(asp);
+		break;
+	case SCTP_ADDR_MADE_PRIM:
+		/* If another primary addr was made primary, overwrite it by setting it again */
+		match = sctp_peer_addr_change_ev_addr_matches_our_primary(asp, notif);
+		if (!match)
+			asp_apply_primary_address(asp);
+	default:
+		break;
+	}
+}
+
 static bool ipv6_sctp_supported(const char *host, bool bind)
 {
 	int rc;
@@ -2001,6 +2071,7 @@ static int xua_srv_conn_cb(struct osmo_stream_srv *conn)
 	if (flags & OSMO_STREAM_SCTP_MSG_FLAGS_NOTIFICATION) {
 		union sctp_notification *notif = (union sctp_notification *) msgb_data(msg);
 		log_sctp_notification(asp, "xUA CLNT", notif);
+		asp_handle_sctp_notif_monitor_primary_address(asp, notif);
 
 		switch (notif->sn_header.sn_type) {
 		case SCTP_ASSOC_CHANGE:
@@ -2147,6 +2218,7 @@ static int xua_cli_read_cb(struct osmo_stream_cli *conn)
 	if (flags & OSMO_STREAM_SCTP_MSG_FLAGS_NOTIFICATION) {
 		union sctp_notification *notif = (union sctp_notification *) msgb_data(msg);
 		log_sctp_notification(asp, "xUA CLNT", notif);
+		asp_handle_sctp_notif_monitor_primary_address(asp, notif);
 
 		switch (notif->sn_header.sn_type) {
 		case SCTP_ASSOC_CHANGE:
