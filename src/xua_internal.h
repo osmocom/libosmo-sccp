@@ -116,7 +116,7 @@ int xua_find_as_for_asp(struct osmo_ss7_as **as, const struct osmo_ss7_asp *asp,
 			const struct xua_msg_part *rctx_ie);
 
 int ipa_tx_xua_as(struct osmo_ss7_as *as, struct xua_msg *xua);
-int ipa_rx_msg(struct osmo_ss7_asp *asp, struct msgb *msg);
+int ipa_rx_msg(struct osmo_ss7_asp *asp, struct msgb *msg, uint8_t sls);
 
 int osmo_isup_party_parse(char *out_digits, const uint8_t *in,
 			unsigned int in_num_bytes, bool odd);

@@ -211,7 +211,7 @@ static struct msgb *patch_sccp_with_pc(struct osmo_ss7_asp *asp, struct msgb *sc
 	return sccp_msg_out;
 }
 
-static int ipa_rx_msg_sccp(struct osmo_ss7_asp *asp, struct msgb *msg)
+static int ipa_rx_msg_sccp(struct osmo_ss7_asp *asp, struct msgb *msg, uint8_t sls)
 {
 	int rc;
 	struct m3ua_data_hdr data_hdr;
@@ -276,6 +276,7 @@ static int ipa_rx_msg_sccp(struct osmo_ss7_asp *asp, struct msgb *msg)
 	data_hdr.si = MTP_SI_SCCP;
 	data_hdr.opc = osmo_htonl(opc);
 	data_hdr.dpc = osmo_htonl(dpc);
+	data_hdr.sls = sls;
 	data_hdr.ni = as->inst->cfg.network_indicator;
 	/* Create M3UA message in XUA structure */
 	xua = m3ua_xfer_from_data(&data_hdr, msgb_l2(msg), msgb_l2len(msg));
@@ -292,8 +293,9 @@ static int ipa_rx_msg_sccp(struct osmo_ss7_asp *asp, struct msgb *msg)
 /*! \brief process M3UA message received from socket
  *  \param[in] asp Application Server Process receiving \a msg
  *  \param[in] msg received message buffer. Callee takes ownership!
+ *  \param[in] sls The SLS (signaling link selector) field to use in the generated M3UA header
  *  \returns 0 on success; negative on error */
-int ipa_rx_msg(struct osmo_ss7_asp *asp, struct msgb *msg)
+int ipa_rx_msg(struct osmo_ss7_asp *asp, struct msgb *msg, uint8_t sls)
 {
 	struct ipaccess_head *hh;
 	int rc;
@@ -309,7 +311,7 @@ int ipa_rx_msg(struct osmo_ss7_asp *asp, struct msgb *msg)
 		rc = ipa_rx_msg_ccm(asp, msg);
 		break;
 	case IPAC_PROTO_SCCP:
-		rc = ipa_rx_msg_sccp(asp, msg);
+		rc = ipa_rx_msg_sccp(asp, msg, sls);
 		break;
 	default:
 		rc = ss7_asp_rx_unknown(asp, hh->proto, msg);

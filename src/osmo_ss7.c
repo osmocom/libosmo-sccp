@@ -2046,7 +2046,7 @@ static int ipa_srv_conn_cb(struct osmo_stream_srv *conn)
 	}
 	msg->dst = asp;
 
-	return ipa_rx_msg(asp, msg);
+	return ipa_rx_msg(asp, msg, ofd->fd & 0xf);
 }
 
 /* netif code tells us we can read something from the socket */
@@ -2194,7 +2194,7 @@ static int ipa_cli_read_cb(struct osmo_stream_cli *conn)
 	}
 	msg->dst = asp;
 	rate_ctr_inc2(asp->ctrg, SS7_ASP_CTR_PKT_RX_TOTAL);
-	return ipa_rx_msg(asp, msg);
+	return ipa_rx_msg(asp, msg, ofd->fd & 0xf);
 }
 
 static int xua_cli_read_cb(struct osmo_stream_cli *conn)
