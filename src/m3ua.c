@@ -462,9 +462,11 @@ static struct msgb *m3ua_to_msg(struct xua_msg *xua)
 		return NULL;
 	}
 
-	if (xua->hdr.msg_class == M3UA_MSGC_XFER)
+	if (xua->hdr.msg_class == M3UA_MSGC_XFER) {
+		/* TODO: M3UA RFC says that multiple different streams within the SCTP association
+		 * *may* be used, for example, by using the SLS value. Not required but makes sense. */
 		msgb_sctp_stream(msg) = 1;
-	else
+	} else
 		msgb_sctp_stream(msg) = 0;
 	msgb_sctp_ppid(msg) = M3UA_PPID;
 

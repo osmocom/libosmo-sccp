@@ -158,6 +158,8 @@ int xua_as_transmit_msg(struct osmo_ss7_as *as, struct msgb *msg)
 		asp = xua_as_select_asp_override(as);
 		break;
 	case OSMO_SS7_AS_TMOD_LOADSHARE:
+		/* TODO: actually use the SLS value to ensure same SLS goes through same ASP. Not
+		 * strictly required by M3UA RFC, but would fit the overall principle. */
 	case OSMO_SS7_AS_TMOD_ROUNDROBIN:
 		asp = xua_as_select_asp_roundrobin(as);
 		break;
