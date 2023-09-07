@@ -1569,10 +1569,9 @@ static bool ipv6_sctp_supported(const char *host, bool bind)
 		LOGP(DLSS7, LOGL_NOTICE, "Default IPv6 address %s not supported: %s\n",
 		     host, gai_strerror(rc));
 		return false;
-	} else {
-		freeaddrinfo(result);
-		return true;
 	}
+	freeaddrinfo(result);
+	return true;
 }
 
 /* Set default values for local and remote peer hosts if they are not yet set.
