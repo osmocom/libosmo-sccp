@@ -643,7 +643,7 @@ osmo_sccp_simple_client_on_ss7_id(void *ctx, uint32_t ss7_id, const char *name,
 			if (default_remote_ip)
 				osmo_ss7_asp_peer_set_hosts(&asp->cfg.remote, asp, &default_remote_ip, 1);
 			/* Make sure proper defaults are applied if app didn't provide specific default values */
-			osmo_ss7_asp_set_default_peer_hosts(asp);
+			ss7_asp_set_default_peer_hosts(asp);
 			asp->simple_client_allocated = true;
 		}
 

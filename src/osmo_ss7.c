@@ -1583,7 +1583,7 @@ static bool ipv6_sctp_supported(const char *host, bool bind)
  * afterwards in order to apply the new settings.
  * This API is internal, hence doesn't appear in osmo_ss7.h
  */
-bool osmo_ss7_asp_set_default_peer_hosts(struct osmo_ss7_asp *asp)
+bool ss7_asp_set_default_peer_hosts(struct osmo_ss7_asp *asp)
 {
 	bool changed = false;
 	/* If no local addr was set */
@@ -2577,7 +2577,7 @@ osmo_ss7_xua_server_add_local_host(struct osmo_xua_server *xs, const char *local
 	return osmo_stream_srv_link_set_addrs(xs->server, (const char **)xs->cfg.local.host, xs->cfg.local.host_cnt);
 }
 
-bool osmo_ss7_xua_server_set_default_local_hosts(struct osmo_xua_server *oxs)
+bool ss7_xua_server_set_default_local_hosts(struct osmo_xua_server *oxs)
 {
 	/* If no local addr was set, or erased after _create(): */
 	if (!oxs->cfg.local.host_cnt) {

@@ -2071,7 +2071,7 @@ int osmo_ss7_vty_go_parent(struct vty *vty)
 	case L_CS7_ASP_NODE:
 		asp = vty->index;
 		/* Make sure proper defaults values are set */
-		osmo_ss7_asp_set_default_peer_hosts(asp);
+		ss7_asp_set_default_peer_hosts(asp);
 		osmo_ss7_asp_restart(asp);
 		vty->node = L_CS7_NODE;
 		vty->index = asp->inst;
@@ -2089,7 +2089,7 @@ int osmo_ss7_vty_go_parent(struct vty *vty)
 	case L_CS7_XUA_NODE:
 		oxs = vty->index;
 		/* If no local addr was set, or erased after _create(): */
-		osmo_ss7_xua_server_set_default_local_hosts(oxs);
+		ss7_xua_server_set_default_local_hosts(oxs);
 		if (osmo_ss7_xua_server_bind(oxs) < 0)
 			vty_out(vty, "%% Unable to bind xUA server to IP(s)%s", VTY_NEWLINE);
 		vty->node = L_CS7_NODE;
