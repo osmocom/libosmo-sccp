@@ -722,6 +722,7 @@ int osmo_ss7_asp_restart(struct osmo_ss7_asp *asp)
 {
 	int rc;
 	char bufloc[512], bufrem[512];
+	uint8_t byte;
 
 	OSMO_ASSERT(ss7_initialized);
 	osmo_ss7_asp_peer_snprintf(bufloc, sizeof(bufloc), &asp->cfg.local);
@@ -758,6 +759,10 @@ int osmo_ss7_asp_restart(struct osmo_ss7_asp *asp)
 		else
 			osmo_stream_cli_set_read_cb(asp->client, xua_cli_read_cb);
 		osmo_stream_cli_set_data(asp->client, asp);
+		byte = 1; /*AUTH is needed by ASCONF. enable, don't abort socket creation if AUTH can't be enabled */
+		osmo_stream_cli_set_param(asp->client, OSMO_STREAM_CLI_PAR_SCTP_SOCKOPT_AUTH_SUPPORTED, &byte, sizeof(byte));
+		byte = 1; /* enable, don't abort socket creation if ASCONF can't be enabled */
+		osmo_stream_cli_set_param(asp->client, OSMO_STREAM_CLI_PAR_SCTP_SOCKOPT_ASCONF_SUPPORTED, &byte, sizeof(byte));
 		rc = osmo_stream_cli_open(asp->client);
 		if (rc < 0) {
 			LOGPASP(asp, DLSS7, LOGL_ERROR, "Unable to open stream"

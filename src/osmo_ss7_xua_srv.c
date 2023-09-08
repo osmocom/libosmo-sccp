@@ -227,6 +227,7 @@ osmo_ss7_xua_server_bind(struct osmo_xua_server *xs)
 {
 	char buf[512];
 	int rc;
+	uint8_t byte;
 	const char *proto = get_value_string(osmo_ss7_asp_protocol_vals, xs->cfg.proto);
 
 	rc = osmo_ss7_asp_peer_snprintf(buf, sizeof(buf), &xs->cfg.local);
@@ -236,6 +237,13 @@ osmo_ss7_xua_server_bind(struct osmo_xua_server *xs)
 		LOGP(DLSS7, LOGL_INFO, "(Re)binding %s Server to %s\n",
 		     proto, buf);
 	}
+
+	/* Applying xUA Server config which may have changed through VTY on the srv_link before opening it: */
+	byte = 1; /*AUTH is needed by ASCONF. enable, don't abort socket creation if AUTH can't be enabled */
+	osmo_stream_srv_link_set_param(xs->server, OSMO_STREAM_SRV_LINK_PAR_SCTP_SOCKOPT_AUTH_SUPPORTED, &byte, sizeof(byte));
+	byte = 1; /* enable, don't abort socket creation if ASCONF can't be enabled */
+	osmo_stream_srv_link_set_param(xs->server, OSMO_STREAM_SRV_LINK_PAR_SCTP_SOCKOPT_ASCONF_SUPPORTED, &byte, sizeof(byte));
+
 	return osmo_stream_srv_link_open(xs->server);
 }
 
