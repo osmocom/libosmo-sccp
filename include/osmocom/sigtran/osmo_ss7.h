@@ -442,6 +442,17 @@ struct osmo_ss7_asp {
 
 		/* T_defs used by the default_lm: */
 		struct osmo_tdef *T_defs_lm;
+
+		struct {
+			bool num_ostreams_present;
+			bool max_instreams_present;
+			bool max_attempts_present;
+			bool max_init_timeo_present;
+			uint16_t num_ostreams_value;
+			uint16_t max_instreams_value;
+			uint16_t max_attempts_value;
+			uint16_t max_init_timeo_value; /* ms */
+		} sctp_init;
 	} cfg;
 };
 
@@ -524,6 +535,12 @@ struct osmo_xua_server {
 		bool accept_dyn_reg;
 		struct osmo_ss7_asp_peer local;
 		enum osmo_ss7_asp_protocol proto;
+		struct {
+			bool num_ostreams_present;
+			bool max_instreams_present;
+			uint16_t num_ostreams_value;
+			uint16_t max_instreams_value;
+		} sctp_init;
 	} cfg;
 };
 

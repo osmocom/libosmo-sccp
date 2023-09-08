@@ -225,6 +225,8 @@ ss7_asp_vty_test(config-cs7-asp)# list
   qos-class <0-255>
   role (sg|asp|ipsp)
   sctp-role (client|server)
+  sctp-param init (num-ostreams|max-instreams|max-attempts|timeout) <0-65535>
+  no sctp-param init (num-ostreams|max-instreams|max-attempts|timeout)
   block
   shutdown
 ...
@@ -237,8 +239,16 @@ ss7_asp_vty_test(config-cs7-asp)# ?
   qos-class    Specify QoS Class of ASP
   role         Specify the xUA role for this ASP
   sctp-role    Specify the SCTP role for this ASP
+  sctp-param   Configure SCTP parameters
+  no           Negate a command or set its defaults
   block        Allows a SCTP Association with ASP, but doesn't let it become active
   shutdown     Terminates SCTP association; New associations will be rejected
+...
+
+ss7_asp_vty_test(config-cs7-asp)# no ?
+...
+  sctp-param  Configure SCTP parameters
+  quirk       Disable quirk to work around interop issues
 ...
 
 ss7_asp_vty_test(config-cs7-asp)# remote-ip 127.0.0.200

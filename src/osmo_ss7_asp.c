@@ -763,6 +763,22 @@ int osmo_ss7_asp_restart(struct osmo_ss7_asp *asp)
 		osmo_stream_cli_set_param(asp->client, OSMO_STREAM_CLI_PAR_SCTP_SOCKOPT_AUTH_SUPPORTED, &byte, sizeof(byte));
 		byte = 1; /* enable, don't abort socket creation if ASCONF can't be enabled */
 		osmo_stream_cli_set_param(asp->client, OSMO_STREAM_CLI_PAR_SCTP_SOCKOPT_ASCONF_SUPPORTED, &byte, sizeof(byte));
+		if (asp->cfg.sctp_init.num_ostreams_present)
+			osmo_stream_cli_set_param(asp->client, OSMO_STREAM_CLI_PAR_SCTP_INIT_NUM_OSTREAMS,
+						  &asp->cfg.sctp_init.num_ostreams_value,
+						  sizeof(asp->cfg.sctp_init.num_ostreams_value));
+		if (asp->cfg.sctp_init.max_instreams_present)
+			osmo_stream_cli_set_param(asp->client, OSMO_STREAM_CLI_PAR_SCTP_INIT_MAX_INSTREAMS,
+						  &asp->cfg.sctp_init.max_instreams_value,
+						  sizeof(asp->cfg.sctp_init.max_instreams_value));
+		if (asp->cfg.sctp_init.max_attempts_present)
+			osmo_stream_cli_set_param(asp->client, OSMO_STREAM_CLI_PAR_SCTP_INIT_MAX_ATTEMPTS,
+						  &asp->cfg.sctp_init.max_attempts_value,
+						  sizeof(asp->cfg.sctp_init.max_attempts_value));
+		if (asp->cfg.sctp_init.max_init_timeo_present)
+			osmo_stream_cli_set_param(asp->client, OSMO_STREAM_CLI_PAR_SCTP_INIT_TIMEOUT,
+						  &asp->cfg.sctp_init.max_init_timeo_value,
+						  sizeof(asp->cfg.sctp_init.max_init_timeo_value));
 		rc = osmo_stream_cli_open(asp->client);
 		if (rc < 0) {
 			LOGPASP(asp, DLSS7, LOGL_ERROR, "Unable to open stream"

@@ -243,6 +243,14 @@ osmo_ss7_xua_server_bind(struct osmo_xua_server *xs)
 	osmo_stream_srv_link_set_param(xs->server, OSMO_STREAM_SRV_LINK_PAR_SCTP_SOCKOPT_AUTH_SUPPORTED, &byte, sizeof(byte));
 	byte = 1; /* enable, don't abort socket creation if ASCONF can't be enabled */
 	osmo_stream_srv_link_set_param(xs->server, OSMO_STREAM_SRV_LINK_PAR_SCTP_SOCKOPT_ASCONF_SUPPORTED, &byte, sizeof(byte));
+	if (xs->cfg.sctp_init.num_ostreams_present)
+		osmo_stream_srv_link_set_param(xs->server, OSMO_STREAM_SRV_LINK_PAR_SCTP_INIT_NUM_OSTREAMS,
+					       &xs->cfg.sctp_init.num_ostreams_value,
+					       sizeof(xs->cfg.sctp_init.num_ostreams_value));
+	if (xs->cfg.sctp_init.max_instreams_present)
+		osmo_stream_srv_link_set_param(xs->server, OSMO_STREAM_SRV_LINK_PAR_SCTP_INIT_MAX_INSTREAMS,
+					       &xs->cfg.sctp_init.max_instreams_value,
+					       sizeof(xs->cfg.sctp_init.max_instreams_value));
 
 	return osmo_stream_srv_link_open(xs->server);
 }

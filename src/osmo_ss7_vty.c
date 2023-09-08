@@ -528,6 +528,51 @@ DEFUN_ATTR(xua_accept_dyn_asp, xua_accept_dyn_asp_cmd,
 	return CMD_SUCCESS;
 }
 
+#define XUA_SRV_SCTP_PARAM_INIT_DESC \
+	"Configure SCTP parameters\n" \
+	"Configure INIT related parameters\n" \
+	"Configure INIT Number of Outbound Streams\n" \
+	"Configure INIT Maximum Inboud Streams\n"
+#define XUA_SRV_SCTP_PARAM_INIT_FIELDS "(num-ostreams|max-instreams)"
+
+DEFUN_ATTR(xua_sctp_param_init, xua_sctp_param_init_cmd,
+	   "sctp-param init " XUA_SRV_SCTP_PARAM_INIT_FIELDS " <0-65535>",
+	   XUA_SRV_SCTP_PARAM_INIT_DESC
+	   "Value of the parameter\n",
+	   CMD_ATTR_NODE_EXIT)
+{
+	struct osmo_xua_server *xs = vty->index;
+
+	uint16_t val = atoi(argv[1]);
+
+	if (strcmp(argv[0], "num-ostreams") == 0) {
+		xs->cfg.sctp_init.num_ostreams_present = true;
+		xs->cfg.sctp_init.num_ostreams_value = val;
+	} else if (strcmp(argv[0], "max-instreams") == 0) {
+		xs->cfg.sctp_init.max_instreams_present = true;
+		xs->cfg.sctp_init.max_instreams_value = val;
+	} else {
+		OSMO_ASSERT(0);
+	}
+	return CMD_SUCCESS;
+}
+
+DEFUN_ATTR(xua_no_sctp_param_init, xua_no_sctp_param_init_cmd,
+	   "no sctp-param init " XUA_SRV_SCTP_PARAM_INIT_FIELDS,
+	   NO_STR XUA_SRV_SCTP_PARAM_INIT_DESC,
+	   CMD_ATTR_NODE_EXIT)
+{
+	struct osmo_xua_server *xs = vty->index;
+
+	if (strcmp(argv[0], "num-ostreams") == 0)
+		xs->cfg.sctp_init.num_ostreams_present = false;
+	else if (strcmp(argv[0], "max-instreams") == 0)
+		xs->cfg.sctp_init.max_instreams_present = false;
+	else
+		OSMO_ASSERT(0);
+	return CMD_SUCCESS;
+}
+
 static void write_one_xua(struct vty *vty, struct osmo_xua_server *xs)
 {
 	int i;
@@ -541,6 +586,10 @@ static void write_one_xua(struct vty *vty, struct osmo_xua_server *xs)
 	}
 	if (xs->cfg.accept_dyn_reg)
 		vty_out(vty, "  accept-asp-connections dynamic-permitted%s", VTY_NEWLINE);
+	if (xs->cfg.sctp_init.num_ostreams_present)
+		vty_out(vty, "  sctp-param init num-ostreams %u%s", xs->cfg.sctp_init.num_ostreams_value, VTY_NEWLINE);
+	if (xs->cfg.sctp_init.max_instreams_present)
+		vty_out(vty, "  sctp-param init max-instreams %u%s", xs->cfg.sctp_init.max_instreams_value, VTY_NEWLINE);
 }
 
 static void vty_dump_xua_server(struct vty *vty, struct osmo_xua_server *xs)
@@ -743,6 +792,63 @@ DEFUN_ATTR(sctp_role, asp_sctp_role_cmd,
 		OSMO_ASSERT(0);
 
 	asp->cfg.sctp_role_set_by_vty = true;
+	return CMD_SUCCESS;
+}
+
+#define ASP_SCTP_PARAM_INIT_DESC \
+	"Configure SCTP parameters\n" \
+	"Configure INIT related parameters\n" \
+	"Configure INIT Number of Outbound Streams\n" \
+	"Configure INIT Maximum Inboud Streams\n" \
+	"Configure INIT Maximum Attempts\n" \
+	"Configure INIT Timeout (milliseconds)\n"
+#define ASP_SCTP_PARAM_INIT_FIELDS "(num-ostreams|max-instreams|max-attempts|timeout)"
+
+DEFUN_ATTR(asp_sctp_param_init, asp_sctp_param_init_cmd,
+	   "sctp-param init " ASP_SCTP_PARAM_INIT_FIELDS " <0-65535>",
+	   ASP_SCTP_PARAM_INIT_DESC
+	   "Value of the parameter\n",
+	   CMD_ATTR_NODE_EXIT)
+{
+	struct osmo_ss7_asp *asp = vty->index;
+
+	uint16_t val = atoi(argv[1]);
+
+	if (strcmp(argv[0], "num-ostreams") == 0) {
+		asp->cfg.sctp_init.num_ostreams_present = true;
+		asp->cfg.sctp_init.num_ostreams_value = val;
+	} else if (strcmp(argv[0], "max-instreams") == 0) {
+		asp->cfg.sctp_init.max_instreams_present = true;
+		asp->cfg.sctp_init.max_instreams_value = val;
+	} else if (strcmp(argv[0], "max-attempts") == 0) {
+		asp->cfg.sctp_init.max_attempts_present = true;
+		asp->cfg.sctp_init.max_attempts_value = val;
+	} else if (strcmp(argv[0], "timeout") == 0) {
+		asp->cfg.sctp_init.max_init_timeo_present = true;
+		asp->cfg.sctp_init.max_init_timeo_value = val;
+	} else {
+		OSMO_ASSERT(0);
+	}
+	return CMD_SUCCESS;
+}
+
+DEFUN_ATTR(asp_no_sctp_param_init, asp_no_sctp_param_init_cmd,
+	   "no sctp-param init " ASP_SCTP_PARAM_INIT_FIELDS,
+	   NO_STR ASP_SCTP_PARAM_INIT_DESC,
+	   CMD_ATTR_NODE_EXIT)
+{
+	struct osmo_ss7_asp *asp = vty->index;
+
+	if (strcmp(argv[0], "num-ostreams") == 0)
+		asp->cfg.sctp_init.num_ostreams_present = false;
+	else if (strcmp(argv[0], "max-instreams") == 0)
+		asp->cfg.sctp_init.max_instreams_present = false;
+	else if (strcmp(argv[0], "max-attempts") == 0)
+		asp->cfg.sctp_init.max_attempts_present = false;
+	else if (strcmp(argv[0], "timeout") == 0)
+		asp->cfg.sctp_init.max_init_timeo_present = false;
+	else
+		OSMO_ASSERT(0);
 	return CMD_SUCCESS;
 }
 
@@ -956,6 +1062,14 @@ static void write_one_asp(struct vty *vty, struct osmo_ss7_asp *asp, bool show_d
 	vty_out(vty, "  role %s%s", osmo_str_tolower(get_value_string(osmo_ss7_asp_role_names, asp->cfg.role)),
 		VTY_NEWLINE);
 	vty_out(vty, "  sctp-role %s%s", asp->cfg.is_server ? "server" : "client", VTY_NEWLINE);
+	if (asp->cfg.sctp_init.num_ostreams_present)
+		vty_out(vty, "  sctp-param init num-ostreams %u%s", asp->cfg.sctp_init.num_ostreams_value, VTY_NEWLINE);
+	if (asp->cfg.sctp_init.max_instreams_present)
+		vty_out(vty, "  sctp-param init max-instreams %u%s", asp->cfg.sctp_init.max_instreams_value, VTY_NEWLINE);
+	if (asp->cfg.sctp_init.max_attempts_present)
+		vty_out(vty, "  sctp-param init max-attempts %u%s", asp->cfg.sctp_init.max_attempts_value, VTY_NEWLINE);
+	if (asp->cfg.sctp_init.max_init_timeo_present)
+		vty_out(vty, "  sctp-param init timeout %u%s", asp->cfg.sctp_init.max_init_timeo_value, VTY_NEWLINE);
 	for (i = 0; i < sizeof(uint32_t) * 8; i++) {
 		if (!(asp->cfg.quirks & ((uint32_t) 1 << i)))
 			continue;
@@ -2203,6 +2317,8 @@ static void vty_init_shared(void *ctx)
 	install_lib_element(L_CS7_ASP_NODE, &asp_qos_class_cmd);
 	install_lib_element(L_CS7_ASP_NODE, &asp_role_cmd);
 	install_lib_element(L_CS7_ASP_NODE, &asp_sctp_role_cmd);
+	install_lib_element(L_CS7_ASP_NODE, &asp_sctp_param_init_cmd);
+	install_lib_element(L_CS7_ASP_NODE, &asp_no_sctp_param_init_cmd);
 	install_lib_element(L_CS7_ASP_NODE, &asp_block_cmd);
 	install_lib_element(L_CS7_ASP_NODE, &asp_shutdown_cmd);
 	install_lib_element(L_CS7_ASP_NODE, &asp_quirk_cmd);
@@ -2255,4 +2371,6 @@ void osmo_ss7_vty_init_sg(void *ctx)
 	install_lib_element(L_CS7_NODE, &no_cs7_xua_cmd);
 	install_lib_element(L_CS7_XUA_NODE, &xua_local_ip_cmd);
 	install_lib_element(L_CS7_XUA_NODE, &xua_accept_dyn_asp_cmd);
+	install_lib_element(L_CS7_XUA_NODE, &xua_sctp_param_init_cmd);
+	install_lib_element(L_CS7_XUA_NODE, &xua_no_sctp_param_init_cmd);
 }
