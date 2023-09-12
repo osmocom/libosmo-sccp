@@ -12,7 +12,7 @@ VERSION := $(shell echo '$(DEBVERS)' | sed -e 's/[+-].*//' -e 's/~//g')
 	dh $@ --with autoreconf
 
 override_dh_strip:
-	dh_strip -plibosmo-sigtran7 --dbg-package=libosmo-sigtran-dbg
+	dh_strip -plibosmo-sigtran9 --dbg-package=libosmo-sigtran-dbg
 	dh_strip -posmo-stp --dbg-package=osmo-stp-dbg
 
 override_dh_install:

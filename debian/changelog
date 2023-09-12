@@ -1,3 +1,77 @@
+libosmo-sccp (1.8.0) unstable; urgency=medium
+
+  [ Neels Hofmeyr ]
+  * sccp_scmg: ignore PCSTATE.indication
+  * add osmo_scu_prim_name_c() / _buf()
+  * fixup for: add osmo_scu_prim_name_c() / _buf()
+  * fix sccp_scoc state S_WAIT_CONN_CONF out_state_mask
+  * add two value_string[]s related to N-PCSTATE
+  * comment: fix typo 'OSMO_ASCU_'
+  * SCCP: implement variable limit on Optional Data (CR,CC,CREF,RLSD)
+  * add osmo_sccp_set_max_optional_data()
+  * sccp_scoc.c: fix infinite loop on conn ID exhaustion
+  * add public API: osmo_sccp_instance_next_conn_id()
+
+  [ Oliver Smith ]
+  * Run struct_endianness.py
+  * debian: set compat level to 10
+  * systemd: depend on networking-online.target
+
+  [ Max ]
+  * SS7: do not attempt transfer if AS is down
+
+  [ Vadim Yanitskiy ]
+  * mtp_pcap: remove unused static_assert() macro definition
+  * {examples,stp}/Makefile.am: fix typo in $(COVERAGE_[C]FLAGS)
+  * tests/*/Makefile.am: -Wall is not a preprocessor flag
+  * tests: use -no-install libtool flag to avoid ./lt-* scripts
+  * tests: $(BUILT_SOURCES) is not defined, depend on osmo-stp
+  * tests: execute osmotest{vty,config}.py against osmo-stp
+  * osmoappdesc.py: also test doc/examples/osmo-stp-multihome.cfg
+  * copyright: fix typo: sysmocom s/s.m.f.c./s.f.m.c./ GmbH
+
+  [ arehbein ]
+  * Transition to use of 'telnet_init_default'
+
+  [ Pau Espin Pedrol ]
+  * Avoid allocating conn_id 0x00FFFFFF
+  * sccp_scpc.c: Simplify conn_create()
+  * cosmetic: sccp.h: Fix trailing whitespace
+  * Implement sccp_instance->connections as rbtree
+  * sccp: Introduce APIs to get/set osmo_sccp_instance priv data pointer
+  * .gitignore: Ignore *.pyc
+  * osmo_sccp_simple_client_on_ss7_id(): Support ASP explicitly configured as sctp server
+  * osmo_sccp_simple_client_on_ss7_id(): Always follow VTY config of ASP if it was explicitly defined in VTY
+  * Forbid partial VTY configurations of ASPs with name asp-clnt-*
+  * Add osmo_ss7_asp getters for name and proto
+  * Set stream_cli/srv name to contain ASP + sockname
+  * vty: Improve output of show cs7 instance <0-15> asp
+  * xua_default_lm_fsm.c: Log rx ASP_UP timeout with NOTICE level
+  * sccp: Use tdef to implement osmo_sccp_timers
+  * ss7: Refactor osmo_ss7_asp_find_or_create()
+  * asp: Make ASP default LM timers VTY configurable
+  * cosmetic: Fix pointer location format
+  * tests/vty: test multiple local/remote IP addresses
+  * ss7: Log addr and event state for SCTP_PEER_ADDR_CHANGE
+  * ss7: Use libosmo-netif's osmo_stream_{cli,srv}_recv() APIs
+  * asp: Allow setting IP address as SCTP primary upon conn establishment
+  * asp: Monitor SCTP_PEER_ADDR_CHANGE events to re-apply configured Primary Address
+  * ss7: Rename internal APIs to avoid exporting them in so file
+  * ss7: Drop unneeded else branch after early return
+  * ss7: Split asp and xua_server into their own files
+  * asp,xua_srv: Use new osmo_stream API to request sockopt SCTP AUTH/ASCONF SUPPORTED
+  * Allow configuring per-ASP SCTP INIT parameters
+
+  [ Harald Welte ]
+  * cosmetic: Fix log message in routing table add error case
+  * ASPAC/ASPIA: Don't add routing context IE in ASP-role if routing context 0
+  * cosmetic: fix various typos in comments, log messages and VTY strings
+  * M3UA/SUA: Don't add empty routing context IE in DUNA/DAVA/DUPU
+  * ipa: use LSBs of file descriptor as SLS in IPA->M3UA direction
+  * m3ua: Add some TODO comments on where we fall short of our potential
+
+ -- Pau Espin Pedrol <pespin@sysmocom.de>  Tue, 12 Sep 2023 14:03:24 +0200
+
 libosmo-sccp (1.7.0) unstable; urgency=medium
 
   [ Pau Espin Pedrol ]
