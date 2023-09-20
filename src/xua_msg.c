@@ -511,37 +511,23 @@ int xua_dialect_check_all_mand_ies(const struct xua_dialect *dialect, struct xua
 	return 1;
 }
 
-static void append_to_buf(char *buf, bool *comma, const char *fmt, ...)
-{
-	va_list ap;
-
-	va_start(ap, fmt);
-	if (!comma || *comma == true) {
-		strcat(buf, ",");
-	} else if (comma)
-		*comma = true;
-	vsprintf(buf+strlen(buf), fmt, ap);
-	va_end(ap);
-}
-
 char *xua_msg_dump(struct xua_msg *xua, const struct xua_dialect *dialect)
 {
 	static char buf[1024];
+	struct osmo_strbuf sb = { .buf = buf, .len = sizeof(buf) };
 	struct xua_msg_part *part;
 	const struct xua_msg_class *xmc = NULL;
-	bool comma = false;
 	if (dialect)
 		xmc = dialect->class[xua->hdr.msg_class];
 
 	buf[0] = '\0';
 
-	append_to_buf(buf, &comma, "HDR=(%s,V=%u,LEN=%u)",
-			xua_hdr_dump(xua, dialect),
-			xua->hdr.version, xua->hdr.msg_length);
+	OSMO_STRBUF_PRINTF(sb, "HDR=(%s,V=%u,LEN=%u)", xua_hdr_dump(xua, dialect),
+			   xua->hdr.version, xua->hdr.msg_length);
 
 	llist_for_each_entry(part, &xua->headers, entry)
-		append_to_buf(buf, NULL, " PART(T=%s,L=%u,D=%s)",
-				xua_class_iei_name(xmc, part->tag), part->len,
-				osmo_hexdump_nospc(part->dat, part->len));
-	return buf;
+		OSMO_STRBUF_PRINTF(sb, ", PART(T=%s,L=%u,D=%s)",
+				   xua_class_iei_name(xmc, part->tag), part->len,
+				   osmo_hexdump_nospc(part->dat, part->len));
+	return sb.buf;
 }
