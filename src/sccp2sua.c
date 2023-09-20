@@ -338,9 +338,9 @@ static int sccp_addr_to_sua(struct xua_msg *xua, uint16_t iei, const uint8_t *ad
 }
 
 /*! \brief convenience wrapper around sccp_addr_to_sua() for variable mandatory addresses */
-static int sccp_addr_to_sua_ptr(struct xua_msg *xua, uint16_t iei, uint8_t *ptr_addr)
+static int sccp_addr_to_sua_ptr(struct xua_msg *xua, uint16_t iei, const uint8_t *ptr_addr)
 {
-	uint8_t *addr = ptr_addr + *ptr_addr + 1;
+	const uint8_t *addr = ptr_addr + *ptr_addr + 1;
 	unsigned int addrlen = *(ptr_addr + *ptr_addr);
 
 	return sccp_addr_to_sua(xua, iei, addr, addrlen);
@@ -350,7 +350,7 @@ static int sccp_addr_to_sua_ptr(struct xua_msg *xua, uint16_t iei, uint8_t *ptr_
  *  \param msg user-provided message buffer to which address shall be *  appended
  *  \param[in] part SUA wire format binary address
  *  \returns 0 in case of success; negative on error */
-static int sua_addr_to_sccp(struct msgb *msg, struct xua_msg_part *part)
+static int sua_addr_to_sccp(struct msgb *msg, const struct xua_msg_part *part)
 {
 	struct osmo_sccp_addr osa;
 	int rc;
@@ -370,7 +370,7 @@ static int sua_addr_to_sccp(struct msgb *msg, struct xua_msg_part *part)
  *  \param[out] var_ptr pointer to relative pointer in SCCP header
  *  \param[in] xua xUA message from which to use address
  *  \param[in] iei xUA information element identifier of address */
-static int sccp_add_var_addr(struct msgb *msg, uint8_t *var_ptr, struct xua_msg *xua, uint16_t iei)
+static int sccp_add_var_addr(struct msgb *msg, uint8_t *var_ptr, const struct xua_msg *xua, uint16_t iei)
 {
 	struct xua_msg_part *part = xua_msg_find_tag(xua, iei);
 	uint8_t *lenbyte;
@@ -401,7 +401,7 @@ static int sccp_add_var_addr(struct msgb *msg, uint8_t *var_ptr, struct xua_msg 
  *  \param[out] var_ptr pointer to relative pointer in SCCP header
  *  \param[in] xua xUA message from which to use source data
  *  \param[in] iei xUA information element identifier of source data */
-static int sccp_add_variable_part(struct msgb *msg, uint8_t *var_ptr, struct xua_msg *xua, uint16_t iei)
+static int sccp_add_variable_part(struct msgb *msg, uint8_t *var_ptr, const struct xua_msg *xua, uint16_t iei)
 {
 	struct xua_msg_part *part = xua_msg_find_tag(xua, iei);
 	uint8_t *lenbyte;
@@ -456,9 +456,9 @@ static bool sccp_ptr_part_consistent(const struct msgb *msg, const uint8_t *ptr_
 }
 
 /*! \brief convenience wrapper around xua_msg_add_data() for variable mandatory data */
-static int sccp_data_to_sua_ptr(struct xua_msg *xua, uint16_t iei, uint8_t *ptr_addr)
+static int sccp_data_to_sua_ptr(struct xua_msg *xua, uint16_t iei, const uint8_t *ptr_addr)
 {
-	uint8_t *addr = ptr_addr + *ptr_addr + 1;
+	const uint8_t *addr = ptr_addr + *ptr_addr + 1;
 	unsigned int addrlen = *(ptr_addr + *ptr_addr);
 
 	return xua_msg_add_data(xua, iei, addrlen, addr);
@@ -471,7 +471,7 @@ static int sccp_data_to_sua_ptr(struct xua_msg *xua, uint16_t iei, uint8_t *ptr_
  *  \param[in] opt pointer to wire-format encoded SCCP option data
  *  \returns 0 in case of success; negative on error */
 static int xua_msg_add_sccp_opt(struct xua_msg *xua, uint8_t sccp_opt_type,
-				uint16_t opt_len, uint8_t *opt)
+				uint16_t opt_len, const uint8_t *opt)
 {
 	switch (sccp_opt_type) {
 	case SCCP_PNC_DESTINATION_LOCAL_REFERENCE:
@@ -587,7 +587,7 @@ static void msgb_put_sccp_opt(struct msgb *msg, uint8_t pnc, uint8_t len, const 
  *  \param msg caller-provided message buffer to which option is to be appended
  *  \param[in] opt xUA option/IE (messge part) to be converted+added
  *  \returns 0 in case of success; negative on error */
-static int sccp_msg_add_sua_opt(enum sccp_message_types type, struct msgb *msg, struct xua_msg_part *opt)
+static int sccp_msg_add_sua_opt(enum sccp_message_types type, struct msgb *msg, const struct xua_msg_part *opt)
 {
 	uint32_t tmp32;
 	uint8_t pnc, *lenptr;
@@ -699,9 +699,9 @@ static int sccp_msg_add_sua_opt(enum sccp_message_types type, struct msgb *msg, 
  *  \param[in] ptr_opt address of relative pointer to optional part
  *  \param xua caller-provided xUA message to which options are added
  *  \returns \ref xua in case of success, NULL on error (xua not freed!) */
-static struct xua_msg *sccp_to_xua_opt(struct msgb *msg, uint8_t *ptr_opt, struct xua_msg *xua)
+static struct xua_msg *sccp_to_xua_opt(const struct msgb *msg, const uint8_t *ptr_opt, struct xua_msg *xua)
 {
-	uint8_t *opt_start, *oneopt;
+	const uint8_t *opt_start, *oneopt;
 
 	/* some bounds checking */
 	if (ptr_opt < msg->data || ptr_opt > msg->tail)
@@ -984,9 +984,9 @@ static bool sccp_option_permitted(enum sccp_message_types type, const struct xua
 }
 
 static int xua_ies_to_sccp_opts(struct msgb *msg, uint8_t *ptr_opt,
-				enum sccp_message_types type, struct xua_msg *xua)
+				enum sccp_message_types type, const struct xua_msg *xua)
 {
-	struct xua_msg_part *part;
+	const struct xua_msg_part *part;
 
 	/* store relative pointer to start of optional part */
 	*ptr_opt = msg->tail - ptr_opt;
@@ -1004,7 +1004,7 @@ static int xua_ies_to_sccp_opts(struct msgb *msg, uint8_t *ptr_opt,
 }
 
 /* store a 'local reference' as big-endian 24bit value at local_ref */
-static int store_local_ref(struct sccp_source_reference *local_ref, struct xua_msg *xua, uint16_t iei)
+static int store_local_ref(struct sccp_source_reference *local_ref, const struct xua_msg *xua, uint16_t iei)
 {
 	uint32_t tmp32 = xua_msg_get_u32(xua, iei);
 	if (tmp32 > 0x00fffffe) {
@@ -1018,7 +1018,7 @@ static int store_local_ref(struct sccp_source_reference *local_ref, struct xua_m
 }
 
 /*! \returns \ref xua in case of success, NULL on error (xua not freed!) */
-static struct xua_msg *sccp_to_xua_cr(struct msgb *msg, struct xua_msg *xua)
+static struct xua_msg *sccp_to_xua_cr(const struct msgb *msg, struct xua_msg *xua)
 {
 	struct sccp_connection_request *req = (struct sccp_connection_request *)msg->l2h;
 
@@ -1034,7 +1034,7 @@ static struct xua_msg *sccp_to_xua_cr(struct msgb *msg, struct xua_msg *xua)
 }
 
 /*! \returns \ref xua in case of success, NULL on error (xua not freed!) */
-static int sua_to_sccp_cr(struct msgb *msg, struct xua_msg *xua)
+static int sua_to_sccp_cr(struct msgb *msg, const struct xua_msg *xua)
 {
 	struct sccp_connection_request *req;
 	int rc;
@@ -1054,7 +1054,7 @@ static int sua_to_sccp_cr(struct msgb *msg, struct xua_msg *xua)
 }
 
 /*! \returns \ref xua in case of success, NULL on error (xua not freed!) */
-static struct xua_msg *sccp_to_xua_cc(struct msgb *msg, struct xua_msg *xua)
+static struct xua_msg *sccp_to_xua_cc(const struct msgb *msg, struct xua_msg *xua)
 {
 	struct sccp_connection_confirm *cnf = (struct sccp_connection_confirm *)msg->l2h;
 
@@ -1067,7 +1067,7 @@ static struct xua_msg *sccp_to_xua_cc(struct msgb *msg, struct xua_msg *xua)
 }
 
 /*! \returns \ref xua in case of success, NULL on error (xua not freed!) */
-static int sua_to_sccp_cc(struct msgb *msg, struct xua_msg *xua)
+static int sua_to_sccp_cc(struct msgb *msg, const struct xua_msg *xua)
 {
 	struct sccp_connection_confirm *cnf;
 	int rc;
@@ -1087,9 +1087,9 @@ static int sua_to_sccp_cc(struct msgb *msg, struct xua_msg *xua)
 }
 
 /*! \returns \ref xua in case of success, NULL on error (xua not freed!) */
-static struct xua_msg *sccp_to_xua_cref(struct msgb *msg, struct xua_msg *xua)
+static struct xua_msg *sccp_to_xua_cref(const struct msgb *msg, struct xua_msg *xua)
 {
-	struct sccp_connection_refused *ref = (struct sccp_connection_refused *)msg->l2h;
+	const struct sccp_connection_refused *ref = (const struct sccp_connection_refused *)msg->l2h;
 
 	/* Fixed Part */
 	xua_msg_add_u32(xua, SUA_IEI_DEST_REF, load_24be(&ref->destination_local_reference));
@@ -1099,7 +1099,7 @@ static struct xua_msg *sccp_to_xua_cref(struct msgb *msg, struct xua_msg *xua)
 }
 
 /*! \returns \ref xua in case of success, NULL on error (xua not freed!) */
-static int sua_to_sccp_cref(struct msgb *msg, struct xua_msg *xua)
+static int sua_to_sccp_cref(struct msgb *msg, const struct xua_msg *xua)
 {
 	struct sccp_connection_refused *ref;
 	int rc;
@@ -1116,9 +1116,9 @@ static int sua_to_sccp_cref(struct msgb *msg, struct xua_msg *xua)
 }
 
 /*! \returns \ref xua in case of success, NULL on error (xua not freed!) */
-static struct xua_msg *sccp_to_xua_rlsd(struct msgb *msg, struct xua_msg *xua)
+static struct xua_msg *sccp_to_xua_rlsd(const struct msgb *msg, struct xua_msg *xua)
 {
-	struct sccp_connection_released *rlsd = (struct sccp_connection_released *)msg->l2h;
+	const struct sccp_connection_released *rlsd = (const struct sccp_connection_released *)msg->l2h;
 
 	/* Fixed Part */
 	xua_msg_add_u32(xua, SUA_IEI_DEST_REF, load_24be(&rlsd->destination_local_reference));
@@ -1128,7 +1128,7 @@ static struct xua_msg *sccp_to_xua_rlsd(struct msgb *msg, struct xua_msg *xua)
 	return sccp_to_xua_opt(msg, &rlsd->optional_start, xua);
 }
 
-static int sua_to_sccp_rlsd(struct msgb *msg, struct xua_msg *xua)
+static int sua_to_sccp_rlsd(struct msgb *msg, const struct xua_msg *xua)
 {
 	struct sccp_connection_released *rlsd;
 	int rc;
@@ -1149,10 +1149,10 @@ static int sua_to_sccp_rlsd(struct msgb *msg, struct xua_msg *xua)
 }
 
 /*! \returns \ref xua in case of success, NULL on error (xua not freed!) */
-static struct xua_msg *sccp_to_xua_rlc(struct msgb *msg, struct xua_msg *xua)
+static struct xua_msg *sccp_to_xua_rlc(const struct msgb *msg, struct xua_msg *xua)
 {
-	struct sccp_connection_release_complete *rlc;
-	rlc = (struct sccp_connection_release_complete *) msg->l2h;
+	const struct sccp_connection_release_complete *rlc;
+	rlc = (const struct sccp_connection_release_complete *) msg->l2h;
 
 	/* Fixed Part */
 	xua_msg_add_u32(xua, SUA_IEI_DEST_REF, load_24be(&rlc->destination_local_reference));
@@ -1160,7 +1160,7 @@ static struct xua_msg *sccp_to_xua_rlc(struct msgb *msg, struct xua_msg *xua)
 	return xua;
 }
 
-static int sua_to_sccp_rlc(struct msgb *msg, struct xua_msg *xua)
+static int sua_to_sccp_rlc(struct msgb *msg, const struct xua_msg *xua)
 {
 	struct sccp_connection_release_complete *rlc;
 	int rc;
@@ -1178,9 +1178,9 @@ static int sua_to_sccp_rlc(struct msgb *msg, struct xua_msg *xua)
 }
 
 /*! \returns \ref xua in case of success, NULL on error (xua not freed!) */
-static struct xua_msg *sccp_to_xua_dt1(struct msgb *msg, struct xua_msg *xua)
+static struct xua_msg *sccp_to_xua_dt1(const struct msgb *msg, struct xua_msg *xua)
 {
-	struct sccp_data_form1 *dt1 = (struct sccp_data_form1 *) msg->l2h;
+	const struct sccp_data_form1 *dt1 = (const struct sccp_data_form1 *) msg->l2h;
 
 	/* Fixed Part */
 	xua_msg_add_u32(xua, SUA_IEI_DEST_REF, load_24be(&dt1->destination_local_reference));
@@ -1192,7 +1192,7 @@ static struct xua_msg *sccp_to_xua_dt1(struct msgb *msg, struct xua_msg *xua)
 	return xua;
 }
 
-static int sua_to_sccp_dt1(struct msgb *msg, struct xua_msg *xua)
+static int sua_to_sccp_dt1(struct msgb *msg, const struct xua_msg *xua)
 {
 	struct sccp_data_form1 *dt1;
 	int rc;
@@ -1210,9 +1210,9 @@ static int sua_to_sccp_dt1(struct msgb *msg, struct xua_msg *xua)
 }
 
 /*! \returns \ref xua in case of success, NULL on error (xua not freed!) */
-static struct xua_msg *sccp_to_xua_udt(struct msgb *msg, struct xua_msg *xua)
+static struct xua_msg *sccp_to_xua_udt(const struct msgb *msg, struct xua_msg *xua)
 {
-	struct sccp_data_unitdata *udt = (struct sccp_data_unitdata *)msg->l2h;
+	const struct sccp_data_unitdata *udt = (const struct sccp_data_unitdata *)msg->l2h;
 
 	/* Fixed Part */
 	xua_msg_add_u32(xua, SUA_IEI_PROTO_CLASS, udt->proto_class);
@@ -1230,9 +1230,9 @@ static struct xua_msg *sccp_to_xua_udt(struct msgb *msg, struct xua_msg *xua)
 
 }
 
-static int sua_to_sccp_xudt(struct msgb *msg, struct xua_msg *xua);
+static int sua_to_sccp_xudt(struct msgb *msg, const struct xua_msg *xua);
 
-static int sua_to_sccp_udt(struct msgb *msg, struct xua_msg *xua)
+static int sua_to_sccp_udt(struct msgb *msg, const struct xua_msg *xua)
 {
 	struct sccp_data_unitdata *udt;
 
@@ -1253,9 +1253,9 @@ static int sua_to_sccp_udt(struct msgb *msg, struct xua_msg *xua)
 }
 
 /*! \returns \ref xua in case of success, NULL on error (xua not freed!) */
-static struct xua_msg *sccp_to_xua_xudt(struct msgb *msg, struct xua_msg *xua)
+static struct xua_msg *sccp_to_xua_xudt(const struct msgb *msg, struct xua_msg *xua)
 {
-	struct sccp_data_ext_unitdata *xudt = (struct sccp_data_ext_unitdata *)msg->l2h;
+	const struct sccp_data_ext_unitdata *xudt = (const struct sccp_data_ext_unitdata *)msg->l2h;
 
 	/* Fixed Part */
 	xua_msg_add_u32(xua, SUA_IEI_PROTO_CLASS, xudt->proto_class);
@@ -1275,7 +1275,7 @@ static struct xua_msg *sccp_to_xua_xudt(struct msgb *msg, struct xua_msg *xua)
 
 }
 
-static int sua_to_sccp_xudt(struct msgb *msg, struct xua_msg *xua)
+static int sua_to_sccp_xudt(struct msgb *msg, const struct xua_msg *xua)
 {
 	struct sccp_data_ext_unitdata *xudt;
 	xudt = (struct sccp_data_ext_unitdata *) msgb_put(msg, sizeof(*xudt));
@@ -1293,10 +1293,10 @@ static int sua_to_sccp_xudt(struct msgb *msg, struct xua_msg *xua)
 }
 
 /*! \returns \ref xua in case of success, NULL on error (xua not freed!) */
-static struct xua_msg *sccp_to_xua_udts(struct msgb *msg, struct xua_msg *xua)
+static struct xua_msg *sccp_to_xua_udts(const struct msgb *msg, struct xua_msg *xua)
 {
-	struct sccp_data_unitdata_service *udts;
-	udts =(struct sccp_data_unitdata_service *)msg->l2h;
+	const struct sccp_data_unitdata_service *udts;
+	udts = (const struct sccp_data_unitdata_service *)msg->l2h;
 
 	/* Fixed Part */
 	xua_msg_add_u32(xua, SUA_IEI_CAUSE, SUA_CAUSE_T_RETURN | udts->return_cause);
@@ -1314,9 +1314,9 @@ static struct xua_msg *sccp_to_xua_udts(struct msgb *msg, struct xua_msg *xua)
 
 }
 
-static int sua_to_sccp_xudts(struct msgb *msg, struct xua_msg *xua);
+static int sua_to_sccp_xudts(struct msgb *msg, const struct xua_msg *xua);
 
-static int sua_to_sccp_udts(struct msgb *msg, struct xua_msg *xua)
+static int sua_to_sccp_udts(struct msgb *msg, const struct xua_msg *xua)
 {
 	struct sccp_data_unitdata_service *udts;
 
@@ -1337,10 +1337,10 @@ static int sua_to_sccp_udts(struct msgb *msg, struct xua_msg *xua)
 }
 
 /*! \returns \ref xua in case of success, NULL on error (xua not freed!) */
-static struct xua_msg *sccp_to_xua_xudts(struct msgb *msg, struct xua_msg *xua)
+static struct xua_msg *sccp_to_xua_xudts(const struct msgb *msg, struct xua_msg *xua)
 {
-	struct sccp_data_ext_unitdata_service *xudts;
-	xudts = (struct sccp_data_ext_unitdata_service *)msg->l2h;
+	const struct sccp_data_ext_unitdata_service *xudts;
+	xudts = (const struct sccp_data_ext_unitdata_service *)msg->l2h;
 
 	/* Fixed Part */
 	xua_msg_add_u32(xua, SUA_IEI_CAUSE, SUA_CAUSE_T_RETURN | xudts->return_cause);
@@ -1359,7 +1359,7 @@ static struct xua_msg *sccp_to_xua_xudts(struct msgb *msg, struct xua_msg *xua)
 	return sccp_to_xua_opt(msg, &xudts->optional_start, xua);
 }
 
-static int sua_to_sccp_xudts(struct msgb *msg, struct xua_msg *xua)
+static int sua_to_sccp_xudts(struct msgb *msg, const struct xua_msg *xua)
 {
 	struct sccp_data_ext_unitdata_service *xudts;
 	xudts = (struct sccp_data_ext_unitdata_service *) msgb_put(msg, sizeof(*xudts));
@@ -1377,9 +1377,9 @@ static int sua_to_sccp_xudts(struct msgb *msg, struct xua_msg *xua)
 }
 
 /*! \returns \ref xua in case of success, NULL on error (xua not freed!) */
-static struct xua_msg *sccp_to_xua_it(struct msgb *msg, struct xua_msg *xua)
+static struct xua_msg *sccp_to_xua_it(const struct msgb *msg, struct xua_msg *xua)
 {
-	struct sccp_data_it *it = (struct sccp_data_it *)msg->l2h;
+	const struct sccp_data_it *it = (const struct sccp_data_it *)msg->l2h;
 
 	/* Fixed Part */
 	xua_msg_add_u32(xua, SUA_IEI_PROTO_CLASS, it->proto_class);
@@ -1392,7 +1392,7 @@ static struct xua_msg *sccp_to_xua_it(struct msgb *msg, struct xua_msg *xua)
 	return xua;
 }
 
-static int sua_to_sccp_it(struct msgb *msg, struct xua_msg *xua)
+static int sua_to_sccp_it(struct msgb *msg, const struct xua_msg *xua)
 {
 	struct sccp_data_it *it;
 	int rc;
@@ -1416,9 +1416,9 @@ static int sua_to_sccp_it(struct msgb *msg, struct xua_msg *xua)
 }
 
 /*! \returns \ref xua in case of success, NULL on error (xua not freed!) */
-static struct xua_msg *sccp_to_xua_err(struct msgb *msg, struct xua_msg *xua)
+static struct xua_msg *sccp_to_xua_err(const struct msgb *msg, struct xua_msg *xua)
 {
-	struct sccp_proto_err *err = (struct sccp_proto_err *)msg->l2h;
+	const struct sccp_proto_err *err = (const struct sccp_proto_err *)msg->l2h;
 
 	/* Fixed Part */
 	xua_msg_add_u32(xua, SUA_IEI_DEST_REF, load_24be(&err->destination_local_reference));
@@ -1426,7 +1426,7 @@ static struct xua_msg *sccp_to_xua_err(struct msgb *msg, struct xua_msg *xua)
 	return xua;
 }
 
-static int sua_to_sccp_err(struct msgb *msg, struct xua_msg *xua)
+static int sua_to_sccp_err(struct msgb *msg, const struct xua_msg *xua)
 {
 	struct sccp_proto_err *err;
 	int rc;
