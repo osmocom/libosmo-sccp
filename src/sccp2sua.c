@@ -987,18 +987,26 @@ static int xua_ies_to_sccp_opts(struct msgb *msg, uint8_t *ptr_opt,
 				enum sccp_message_types type, const struct xua_msg *xua)
 {
 	const struct xua_msg_part *part;
-
-	/* store relative pointer to start of optional part */
-	*ptr_opt = msg->tail - ptr_opt;
+	bool any_added = false;
+	uint8_t *old_tail = msg->tail;
 
 	llist_for_each_entry(part, &xua->headers, entry) {
 		/* make sure we don't add a SCCP option for information
 		 * that is already present in mandatory fixed or
 		 * mandatory variable parts of the header */
-		if (!sccp_is_mandatory(type, part) && sccp_option_permitted(type, part))
+		if (!sccp_is_mandatory(type, part) && sccp_option_permitted(type, part)) {
 			sccp_msg_add_sua_opt(type, msg, part);
+			any_added = true;
+		}
 	}
-	msgb_put_u8(msg, SCCP_PNC_END_OF_OPTIONAL);
+	if (any_added) {
+		msgb_put_u8(msg, SCCP_PNC_END_OF_OPTIONAL);
+		/* store relative pointer to start of optional part */
+		*ptr_opt = old_tail - ptr_opt;
+	} else {
+		/* If nothing was added, simply update the pointer to 0 to signal the optional part is omitted. */
+		ptr_opt[0] = 0;
+	}
 
 	return 0;
 }

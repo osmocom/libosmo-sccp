@@ -55,7 +55,8 @@ SCCP Input: [L2]> 02 01 02 03 00 00 03 02 01 00
 Transcoding message SCCP -> XUA
 Decoded SUA: HDR=(CO:COAK,V=0,LEN=0), PART(T=Protocol Class,L=4,D=00000002), PART(T=Destination Reference,L=4,D=00010203), PART(T=Source Reference,L=4,D=00000003)
 Re-Encoding decoded SUA to SCCP
-SCCP Output: [L2]> 02 01 02 03 00 00 03 02 01 00 
+SCCP Output: [L2]> 02 01 02 03 00 00 03 02 00 
+Input != re-encoded output!
 
 => BSSMAP-DTAP
 SCCP Input: [L2]> 06 00 00 03 00 01 0f 01 00 0c 03 05 5c 08 11 81 33 66 02 13 45 f4 

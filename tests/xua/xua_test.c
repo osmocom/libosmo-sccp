@@ -439,6 +439,10 @@ static const struct sccp2sua_testcase sccp2sua_testcases[] = {
 			},
 		},
 	}, {
+		/* This case expectedly prints "Input != re-encoded output!" because input has
+		 * (struct sccp_connection_confirm).optional_start=1 pointing to SCCP_PNC_END_OF_OPTIONAL,
+		 * while our (re-)encoder uses optional_start=0 which means entire msg is 1 byte
+		 * lower (hence better). Both are valid. */
 		.name = "BSSMAP-CC",
 		.sccp = PANDSIZ(bssmap_cc),
 		.sua = {
