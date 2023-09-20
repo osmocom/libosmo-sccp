@@ -431,9 +431,9 @@ static int sccp_add_variable_part(struct msgb *msg, uint8_t *var_ptr, struct xua
  *  \param[in] msg Message containing SCCP address
  *  \param[in] ptr_addr pointer to byte with relative SCCP pointer
  *  \returns true if OK; false if message inconsistent */
-static bool sccp_ptr_part_consistent(struct msgb *msg, uint8_t *ptr_addr)
+static bool sccp_ptr_part_consistent(const struct msgb *msg, const uint8_t *ptr_addr)
 {
-	uint8_t *ptr;
+	const uint8_t *ptr;
 
 	/* check the address of the relative pointer is within msg */
 	if (ptr_addr < msg->data || ptr_addr > msg->tail) {
