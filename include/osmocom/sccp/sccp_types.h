@@ -482,7 +482,7 @@ struct  sccp_data_ext_unitdata_service {
 
 #if OPTIONAL
 	segmentation
-	importancd
+	importance
 #endif
 
 	uint8_t			data[0];
