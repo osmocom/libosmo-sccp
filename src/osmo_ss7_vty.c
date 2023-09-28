@@ -732,10 +732,27 @@ DEFUN_ATTR(asp_remote_ip, asp_remote_ip_cmd,
 {
 	struct osmo_ss7_asp *asp = vty->index;
 	bool is_primary = argc > 1;
+	int old_idx_primary = asp->cfg.remote.idx_primary;
+	int rc;
 
 	if (osmo_ss7_asp_peer_add_host2(&asp->cfg.remote, asp, argv[0], is_primary) != 0) {
 		vty_out(vty, "%% Failed adding host '%s' to set%s", argv[0], VTY_NEWLINE);
 		return CMD_WARNING;
+	}
+
+	if (!ss7_asp_is_started(asp))
+		return CMD_SUCCESS;
+	if (asp->cfg.proto == OSMO_SS7_ASP_PROT_IPA)
+		return CMD_SUCCESS;
+
+	/* The SCTP socket is already created, dynamically apply the new primary if it changed: */
+	if (asp->cfg.proto != OSMO_SS7_ASP_PROT_IPA && ss7_asp_is_started(asp)) {
+		if ((rc = ss7_asp_apply_primary_address(asp)) < 0) {
+			/* Failed, rollback changes: */
+			asp->cfg.remote.idx_primary = old_idx_primary;
+			vty_out(vty, "%% Failed applying primary on host '%s'%s", argv[0], VTY_NEWLINE);
+			return CMD_WARNING;
+		}
 	}
 	return CMD_SUCCESS;
 }
