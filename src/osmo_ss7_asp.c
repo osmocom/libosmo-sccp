@@ -168,6 +168,25 @@ static const struct rate_ctr_group_desc ss7_asp_rcgd = {
 };
 static unsigned int g_ss7_asp_rcg_idx;
 
+int ss7_asp_apply_new_local_address(const struct osmo_ss7_asp *asp, unsigned int loc_idx)
+{
+	const char *new_loc_addr;
+	struct osmo_fd *ofd;
+
+	OSMO_ASSERT(loc_idx < asp->cfg.local.host_cnt);
+	new_loc_addr = asp->cfg.local.host[loc_idx];
+
+	LOGPASP(asp, DLSS7, LOGL_INFO, "Add local address %s\n",
+		new_loc_addr);
+
+	if (asp->cfg.is_server)
+		ofd = osmo_stream_srv_get_ofd(asp->server);
+	else
+		ofd = osmo_stream_cli_get_ofd(asp->client);
+
+	return osmo_sock_multiaddr_add_local_addr(ofd->fd, &new_loc_addr, 1);
+}
+
 int ss7_asp_apply_peer_primary_address(const struct osmo_ss7_asp *asp)
 {
 	struct osmo_fd *ofd;

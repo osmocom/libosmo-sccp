@@ -27,6 +27,7 @@ int ss7_asp_xua_srv_conn_cb(struct osmo_stream_srv *conn);
 int ss7_asp_xua_srv_conn_closed_cb(struct osmo_stream_srv *srv);
 int ss7_asp_apply_peer_primary_address(const struct osmo_ss7_asp *asp);
 int ss7_asp_apply_primary_address(const struct osmo_ss7_asp *asp);
+int ss7_asp_apply_new_local_address(const struct osmo_ss7_asp *asp, unsigned int loc_idx);
 
 bool ss7_asp_peer_match_host(const struct osmo_ss7_asp_peer *peer, const char *host, bool host_is_v6);
 

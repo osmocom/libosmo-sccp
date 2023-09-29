@@ -715,6 +715,7 @@ DEFUN_ATTR(asp_local_ip, asp_local_ip_cmd,
 	struct osmo_ss7_asp *asp = vty->index;
 	bool is_primary = argc > 1;
 	int old_idx_primary = asp->cfg.local.idx_primary;
+	int old_host_count = asp->cfg.local.host_cnt;
 	int rc;
 
 	if (osmo_ss7_asp_peer_add_host2(&asp->cfg.local, asp, argv[0], is_primary) != 0) {
@@ -726,8 +727,21 @@ DEFUN_ATTR(asp_local_ip, asp_local_ip_cmd,
 		return CMD_SUCCESS;
 	if (asp->cfg.proto == OSMO_SS7_ASP_PROT_IPA)
 		return CMD_SUCCESS;
+	/* The SCTP socket is already created. */
 
-	/* The SCTP socket is already created, dynamically apply the new primary if it changed: */
+	/* dynamically apply the new address if it was added to the set: */
+	if (asp->cfg.local.host_cnt > old_host_count) {
+		if ((rc = ss7_asp_apply_new_local_address(asp, asp->cfg.local.host_cnt - 1)) < 0) {
+			/* Failed, rollback changes: */
+			TALLOC_FREE(asp->cfg.local.host[asp->cfg.local.host_cnt - 1]);
+			asp->cfg.local.host_cnt--;
+			vty_out(vty, "%% Failed adding new local address '%s'%s", argv[0], VTY_NEWLINE);
+			return CMD_WARNING;
+		}
+		vty_out(vty, "%% Local address '%s' added to the active socket bind set%s", argv[0], VTY_NEWLINE);
+	}
+
+	/* dynamically apply the new primary if it changed: */
 	if (is_primary && asp->cfg.local.idx_primary != old_idx_primary) {
 		if ((rc = ss7_asp_apply_peer_primary_address(asp)) < 0) {
 			/* Failed, rollback changes: */
@@ -735,6 +749,7 @@ DEFUN_ATTR(asp_local_ip, asp_local_ip_cmd,
 			vty_out(vty, "%% Failed announcing primary '%s' to peer%s", argv[0], VTY_NEWLINE);
 			return CMD_WARNING;
 		}
+		vty_out(vty, "%% Local address '%s' announced as primary to the peer on the active socket%s", argv[0], VTY_NEWLINE);
 	}
 	return CMD_SUCCESS;
 }
