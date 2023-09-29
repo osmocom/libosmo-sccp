@@ -343,6 +343,21 @@ int osmo_ss7_asp_peer_add_host(struct osmo_ss7_asp_peer *peer, void *talloc_ctx,
 	return osmo_ss7_asp_peer_add_host2(peer, talloc_ctx, host, false);
 }
 
+static bool ss7_asp_peer_match_host(const struct osmo_ss7_asp_peer *peer, const char *host, bool host_is_v6)
+{
+	unsigned int i;
+	for (i = 0; i < peer->host_cnt; i++) {
+		bool iter_is_v6 = osmo_ip_str_type(peer->host[i]) == AF_INET6;
+		bool iter_is_anyaddr = host_is_ip_anyaddr(peer->host[i], iter_is_v6);
+		/* "::" (v6) covers "0.0.0.0" (v4), but not otherwise */
+		if ((iter_is_v6 != host_is_v6) && !(iter_is_v6 && iter_is_anyaddr))
+			continue;
+		if (iter_is_anyaddr || !strcmp(peer->host[i], host))
+			return true;
+	}
+	return false;
+}
+
 int ss7_asp_apply_peer_primary_address(const struct osmo_ss7_asp *asp)
 {
 	struct osmo_fd *ofd;
@@ -570,7 +585,6 @@ ss7_asp_find_by_socket_addr(int fd)
 	uint16_t local_port, remote_port;
 	bool loc_is_v6, rem_is_v6;
 	int rc;
-	int i;
 
 	OSMO_ASSERT(ss7_initialized);
 	/* convert local and remote IP to string */
@@ -613,34 +627,12 @@ ss7_asp_find_by_socket_addr(int fd)
 			if (asp->cfg.remote.port && asp->cfg.remote.port != remote_port)
 				continue;
 
-			for (i = 0; i < asp->cfg.local.host_cnt; i++) {
-				bool iter_is_v6 = osmo_ip_str_type(asp->cfg.local.host[i]) == AF_INET6;
-				bool iter_is_anyaddr = host_is_ip_anyaddr(asp->cfg.local.host[i], iter_is_v6);
-				/* "::" (v6) covers "0.0.0.0" (v4), but not otherwise */
-				if (iter_is_v6 != loc_is_v6 &&
-				    !(iter_is_v6 && iter_is_anyaddr))
-					continue;
-				if (iter_is_anyaddr ||
-				    !strcmp(asp->cfg.local.host[i], hostbuf_l))
-					break;
-			}
-			if (i == asp->cfg.local.host_cnt)
+			if (!ss7_asp_peer_match_host(&asp->cfg.local, hostbuf_l, loc_is_v6))
 				continue; /* didn't match any local.host */
 
 			/* If no remote host was set, it's probably a server and hence we match any cli src */
 			if (asp->cfg.remote.host_cnt) {
-				for (i = 0; i < asp->cfg.remote.host_cnt; i++) {
-					bool iter_is_v6 = osmo_ip_str_type(asp->cfg.remote.host[i]) == AF_INET6;
-					bool iter_is_anyaddr = host_is_ip_anyaddr(asp->cfg.remote.host[i], iter_is_v6);
-					/* "::" (v6) covers "0.0.0.0" (v4), but not otherwise */
-					if (iter_is_v6 != rem_is_v6 &&
-					    !(iter_is_v6 && iter_is_anyaddr))
-						continue;
-					if (iter_is_anyaddr ||
-					    !strcmp(asp->cfg.remote.host[i], hostbuf_r))
-						break;
-				}
-				if (i == asp->cfg.remote.host_cnt)
+				if (!ss7_asp_peer_match_host(&asp->cfg.remote, hostbuf_r, rem_is_v6))
 					continue; /* didn't match any remote.host */
 			}
 
