@@ -9,6 +9,9 @@ extern bool ss7_initialized;
 
 bool ss7_ipv6_sctp_supported(const char *host, bool bind);
 
+struct osmo_ss7_as *ss7_as_alloc(struct osmo_ss7_instance *inst, const char *name,
+				 enum osmo_ss7_asp_protocol proto);
+
 struct osmo_ss7_asp *ss7_asp_alloc(struct osmo_ss7_instance *inst, const char *name,
 				   uint16_t remote_port, uint16_t local_port,
 				   enum osmo_ss7_asp_protocol proto);

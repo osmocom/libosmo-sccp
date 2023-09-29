@@ -954,6 +954,37 @@ struct osmo_ss7_as *osmo_ss7_as_find_by_proto(struct osmo_ss7_instance *inst,
 	return as_without_asp;
 }
 
+/*! \brief Allocate an Application Server
+ *  \param[in] inst SS7 Instance on which we operate
+ *  \param[in] name Name of Application Server
+ *  \param[in] proto Protocol of Application Server
+ *  \returns pointer to Application Server on success; NULL otherwise */
+struct osmo_ss7_as *ss7_as_alloc(struct osmo_ss7_instance *inst, const char *name,
+				 enum osmo_ss7_asp_protocol proto)
+{
+	struct osmo_ss7_as *as;
+
+	as = talloc_zero(inst, struct osmo_ss7_as);
+	if (!as)
+		return NULL;
+	as->ctrg = rate_ctr_group_alloc(as, &ss7_as_rcgd, g_ss7_as_rcg_idx++);
+	if (!as->ctrg) {
+		talloc_free(as);
+		return NULL;
+	}
+	rate_ctr_group_set_name(as->ctrg, name);
+	as->inst = inst;
+	as->cfg.name = talloc_strdup(as, name);
+	as->cfg.proto = proto;
+	as->cfg.mode = OSMO_SS7_AS_TMOD_OVERRIDE;
+	as->cfg.recovery_timeout_msec = 2000;
+	as->cfg.routing_key.l_rk_id = find_free_l_rk_id(inst);
+	as->fi = xua_as_fsm_start(as, LOGL_DEBUG);
+	llist_add_tail(&as->list, &inst->as_list);
+
+	return as;
+}
+
 /*! \brief Find or Create Application Server
  *  \param[in] inst SS7 Instance on which we operate
  *  \param[in] name Name of Application Server
@@ -972,23 +1003,9 @@ osmo_ss7_as_find_or_create(struct osmo_ss7_instance *inst, const char *name,
 		return NULL;
 
 	if (!as) {
-		as = talloc_zero(inst, struct osmo_ss7_as);
+		as = ss7_as_alloc(inst, name, proto);
 		if (!as)
 			return NULL;
-		as->ctrg = rate_ctr_group_alloc(as, &ss7_as_rcgd, g_ss7_as_rcg_idx++);
-		if (!as->ctrg) {
-			talloc_free(as);
-			return NULL;
-		}
-		rate_ctr_group_set_name(as->ctrg, name);
-		as->inst = inst;
-		as->cfg.name = talloc_strdup(as, name);
-		as->cfg.proto = proto;
-		as->cfg.mode = OSMO_SS7_AS_TMOD_OVERRIDE;
-		as->cfg.recovery_timeout_msec = 2000;
-		as->cfg.routing_key.l_rk_id = find_free_l_rk_id(inst);
-		as->fi = xua_as_fsm_start(as, LOGL_DEBUG);
-		llist_add_tail(&as->list, &inst->as_list);
 		LOGPAS(as, DLSS7, LOGL_INFO, "Created AS\n");
 	}
 
