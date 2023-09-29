@@ -3,9 +3,11 @@
 /* Internal header used by libosmo-sccp, not available publicly for lib users */
 
 #include <stdbool.h>
+#include <stdint.h>
 #include <osmocom/sigtran/osmo_ss7.h>
 
 extern bool ss7_initialized;
+uint32_t ss7_find_free_l_rk_id(struct osmo_ss7_instance *inst);
 
 bool ss7_ipv6_sctp_supported(const char *host, bool bind);
 
