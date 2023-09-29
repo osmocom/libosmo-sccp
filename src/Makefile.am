@@ -38,6 +38,7 @@ libosmo_sigtran_la_SOURCES = \
 	m3ua.c \
 	osmo_ss7.c \
 	osmo_ss7_asp.c \
+	osmo_ss7_asp_peer.c \
 	osmo_ss7_hmrt.c \
 	osmo_ss7_vty.c \
 	osmo_ss7_xua_srv.c \
