@@ -284,6 +284,17 @@ osmo_ss7_xua_server_add_local_host(struct osmo_xua_server *xs, const char *local
 	return osmo_stream_srv_link_set_addrs(xs->server, (const char **)xs->cfg.local.host, xs->cfg.local.host_cnt);
 }
 
+int
+osmo_ss7_xua_server_del_local_host(struct osmo_xua_server *xs, const char *local_host)
+{
+	int rc;
+
+	rc = osmo_ss7_asp_peer_del_host(&xs->cfg.local, local_host);
+	if (rc < 0)
+		return rc;
+	return osmo_stream_srv_link_set_addrs(xs->server, (const char **)xs->cfg.local.host, xs->cfg.local.host_cnt);
+}
+
 bool ss7_xua_server_set_default_local_hosts(struct osmo_xua_server *oxs)
 {
 	/* If no local addr was set, or erased after _create(): */

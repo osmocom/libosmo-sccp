@@ -511,6 +511,22 @@ DEFUN_ATTR(xua_local_ip, xua_local_ip_cmd,
 	return CMD_SUCCESS;
 }
 
+DEFUN_ATTR(xua_no_local_ip, xua_no_local_ip_cmd,
+	   "no local-ip " VTY_IPV46_CMD,
+	   NO_STR "Configure the Local IP Address for xUA\n"
+	   "IPv4 Address to use for XUA\n"
+	   "IPv6 Address to use for XUA\n",
+	   CMD_ATTR_NODE_EXIT)
+{
+	struct osmo_xua_server *xs = vty->index;
+
+	if (osmo_ss7_xua_server_del_local_host(xs, argv[0]) != 0) {
+		vty_out(vty, "%% Failed deleting local address '%s' from set%s", argv[0], VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+	return CMD_SUCCESS;
+}
+
 DEFUN_ATTR(xua_accept_dyn_asp, xua_accept_dyn_asp_cmd,
 	   "accept-asp-connections (pre-configured|dynamic-permitted)",
 	   "Define what kind of ASP connections to accept\n"
@@ -2476,6 +2492,7 @@ void osmo_ss7_vty_init_sg(void *ctx)
 	install_lib_element(L_CS7_NODE, &cs7_xua_cmd);
 	install_lib_element(L_CS7_NODE, &no_cs7_xua_cmd);
 	install_lib_element(L_CS7_XUA_NODE, &xua_local_ip_cmd);
+	install_lib_element(L_CS7_XUA_NODE, &xua_no_local_ip_cmd);
 	install_lib_element(L_CS7_XUA_NODE, &xua_accept_dyn_asp_cmd);
 	install_lib_element(L_CS7_XUA_NODE, &xua_sctp_param_init_cmd);
 	install_lib_element(L_CS7_XUA_NODE, &xua_no_sctp_param_init_cmd);

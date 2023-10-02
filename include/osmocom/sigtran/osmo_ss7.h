@@ -562,6 +562,7 @@ osmo_ss7_xua_server_set_local_host(struct osmo_xua_server *xs, const char *local
 int
 osmo_ss7_xua_server_set_local_hosts(struct osmo_xua_server *xs, const char **local_hosts, size_t local_host_cnt);
 int osmo_ss7_xua_server_add_local_host(struct osmo_xua_server *xs, const char *local_host);
+int osmo_ss7_xua_server_del_local_host(struct osmo_xua_server *xs, const char *local_host);
 void osmo_ss7_xua_server_destroy(struct osmo_xua_server *xs);
 
 struct osmo_sccp_instance *
