@@ -754,6 +754,39 @@ DEFUN_ATTR(asp_local_ip, asp_local_ip_cmd,
 	return CMD_SUCCESS;
 }
 
+DEFUN_ATTR(asp_no_local_ip, asp_no_local_ip_cmd,
+	   "no local-ip " VTY_IPV46_CMD,
+	   NO_STR "Specify Local IP Address from which to contact ASP\n"
+	   "Local IPv4 Address from which to contact of ASP\n"
+	   "Local IPv6 Address from which to contact of ASP\n",
+	   CMD_ATTR_NODE_EXIT)
+{
+	struct osmo_ss7_asp *asp = vty->index;
+	int idx = ss7_asp_peer_find_host(&asp->cfg.local, argv[0]);
+	int rc;
+
+	if (idx < 0) {
+		vty_out(vty, "%% Local address '%s' not found in set%s", argv[0], VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	if (ss7_asp_is_started(asp)) {
+		if (asp->cfg.proto != OSMO_SS7_ASP_PROT_IPA) {
+			if ((rc = ss7_asp_apply_drop_local_address(asp, idx)) < 0) {
+				vty_out(vty, "%% Failed removing local address '%s' from existing socket%s", argv[0], VTY_NEWLINE);
+				return CMD_WARNING;
+			}
+			vty_out(vty, "%% Local address '%s' removed from active socket connection%s", argv[0], VTY_NEWLINE);
+		}
+	}
+
+	if (osmo_ss7_asp_peer_del_host(&asp->cfg.local, argv[0]) != 0) {
+		vty_out(vty, "%% Failed deleting local address '%s' from set%s", argv[0], VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+	return CMD_SUCCESS;
+}
+
 DEFUN_ATTR(asp_remote_ip, asp_remote_ip_cmd,
 	   "remote-ip " VTY_IPV46_CMD " [primary]",
 	   "Specify Remote IP Address of ASP\n"
@@ -785,6 +818,28 @@ DEFUN_ATTR(asp_remote_ip, asp_remote_ip_cmd,
 			vty_out(vty, "%% Failed applying primary on host '%s'%s", argv[0], VTY_NEWLINE);
 			return CMD_WARNING;
 		}
+	}
+	return CMD_SUCCESS;
+}
+
+DEFUN_ATTR(asp_no_remote_ip, asp_no_remote_ip_cmd,
+	   "no remote-ip " VTY_IPV46_CMD,
+	   NO_STR  "Specify Remote IP Address of ASP\n"
+	   "Remote IPv4 Address of ASP\n"
+	   "Remote IPv6 Address of ASP\n",
+	   CMD_ATTR_NODE_EXIT)
+{
+	struct osmo_ss7_asp *asp = vty->index;
+	int idx = ss7_asp_peer_find_host(&asp->cfg.remote, argv[0]);
+
+	if (idx < 0) {
+		vty_out(vty, "%% Remote address '%s' not found in set%s", argv[0], VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	if (osmo_ss7_asp_peer_del_host(&asp->cfg.remote, argv[0]) != 0) {
+		vty_out(vty, "%% Failed deleting remote address '%s' from set%s", argv[0], VTY_NEWLINE);
+		return CMD_WARNING;
 	}
 	return CMD_SUCCESS;
 }
@@ -2362,7 +2417,9 @@ static void vty_init_shared(void *ctx)
 	install_lib_element(L_CS7_NODE, &no_cs7_asp_cmd);
 	install_lib_element(L_CS7_ASP_NODE, &cfg_description_cmd);
 	install_lib_element(L_CS7_ASP_NODE, &asp_remote_ip_cmd);
+	install_lib_element(L_CS7_ASP_NODE, &asp_no_remote_ip_cmd);
 	install_lib_element(L_CS7_ASP_NODE, &asp_local_ip_cmd);
+	install_lib_element(L_CS7_ASP_NODE, &asp_no_local_ip_cmd);
 	install_lib_element(L_CS7_ASP_NODE, &asp_qos_class_cmd);
 	install_lib_element(L_CS7_ASP_NODE, &asp_role_cmd);
 	install_lib_element(L_CS7_ASP_NODE, &asp_sctp_role_cmd);

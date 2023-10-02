@@ -208,6 +208,50 @@ int osmo_ss7_asp_peer_add_host2(struct osmo_ss7_asp_peer *peer, void *talloc_ctx
 	return 0;
 }
 
+/*! \brief Remove address from a given ASP peer.
+ *  \param[in] peer Application Server Process peer the address is removed from.
+ *  \param[in] host string containing an IP address.
+ *  \returns 0 on success; negative otherwise */
+int osmo_ss7_asp_peer_del_host(struct osmo_ss7_asp_peer *peer, const char *host)
+{
+	int i;
+	struct osmo_sockaddr_str addr_str;
+	bool found = false;
+
+	if (osmo_sockaddr_str_from_str(&addr_str, host, 0) < 0)
+		return -EINVAL;
+
+	for (i = 0; i < peer->host_cnt; i++) {
+		if (strcmp(host, peer->host[i]) == 0) {
+			found = true;
+			break;
+		}
+	}
+
+	if (!found)
+		return -ENOENT;
+
+	/* If current primary points to addr being removed, unset it: */
+	if (peer->idx_primary == i)
+		peer->idx_primary = -1;
+	/* If it's after it, update it together with sliding done further below: */
+	else if (peer->idx_primary > i)
+		peer->idx_primary--;
+
+	/* Free addr to remove: */
+	TALLOC_FREE(peer->host[i]);
+
+	/* Move the rest of the array: */
+	for (; i < peer->host_cnt - 1; i++)
+		peer->host[i] = peer->host[i + 1];
+	peer->host[i] = NULL;
+
+	/* Update array size: */
+	peer->host_cnt--;
+
+	return 0;
+}
+
 /*! \brief Append (copy) address to a given ASP peer. Previous addresses are kept.
  *  \param[in] peer Application Server Process peer the address is appended to.
  *  \param[in] talloc_ctx talloc context used to allocate new address.
@@ -232,4 +276,19 @@ bool ss7_asp_peer_match_host(const struct osmo_ss7_asp_peer *peer, const char *h
 			return true;
 	}
 	return false;
+}
+
+/*! \brief Find the exact IP address match and return its index in the array
+ *  \param[in] peer Application Server Process peer where the address is looked up.
+ *  \param[in] host string containing an IP address.
+ *  \returns >=0 on success containing the index of the host; negative otherwise */
+int ss7_asp_peer_find_host(const struct osmo_ss7_asp_peer *peer, const char *host)
+{
+	unsigned int i;
+
+	for (i = 0; i < peer->host_cnt; i++) {
+		if (strcmp(host, peer->host[i]) == 0)
+			return i;
+	}
+	return -1;
 }

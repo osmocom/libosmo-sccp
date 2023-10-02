@@ -221,7 +221,9 @@ ss7_asp_vty_test(config-cs7-asp)# list
 ...
   description .TEXT
   remote-ip (A.B.C.D|X:X::X:X) [primary]
+  no remote-ip (A.B.C.D|X:X::X:X)
   local-ip (A.B.C.D|X:X::X:X) [primary]
+  no local-ip (A.B.C.D|X:X::X:X)
   qos-class <0-255>
   role (sg|asp|ipsp)
   sctp-role (client|server)
@@ -235,12 +237,12 @@ ss7_asp_vty_test(config-cs7-asp)# ?
 ...
   description  Save human-readable description of the object
   remote-ip    Specify Remote IP Address of ASP
+  no           Negate a command or set its defaults
   local-ip     Specify Local IP Address from which to contact ASP
   qos-class    Specify QoS Class of ASP
   role         Specify the xUA role for this ASP
   sctp-role    Specify the SCTP role for this ASP
   sctp-param   Configure SCTP parameters
-  no           Negate a command or set its defaults
   block        Allows a SCTP Association with ASP, but doesn't let it become active
   shutdown     Terminates SCTP association; New associations will be rejected
 ...
