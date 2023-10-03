@@ -840,7 +840,6 @@ struct msgb *sccp_create_cr(const struct sccp_source_reference *src_ref,
 	struct msgb *request;
 	struct sccp_connection_request *req;
 	uint8_t *data;
-	uint8_t extra_size = 3 + 1;
 	int called_len;
 
 	if (l3_data) {
@@ -850,8 +849,6 @@ struct msgb *sccp_create_cr(const struct sccp_source_reference *src_ref,
 		}
 	}
 
-	if (l3_data)
-		extra_size += 2 + l3_length;
 	request = msgb_alloc_headroom(SCCP_MSG_SIZE,
 				      SCCP_MSG_HEADROOM, "sccp connection request");
 	request->l2h = &request->data[0];
