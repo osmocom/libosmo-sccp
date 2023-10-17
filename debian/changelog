@@ -1,3 +1,9 @@
+libosmo-sccp (1.8.1) unstable; urgency=medium
+
+  * Fix counting received IPA packets in server mode
+
+ -- Harald Welte <laforge@osmocom.org>  Tue, 17 Oct 2023 13:11:24 +0200
+
 libosmo-sccp (1.8.0) unstable; urgency=medium
 
   [ Neels Hofmeyr ]

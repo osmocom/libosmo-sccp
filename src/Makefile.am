@@ -25,7 +25,7 @@ lib_LTLIBRARIES = libosmo-sigtran.la
 # This is _NOT_ the library release version, it's an API version.
 # Please read Chapter 6 "Library interface versions" of the libtool
 # documentation before making any modification
-LIBVERSION=9:0:0
+LIBVERSION=9:1:0
 
 libosmo_sigtran_la_SOURCES = sccp_sap.c sua.c m3ua.c xua_msg.c sccp_helpers.c \
 			     sccp2sua.c sccp_scrc.c sccp_sclc.c sccp_scoc.c \
