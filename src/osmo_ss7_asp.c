@@ -905,7 +905,7 @@ int ss7_asp_ipa_srv_conn_cb(struct osmo_stream_srv *conn)
 		return -1;
 	}
 	msg->dst = asp;
-
+	rate_ctr_inc2(asp->ctrg, SS7_ASP_CTR_PKT_RX_TOTAL);
 	return ipa_rx_msg(asp, msg, ofd->fd & 0xf);
 }
 
