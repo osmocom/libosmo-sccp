@@ -307,6 +307,7 @@ int main(int argc, char **argv)
 			exit(1);
 		}
 		sccp_test_server_init(g_sccp);
+		sccp_test_user_vty_install(g_sccp, OSMO_SCCP_SSN_BSSAP);
 	}
 	g_calling_addr.pc = local_pc;
 	g_called_addr.pc = remote_pc;
