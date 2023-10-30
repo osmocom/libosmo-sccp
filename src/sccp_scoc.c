@@ -1160,6 +1160,13 @@ static void scoc_fsm_wait_conn_conf(struct osmo_fsm_inst *fi, uint32_t event, vo
 		conn_stop_connect_timer(conn);
 		/* associate rem ref to conn */
 		conn->remote_ref = xua_msg_get_u32(xua, SUA_IEI_SRC_REF);
+		/* 3.1.4.2 The node sending the CC message (identified
+		 * by the parameter OPC contained in the
+		 * MTP-TRANSFER.indication primitive which conveyed the
+		 * CC message [plus the MTP-SAP instance]) is associated
+		 * with the connection section. */
+		conn->remote_pc = xua->mtp.opc;
+
 		/* released to SCRC */
 		xua_gen_relre_and_send(conn, conn->release_cause, NULL);
 		/* start rel timer */
