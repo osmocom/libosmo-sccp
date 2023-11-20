@@ -848,16 +848,16 @@ enum ipa_asp_fsm_t {
 static int get_fd_from_iafp(struct ipa_asp_fsm_priv *iafp)
 {
 	struct osmo_ss7_asp *asp = iafp->asp;
-	struct osmo_fd *ofd;
+	int fd;
 
 	if (asp->server)
-		ofd = osmo_stream_srv_get_ofd(asp->server);
+		fd = osmo_stream_srv_get_fd(asp->server);
 	else if (asp->client)
-		ofd = osmo_stream_cli_get_ofd(asp->client);
+		fd = osmo_stream_cli_get_fd(asp->client);
 	else
 		return -1;
 
-	return ofd->fd;
+	return fd;
 }
 
 /***************

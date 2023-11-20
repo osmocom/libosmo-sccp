@@ -1133,10 +1133,10 @@ DEFUN(show_cs7_asp, show_cs7_asp_cmd,
 
 	llist_for_each_entry(asp, &inst->asp_list, list) {
 		if (asp->cfg.proto == OSMO_SS7_ASP_PROT_IPA && asp->cfg.remote.port == 0 && asp->server) {
-			struct osmo_fd *ofd = osmo_stream_srv_get_ofd(asp->server);
+			int fd = osmo_stream_srv_get_fd(asp->server);
 			char hostbuf[64];
 			char portbuf[16];
-			osmo_sock_get_ip_and_port(ofd->fd, hostbuf, sizeof(hostbuf),
+			osmo_sock_get_ip_and_port(fd, hostbuf, sizeof(hostbuf),
 						  portbuf, sizeof(portbuf), false);
 			snprintf(buf, sizeof(buf), "%s:%s", hostbuf, portbuf);
 		} else

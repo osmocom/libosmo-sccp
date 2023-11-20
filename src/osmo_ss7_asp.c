@@ -171,7 +171,7 @@ static unsigned int g_ss7_asp_rcg_idx;
 int ss7_asp_apply_new_local_address(const struct osmo_ss7_asp *asp, unsigned int loc_idx)
 {
 	const char *new_loc_addr;
-	struct osmo_fd *ofd;
+	int fd;
 
 	OSMO_ASSERT(loc_idx < asp->cfg.local.host_cnt);
 	new_loc_addr = asp->cfg.local.host[loc_idx];
@@ -180,17 +180,20 @@ int ss7_asp_apply_new_local_address(const struct osmo_ss7_asp *asp, unsigned int
 		new_loc_addr);
 
 	if (asp->cfg.is_server)
-		ofd = osmo_stream_srv_get_ofd(asp->server);
+		fd = osmo_stream_srv_get_fd(asp->server);
 	else
-		ofd = osmo_stream_cli_get_ofd(asp->client);
+		fd = osmo_stream_cli_get_fd(asp->client);
 
-	return osmo_sock_multiaddr_add_local_addr(ofd->fd, &new_loc_addr, 1);
+	if (fd < 0)
+		return fd;
+
+	return osmo_sock_multiaddr_add_local_addr(fd, &new_loc_addr, 1);
 }
 
 int ss7_asp_apply_drop_local_address(const struct osmo_ss7_asp *asp, unsigned int loc_idx)
 {
 	const char *new_loc_addr;
-	struct osmo_fd *ofd;
+	int fd;
 
 	OSMO_ASSERT(loc_idx < asp->cfg.local.host_cnt);
 	new_loc_addr = asp->cfg.local.host[loc_idx];
@@ -199,20 +202,22 @@ int ss7_asp_apply_drop_local_address(const struct osmo_ss7_asp *asp, unsigned in
 		new_loc_addr);
 
 	if (asp->cfg.is_server)
-		ofd = osmo_stream_srv_get_ofd(asp->server);
+		fd = osmo_stream_srv_get_fd(asp->server);
 	else
-		ofd = osmo_stream_cli_get_ofd(asp->client);
+		fd = osmo_stream_cli_get_fd(asp->client);
 
-	return osmo_sock_multiaddr_del_local_addr(ofd->fd, &new_loc_addr, 1);
+	if (fd < 0)
+		return fd;
+
+	return osmo_sock_multiaddr_del_local_addr(fd, &new_loc_addr, 1);
 }
 
 int ss7_asp_apply_peer_primary_address(const struct osmo_ss7_asp *asp)
 {
-	struct osmo_fd *ofd;
 	struct osmo_sockaddr_str addr_str;
 	struct osmo_sockaddr addr;
 	uint16_t local_port;
-	int rc;
+	int fd, rc;
 
 	/* No SCTP Peer Primary Address explicitly configured, do nothing. */
 	if (asp->cfg.local.idx_primary == -1)
@@ -220,13 +225,16 @@ int ss7_asp_apply_peer_primary_address(const struct osmo_ss7_asp *asp)
 	OSMO_ASSERT(asp->cfg.local.idx_primary < asp->cfg.local.host_cnt);
 
 	if (asp->cfg.is_server)
-		ofd = osmo_stream_srv_get_ofd(asp->server);
+		fd = osmo_stream_srv_get_fd(asp->server);
 	else
-		ofd = osmo_stream_cli_get_ofd(asp->client);
+		fd = osmo_stream_cli_get_fd(asp->client);
+
+	if (fd < 0)
+		return fd;
 
 	if (asp->cfg.local.port == 0) {
 		char port_buf[16];
-		osmo_sock_get_local_ip_port(ofd->fd, port_buf, sizeof(port_buf));
+		osmo_sock_get_local_ip_port(fd, port_buf, sizeof(port_buf));
 		local_port = atoi(port_buf);
 	} else {
 		local_port = asp->cfg.local.port;
@@ -241,17 +249,16 @@ int ss7_asp_apply_peer_primary_address(const struct osmo_ss7_asp *asp)
 		return rc;
 	LOGPASP(asp, DLSS7, LOGL_INFO, "Set Peer's Primary Address %s\n",
 		osmo_sockaddr_to_str(&addr));
-	rc = _setsockopt_peer_primary_addr(ofd->fd, &addr);
+	rc = _setsockopt_peer_primary_addr(fd, &addr);
 
 	return rc;
 }
 
 int ss7_asp_apply_primary_address(const struct osmo_ss7_asp *asp)
 {
-	struct osmo_fd *ofd;
 	struct osmo_sockaddr_str addr_str;
 	struct osmo_sockaddr addr;
-	int rc;
+	int fd, rc;
 
 	/* No SCTP Primary Address explicitly configured, do nothing. */
 	if (asp->cfg.remote.idx_primary == -1)
@@ -259,9 +266,12 @@ int ss7_asp_apply_primary_address(const struct osmo_ss7_asp *asp)
 	OSMO_ASSERT(asp->cfg.remote.idx_primary < asp->cfg.remote.host_cnt);
 
 	if (asp->cfg.is_server)
-		ofd = osmo_stream_srv_get_ofd(asp->server);
+		fd = osmo_stream_srv_get_fd(asp->server);
 	else
-		ofd = osmo_stream_cli_get_ofd(asp->client);
+		fd = osmo_stream_cli_get_fd(asp->client);
+
+	if (fd < 0)
+		return fd;
 
 	rc = osmo_sockaddr_str_from_str(&addr_str,
 					asp->cfg.remote.host[asp->cfg.remote.idx_primary],
@@ -273,7 +283,7 @@ int ss7_asp_apply_primary_address(const struct osmo_ss7_asp *asp)
 		return rc;
 	LOGPASP(asp, DLSS7, LOGL_INFO, "Set Primary Address %s\n",
 		osmo_sockaddr_to_str(&addr));
-	rc = _setsockopt_primary_addr(ofd->fd, &addr);
+	rc = _setsockopt_primary_addr(fd, &addr);
 	return rc;
 }
 
@@ -729,13 +739,15 @@ static void log_sctp_notification(struct osmo_ss7_asp *asp, const char *pfx,
 /* netif code tells us we can read something from the socket */
 int ss7_asp_ipa_srv_conn_cb(struct osmo_stream_srv *conn)
 {
-	struct osmo_fd *ofd = osmo_stream_srv_get_ofd(conn);
+	int fd = osmo_stream_srv_get_fd(conn);
 	struct osmo_ss7_asp *asp = osmo_stream_srv_get_data(conn);
 	struct msgb *msg = NULL;
 	int rc;
 
+	OSMO_ASSERT(fd >= 0);
+
 	/* read IPA message from socket and process it */
-	rc = ipa_msg_recv_buffered(ofd->fd, &msg, &asp->pending_msg);
+	rc = ipa_msg_recv_buffered(fd, &msg, &asp->pending_msg);
 	LOGPASP(asp, DLSS7, LOGL_DEBUG, "%s(): ipa_msg_recv_buffered() returned %d\n",
 		__func__, rc);
 	if (rc <= 0) {
@@ -754,7 +766,9 @@ int ss7_asp_ipa_srv_conn_cb(struct osmo_stream_srv *conn)
 	}
 	msg->dst = asp;
 	rate_ctr_inc2(asp->ctrg, SS7_ASP_CTR_PKT_RX_TOTAL);
-	return ipa_rx_msg(asp, msg, ofd->fd & 0xf);
+	/* we can use the 'fd' return value of osmo_stream_srv_get_fd() here unverified as all we do
+	 * is 'roll the dice' to obtain a 4-bit SLS value. */
+	return ipa_rx_msg(asp, msg, fd & 0xf);
 }
 
 /* netif code tells us we can read something from the socket */
@@ -827,13 +841,16 @@ out:
 /* client has established SCTP connection to server */
 static int xua_cli_connect_cb(struct osmo_stream_cli *cli)
 {
-	struct osmo_fd *ofd = osmo_stream_cli_get_ofd(cli);
+	int fd = osmo_stream_cli_get_fd(cli);
 	struct osmo_ss7_asp *asp = osmo_stream_cli_get_data(cli);
 	int rc = 0;
 
+	if (fd < 0)
+		return fd;
+
 	/* update the socket name */
 	talloc_free(asp->sock_name);
-	asp->sock_name = osmo_sock_get_name(asp, ofd->fd);
+	asp->sock_name = osmo_sock_get_name(asp, fd);
 
 	LOGPASP(asp, DLSS7, LOGL_INFO, "Client connected %s\n", asp->sock_name);
 
@@ -877,13 +894,15 @@ static void xua_cli_close_and_reconnect(struct osmo_stream_cli *cli)
 /* read call-back for IPA/SCCPlite socket */
 static int ipa_cli_read_cb(struct osmo_stream_cli *conn)
 {
-	struct osmo_fd *ofd = osmo_stream_cli_get_ofd(conn);
+	int fd = osmo_stream_cli_get_fd(conn);
 	struct osmo_ss7_asp *asp = osmo_stream_cli_get_data(conn);
 	struct msgb *msg = NULL;
 	int rc;
 
+	OSMO_ASSERT(fd >= 0);
+
 	/* read IPA message from socket and process it */
-	rc = ipa_msg_recv_buffered(ofd->fd, &msg, &asp->pending_msg);
+	rc = ipa_msg_recv_buffered(fd, &msg, &asp->pending_msg);
 	LOGPASP(asp, DLSS7, LOGL_DEBUG, "%s(): ipa_msg_recv_buffered() returned %d\n",
 		__func__, rc);
 	if (rc <= 0) {
@@ -902,7 +921,9 @@ static int ipa_cli_read_cb(struct osmo_stream_cli *conn)
 	}
 	msg->dst = asp;
 	rate_ctr_inc2(asp->ctrg, SS7_ASP_CTR_PKT_RX_TOTAL);
-	return ipa_rx_msg(asp, msg, ofd->fd & 0xf);
+	/* we can use the 'fd' return value of osmo_stream_srv_get_fd() here unverified as all we do
+	 * is 'roll the dice' to obtain a 4-bit SLS value. */
+	return ipa_rx_msg(asp, msg, fd & 0xf);
 }
 
 static int xua_cli_read_cb(struct osmo_stream_cli *conn)
