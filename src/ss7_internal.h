@@ -23,8 +23,8 @@ int ss7_asp_get_fd(const struct osmo_ss7_asp *asp);
 struct osmo_ss7_asp *ss7_asp_find_by_socket_addr(int fd);
 
 int ss7_asp_proto_to_ip_proto(enum osmo_ss7_asp_protocol proto);
-int ss7_asp_ipa_srv_conn_cb(struct osmo_stream_srv *conn);
-int ss7_asp_xua_srv_conn_cb(struct osmo_stream_srv *conn);
+int ss7_asp_ipa_srv_conn_cb(struct osmo_stream_srv *conn, struct msgb *msg);
+int ss7_asp_xua_srv_conn_cb(struct osmo_stream_srv *conn, struct msgb *msg);
 int ss7_asp_xua_srv_conn_closed_cb(struct osmo_stream_srv *srv);
 int ss7_asp_apply_peer_primary_address(const struct osmo_ss7_asp *asp);
 int ss7_asp_apply_primary_address(const struct osmo_ss7_asp *asp);

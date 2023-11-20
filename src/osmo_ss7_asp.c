@@ -564,8 +564,8 @@ void osmo_ss7_asp_destroy(struct osmo_ss7_asp *asp)
 	talloc_free(asp);
 }
 
-static int xua_cli_read_cb(struct osmo_stream_cli *conn);
-static int ipa_cli_read_cb(struct osmo_stream_cli *conn);
+static int xua_cli_read_cb(struct osmo_stream_cli *conn, struct msgb *msg);
+static int ipa_cli_read_cb(struct osmo_stream_cli *conn, struct msgb *msg);
 static int xua_cli_connect_cb(struct osmo_stream_cli *cli);
 
 int osmo_ss7_asp_restart(struct osmo_ss7_asp *asp)
@@ -604,10 +604,13 @@ int osmo_ss7_asp_restart(struct osmo_ss7_asp *asp)
 		osmo_stream_cli_set_proto(asp->client, ss7_asp_proto_to_ip_proto(asp->cfg.proto));
 		osmo_stream_cli_set_reconnect_timeout(asp->client, 5);
 		osmo_stream_cli_set_connect_cb(asp->client, xua_cli_connect_cb);
-		if (asp->cfg.proto == OSMO_SS7_ASP_PROT_IPA)
-			osmo_stream_cli_set_read_cb(asp->client, ipa_cli_read_cb);
-		else
-			osmo_stream_cli_set_read_cb(asp->client, xua_cli_read_cb);
+		if (asp->cfg.proto == OSMO_SS7_ASP_PROT_IPA) {
+			osmo_stream_cli_set_read_cb2(asp->client, ipa_cli_read_cb);
+			osmo_stream_cli_set_segmentation_cb(asp->client, osmo_ipa_segmentation_cb);
+		} else {
+			osmo_stream_cli_set_read_cb2(asp->client, xua_cli_read_cb);
+			osmo_stream_cli_set_segmentation_cb(asp->client, NULL);
+		}
 		osmo_stream_cli_set_data(asp->client, asp);
 		byte = 1; /*AUTH is needed by ASCONF. enable, don't abort socket creation if AUTH can't be enabled */
 		osmo_stream_cli_set_param(asp->client, OSMO_STREAM_CLI_PAR_SCTP_SOCKOPT_AUTH_SUPPORTED, &byte, sizeof(byte));
@@ -737,33 +740,11 @@ static void log_sctp_notification(struct osmo_ss7_asp *asp, const char *pfx,
 }
 
 /* netif code tells us we can read something from the socket */
-int ss7_asp_ipa_srv_conn_cb(struct osmo_stream_srv *conn)
+int ss7_asp_ipa_srv_conn_cb(struct osmo_stream_srv *conn, struct msgb *msg)
 {
 	int fd = osmo_stream_srv_get_fd(conn);
 	struct osmo_ss7_asp *asp = osmo_stream_srv_get_data(conn);
-	struct msgb *msg = NULL;
-	int rc;
 
-	OSMO_ASSERT(fd >= 0);
-
-	/* read IPA message from socket and process it */
-	rc = ipa_msg_recv_buffered(fd, &msg, &asp->pending_msg);
-	LOGPASP(asp, DLSS7, LOGL_DEBUG, "%s(): ipa_msg_recv_buffered() returned %d\n",
-		__func__, rc);
-	if (rc <= 0) {
-		if (rc == -EAGAIN) {
-			/* more data needed */
-			return 0;
-		}
-		osmo_stream_srv_destroy(conn);
-		return rc;
-	}
-	if (osmo_ipa_process_msg(msg) < 0) {
-		LOGPASP(asp, DLSS7, LOGL_ERROR, "Bad IPA message\n");
-		osmo_stream_srv_destroy(conn);
-		msgb_free(msg);
-		return -1;
-	}
 	msg->dst = asp;
 	rate_ctr_inc2(asp->ctrg, SS7_ASP_CTR_PKT_RX_TOTAL);
 	/* we can use the 'fd' return value of osmo_stream_srv_get_fd() here unverified as all we do
@@ -772,19 +753,14 @@ int ss7_asp_ipa_srv_conn_cb(struct osmo_stream_srv *conn)
 }
 
 /* netif code tells us we can read something from the socket */
-int ss7_asp_xua_srv_conn_cb(struct osmo_stream_srv *conn)
+int ss7_asp_xua_srv_conn_cb(struct osmo_stream_srv *conn, struct msgb *msg)
 {
 	struct osmo_ss7_asp *asp = osmo_stream_srv_get_data(conn);
-	struct msgb *msg = m3ua_msgb_alloc("xUA Server Rx");
 	unsigned int ppid;
 	int flags;
-	int rc;
+	int rc = 0;
 
-	if (!msg)
-		return -ENOMEM;
-
-	/* read xUA message from socket and process it */
-	rc = osmo_stream_srv_recv(conn, msg);
+	/* process the received xUA message */
 	flags = msgb_sctp_msg_flags(msg);
 
 	LOGPASP(asp, DLSS7, LOGL_DEBUG, "%s(): sctp_recvmsg() returned %d (flags=0x%x)\n",
@@ -803,22 +779,6 @@ int ss7_asp_xua_srv_conn_cb(struct osmo_stream_srv *conn)
 		default:
 			break;
 		}
-
-		if (rc == 0) {
-			osmo_stream_srv_destroy(conn);
-			rc = -EBADF;
-		} else {
-			rc = 0;
-		}
-		goto out;
-	}
-	if (rc < 0) {
-		osmo_stream_srv_destroy(conn);
-		rc = -EBADF;
-		goto out;
-	} else if (rc == 0) {
-		osmo_stream_srv_destroy(conn);
-		rc = -EBADF;
 		goto out;
 	}
 
@@ -892,33 +852,11 @@ static void xua_cli_close_and_reconnect(struct osmo_stream_cli *cli)
 }
 
 /* read call-back for IPA/SCCPlite socket */
-static int ipa_cli_read_cb(struct osmo_stream_cli *conn)
+static int ipa_cli_read_cb(struct osmo_stream_cli *conn, struct msgb *msg)
 {
 	int fd = osmo_stream_cli_get_fd(conn);
 	struct osmo_ss7_asp *asp = osmo_stream_cli_get_data(conn);
-	struct msgb *msg = NULL;
-	int rc;
 
-	OSMO_ASSERT(fd >= 0);
-
-	/* read IPA message from socket and process it */
-	rc = ipa_msg_recv_buffered(fd, &msg, &asp->pending_msg);
-	LOGPASP(asp, DLSS7, LOGL_DEBUG, "%s(): ipa_msg_recv_buffered() returned %d\n",
-		__func__, rc);
-	if (rc <= 0) {
-		if (rc == -EAGAIN) {
-			/* more data needed */
-			return 0;
-		}
-		xua_cli_close_and_reconnect(conn);
-		return rc;
-	}
-	if (osmo_ipa_process_msg(msg) < 0) {
-		LOGPASP(asp, DLSS7, LOGL_ERROR, "Bad IPA message\n");
-		xua_cli_close_and_reconnect(conn);
-		msgb_free(msg);
-		return -1;
-	}
 	msg->dst = asp;
 	rate_ctr_inc2(asp->ctrg, SS7_ASP_CTR_PKT_RX_TOTAL);
 	/* we can use the 'fd' return value of osmo_stream_srv_get_fd() here unverified as all we do
@@ -926,19 +864,13 @@ static int ipa_cli_read_cb(struct osmo_stream_cli *conn)
 	return ipa_rx_msg(asp, msg, fd & 0xf);
 }
 
-static int xua_cli_read_cb(struct osmo_stream_cli *conn)
+static int xua_cli_read_cb(struct osmo_stream_cli *conn, struct msgb *msg)
 {
 	struct osmo_ss7_asp *asp = osmo_stream_cli_get_data(conn);
-	struct msgb *msg = m3ua_msgb_alloc("xUA Client Rx");
 	unsigned int ppid;
 	int flags;
 	int rc;
 
-	if (!msg)
-		return -ENOMEM;
-
-	/* read xUA message from socket and process it */
-	rc = osmo_stream_cli_recv(conn, msg);
 	flags = msgb_sctp_msg_flags(msg);
 
 	LOGPASP(asp, DLSS7, LOGL_DEBUG, "%s(): sctp_recvmsg() returned %d (flags=0x%x)\n",
@@ -957,17 +889,6 @@ static int xua_cli_read_cb(struct osmo_stream_cli *conn)
 		default:
 			break;
 		}
-
-		if (rc == 0)
-			xua_cli_close_and_reconnect(conn);
-		rc = 0;
-		goto out;
-	}
-	if (rc < 0) {
-		xua_cli_close_and_reconnect(conn);
-		goto out;
-	} else if (rc == 0) {
-		xua_cli_close_and_reconnect(conn);
 		goto out;
 	}
 

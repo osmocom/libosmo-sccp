@@ -71,15 +71,7 @@ static int xua_accept_cb(struct osmo_stream_srv_link *link, int fd)
 
 	LOGP(DLSS7, LOGL_INFO, "%s: New %s connection accepted\n", sock_name, proto_name);
 
-	if (oxs->cfg.proto == OSMO_SS7_ASP_PROT_IPA) {
-		srv = osmo_stream_srv_create(oxs, link, fd,
-					     ss7_asp_ipa_srv_conn_cb,
-					     ss7_asp_xua_srv_conn_closed_cb, NULL);
-	} else {
-		srv = osmo_stream_srv_create(oxs, link, fd,
-					     ss7_asp_xua_srv_conn_cb,
-					     ss7_asp_xua_srv_conn_closed_cb, NULL);
-	}
+	srv = osmo_stream_srv_create2(oxs, link, fd, NULL);
 	if (!srv) {
 		LOGP(DLSS7, LOGL_ERROR, "%s: Unable to create stream server "
 		     "for connection\n", sock_name);
@@ -87,6 +79,14 @@ static int xua_accept_cb(struct osmo_stream_srv_link *link, int fd)
 		talloc_free(sock_name);
 		return -1;
 	}
+	if (oxs->cfg.proto == OSMO_SS7_ASP_PROT_IPA) {
+		osmo_stream_srv_set_read_cb(srv, ss7_asp_ipa_srv_conn_cb);
+		osmo_stream_srv_set_segmentation_cb(srv, osmo_ipa_segmentation_cb);
+	} else {
+		osmo_stream_srv_set_read_cb(srv, ss7_asp_xua_srv_conn_cb);
+		osmo_stream_srv_set_segmentation_cb(srv, NULL);
+	}
+	osmo_stream_srv_set_closed_cb(srv, ss7_asp_xua_srv_conn_closed_cb);
 
 	asp = ss7_asp_find_by_socket_addr(fd);
 	if (asp) {
