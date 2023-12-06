@@ -610,11 +610,33 @@ static void write_one_xua(struct vty *vty, struct osmo_xua_server *xs)
 
 static void vty_dump_xua_server(struct vty *vty, struct osmo_xua_server *xs)
 {
-	char buf[512];
+	char buf[OSMO_SOCK_MULTIADDR_PEER_STR_MAXLEN];
 	const char *proto = get_value_string(osmo_ss7_asp_protocol_vals, xs->cfg.proto);
-	if (osmo_ss7_asp_peer_snprintf(buf, sizeof(buf), &xs->cfg.local) < 0)
-		snprintf(buf, sizeof(buf), "<error>");
-	vty_out(vty, "xUA server for %s on %s%s", proto, buf, VTY_NEWLINE);
+	int fd = xs->server ? osmo_stream_srv_link_get_fd(xs->server) : -1;
+
+	if (fd < 0) {
+		if (osmo_ss7_asp_peer_snprintf(buf, sizeof(buf), &xs->cfg.local) < 0)
+			snprintf(buf, sizeof(buf), "<error>");
+	} else {
+		char hostbuf[OSMO_SOCK_MAX_ADDRS][INET6_ADDRSTRLEN];
+		size_t num_hostbuf = ARRAY_SIZE(hostbuf);
+		char portbuf[6];
+		int rc;
+		rc = osmo_sock_multiaddr_get_ip_and_port(fd, ss7_asp_proto_to_ip_proto(xs->cfg.proto),
+							 &hostbuf[0][0], &num_hostbuf, sizeof(hostbuf[0]),
+							 portbuf, sizeof(portbuf), true);
+		if (rc < 0) {
+			snprintf(buf, sizeof(buf), "<error>");
+		} else {
+			if (num_hostbuf > ARRAY_SIZE(hostbuf))
+				num_hostbuf = ARRAY_SIZE(hostbuf);
+			osmo_multiaddr_ip_and_port_snprintf(buf, sizeof(buf),
+							    &hostbuf[0][0], num_hostbuf, sizeof(hostbuf[0]),
+							    portbuf);
+		}
+	}
+	vty_out(vty, "xUA server for %s on %s is %s%s",
+		proto, buf, fd >= 0 ? "listening" : "inactive", VTY_NEWLINE);
 }
 
 DEFUN(show_cs7_xua, show_cs7_xua_cmd,
