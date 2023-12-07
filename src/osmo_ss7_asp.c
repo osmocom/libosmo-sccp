@@ -1134,3 +1134,19 @@ enum osmo_ss7_asp_protocol osmo_ss7_asp_get_proto(const struct osmo_ss7_asp *asp
 {
 	return asp->cfg.proto;
 }
+
+/*! \brief Get the fd of a given ASP
+ *  \param[in] asp The ASP for which the fd is requested
+ *  \returns The fd of the ASP if acailable, negative otherwise
+ */
+int ss7_asp_get_fd(const struct osmo_ss7_asp *asp)
+{
+	if (asp->cfg.is_server) {
+		if (asp->server)
+			return osmo_stream_srv_get_fd(asp->server);
+	} else {
+		if (asp->client)
+			return osmo_stream_cli_get_fd(asp->client);
+	}
+	return -1;
+}

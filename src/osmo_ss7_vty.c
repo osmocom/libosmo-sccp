@@ -1133,13 +1133,39 @@ static char *as_list_for_asp(const struct osmo_ss7_asp *asp, char *buf, size_t b
 	return buf;
 }
 
+/* Similar to osmo_sock_multiaddr_get_name_buf(), but aimed at listening sockets (only local part): */
+static char *get_sockname_buf(char *buf, size_t buf_len, int fd, int proto, bool local)
+{
+	char hostbuf[OSMO_SOCK_MAX_ADDRS][INET6_ADDRSTRLEN];
+	size_t num_hostbuf = ARRAY_SIZE(hostbuf);
+	char portbuf[6];
+	struct osmo_strbuf sb = { .buf = buf, .len = buf_len };
+	bool need_more_bufs;
+	int rc;
+
+	rc = osmo_sock_multiaddr_get_ip_and_port(fd, proto, &hostbuf[0][0],
+						 &num_hostbuf, sizeof(hostbuf[0]),
+						 portbuf, sizeof(portbuf), local);
+	if (rc < 0)
+		return NULL;
+
+	need_more_bufs = num_hostbuf > ARRAY_SIZE(hostbuf);
+	if (need_more_bufs)
+		num_hostbuf = ARRAY_SIZE(hostbuf);
+	OSMO_STRBUF_APPEND(sb, osmo_multiaddr_ip_and_port_snprintf,
+			   &hostbuf[0][0], num_hostbuf, sizeof(hostbuf[0]), portbuf);
+	if (need_more_bufs)
+		OSMO_STRBUF_PRINTF(sb, "<need-more-bufs!>");
+
+	return buf;
+}
+
 DEFUN(show_cs7_asp, show_cs7_asp_cmd,
 	"show cs7 instance <0-15> asp",
 	SHOW_STR CS7_STR INST_STR INST_STR "Application Server Process (ASP)\n")
 {
 	struct osmo_ss7_instance *inst;
 	struct osmo_ss7_asp *asp;
-	char buf[512];
 	char as_buf[64];
 	int id = atoi(argv[0]);
 
@@ -1149,28 +1175,32 @@ DEFUN(show_cs7_asp, show_cs7_asp_cmd,
 		return CMD_WARNING;
 	}
 
-	vty_out(vty, "                                                                  Current Primary Link%s", VTY_NEWLINE);
-	vty_out(vty, "ASP Name      AS Name       State          Type  Role  SCTP Role  Remote Addresses%s", VTY_NEWLINE);
-	vty_out(vty, "------------  ------------  -------------  ----  ----  ---------  -----------------------%s", VTY_NEWLINE);
+	vty_out(vty, "ASP Name      AS Name       State          Type  Role  SCTP Role  Local Addresses          Remote Addresses%s", VTY_NEWLINE);
+	vty_out(vty, "------------  ------------  -------------  ----  ----  ---------  -----------------------  -----------------------%s", VTY_NEWLINE);
 
 	llist_for_each_entry(asp, &inst->asp_list, list) {
-		if (asp->cfg.proto == OSMO_SS7_ASP_PROT_IPA && asp->cfg.remote.port == 0 && asp->server) {
-			int fd = osmo_stream_srv_get_fd(asp->server);
-			char hostbuf[64];
-			char portbuf[16];
-			osmo_sock_get_ip_and_port(fd, hostbuf, sizeof(hostbuf),
-						  portbuf, sizeof(portbuf), false);
-			snprintf(buf, sizeof(buf), "%s:%s", hostbuf, portbuf);
-		} else
-			osmo_ss7_asp_peer_snprintf(buf, sizeof(buf), &asp->cfg.remote);
-		vty_out(vty, "%-12s  %-12s  %-13s  %-4s  %-4s  %-9s  %-23s%s",
+		char buf_loc[OSMO_SOCK_MULTIADDR_PEER_STR_MAXLEN];
+		char buf_rem[sizeof(buf_loc)];
+		int fd = ss7_asp_get_fd(asp);
+		if (fd > 0) {
+			int proto = ss7_asp_proto_to_ip_proto(asp->cfg.proto);
+			if (!get_sockname_buf(buf_loc, sizeof(buf_loc), fd, proto, true))
+				OSMO_STRLCPY_ARRAY(buf_loc, "<sockname-error>");
+			if (!get_sockname_buf(buf_rem, sizeof(buf_rem), fd, proto, false))
+				OSMO_STRLCPY_ARRAY(buf_rem, "<sockname-error>");
+		} else {
+			osmo_ss7_asp_peer_snprintf(buf_loc, sizeof(buf_loc), &asp->cfg.local);
+			osmo_ss7_asp_peer_snprintf(buf_rem, sizeof(buf_rem), &asp->cfg.remote);
+		}
+
+		vty_out(vty, "%-12s  %-12s  %-13s  %-4s  %-4s  %-9s  %-23s  %-23s%s",
 			asp->cfg.name,
 			as_list_for_asp(asp, as_buf, sizeof(as_buf)),
 			asp->fi? osmo_fsm_inst_state_name(asp->fi) : "uninitialized",
 			get_value_string(osmo_ss7_asp_protocol_vals, asp->cfg.proto),
 			osmo_str_tolower(get_value_string(osmo_ss7_asp_role_names, asp->cfg.role)),
 			asp->cfg.is_server ? "server" : "client",
-			buf,
+			buf_loc, buf_rem,
 			VTY_NEWLINE);
 	}
 	return CMD_SUCCESS;
