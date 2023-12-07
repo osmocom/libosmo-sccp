@@ -1190,9 +1190,15 @@ static struct osmo_fsm_inst *ipa_asp_fsm_start(struct osmo_ss7_asp *asp,
 {
 	struct osmo_fsm_inst *fi;
 	struct ipa_asp_fsm_priv *iafp;
+	struct osmo_ss7_as *as = ipa_find_as_for_asp(asp);
 
 	/* allocate as child of AS? */
 	fi = osmo_fsm_inst_alloc(&ipa_asp_fsm, asp, NULL, log_level, asp->cfg.name);
+
+	if (!as) {
+		osmo_fsm_inst_term(fi, OSMO_FSM_TERM_ERROR, NULL);
+		return NULL;
+	}
 
 	iafp = talloc_zero(fi, struct ipa_asp_fsm_priv);
 	if (!iafp) {
@@ -1202,7 +1208,7 @@ static struct osmo_fsm_inst *ipa_asp_fsm_start(struct osmo_ss7_asp *asp,
 	iafp->role = role;
 	iafp->asp = asp;
 	iafp->ipa_unit = talloc_zero(iafp, struct ipaccess_unit);
-	iafp->ipa_unit->unit_name = talloc_strdup(iafp->ipa_unit, asp->cfg.name);
+	iafp->ipa_unit->unit_name = talloc_strdup(iafp->ipa_unit, as->cfg.name);
 	iafp->pong_timer.cb = ipa_pong_timer_cb;
 	iafp->pong_timer.data = fi;
 

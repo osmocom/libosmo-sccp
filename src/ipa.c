@@ -131,7 +131,7 @@ static int ipa_rx_msg_ccm(struct osmo_ss7_asp *asp, struct msgb *msg)
 	return 0;
 }
 
-static struct osmo_ss7_as *find_as_for_asp(struct osmo_ss7_asp *asp)
+struct osmo_ss7_as *ipa_find_as_for_asp(struct osmo_ss7_asp *asp)
 {
 	struct osmo_ss7_as *as;
 
@@ -216,7 +216,7 @@ static int ipa_rx_msg_sccp(struct osmo_ss7_asp *asp, struct msgb *msg, uint8_t s
 	int rc;
 	struct m3ua_data_hdr data_hdr;
 	struct xua_msg *xua;
-	struct osmo_ss7_as *as = find_as_for_asp(asp);
+	struct osmo_ss7_as *as = ipa_find_as_for_asp(asp);
 	uint32_t opc, dpc;
 
 	if (!as) {
