@@ -47,12 +47,35 @@
 #include "sccp_internal.h"
 #include "ss7_internal.h"
 
+#include <netinet/tcp.h>
+
+#ifdef HAVE_LIBSCTP
+#include <netinet/sctp.h>
+#include <osmocom/netif/sctp.h>
+#endif
+
 #define XUA_VAR_STR	"(sua|m3ua|ipa)"
 
 #define XUA_VAR_HELP_STR		\
 	"SCCP User Adaptation\n"	 \
 	"MTP3 User Adaptation\n"	\
 	"IPA Multiplex (SCCP Lite)\n"
+
+/* netinet/tcp.h */
+static const struct value_string tcp_info_state_values[] = {
+	{ TCP_ESTABLISHED,	"ESTABLISHED" },
+	{ TCP_SYN_SENT,		"SYN_SENT" },
+	{ TCP_SYN_RECV,		"SYN_RECV" },
+	{ TCP_FIN_WAIT1,	"FIN_WAIT1" },
+	{ TCP_FIN_WAIT2,	"FIN_WAIT2" },
+	{ TCP_TIME_WAIT,	"TIME_WAIT" },
+	{ TCP_CLOSE,		"CLOSE" },
+	{ TCP_CLOSE_WAIT,	"CLOSE_WAIT" },
+	{ TCP_LAST_ACK,		"LAST_ACK" },
+	{ TCP_LISTEN,		"LISTEN" },
+	{ TCP_CLOSING,		"CLOSING" },
+	{}
+};
 
 static const struct value_string asp_quirk_names[] = {
 	{ OSMO_SS7_ASP_QUIRK_NO_NOTIFY,		"no_notify" },
@@ -1242,6 +1265,161 @@ DEFUN(show_cs7_asp_name, show_cs7_asp_name_cmd,
 	const char *asp_name = argv[1];
 
 	return show_asp(vty, id, asp_name);
+}
+
+static void show_one_asp_remaddr_tcp(struct vty *vty, struct osmo_ss7_asp *asp)
+{
+	struct osmo_sockaddr osa = {};
+	struct tcp_info tcpi = {};
+	socklen_t len;
+	int fd, rc;
+
+	fd = ss7_asp_get_fd(asp);
+	if (fd < 0) {
+		vty_out(vty, "%-12s  %-46s  uninitialized%s", asp->cfg.name, "", VTY_NEWLINE);
+		return;
+	}
+
+	len = sizeof(osa.u.sas);
+	rc = getpeername(fd, &osa.u.sa, &len);
+
+	len = sizeof(tcpi);
+	rc = getsockopt(fd, SOL_TCP, TCP_INFO, &tcpi, &len);
+	if (rc < 0) {
+		char buf_err[128];
+		strerror_r(errno, buf_err, sizeof(buf_err));
+		vty_out(vty, "%-12s  %-46s  getsockopt(TCP_INFO) failed: %s%s",
+			asp->cfg.name, osmo_sockaddr_to_str(&osa), buf_err, VTY_NEWLINE);
+		return;
+	}
+
+	vty_out(vty, "%-12s  %-46s  TCP_%-19s  %-8u  %-8u  %-8u  %-8u%s",
+		asp->cfg.name,
+		osmo_sockaddr_to_str(&osa),
+		get_value_string(tcp_info_state_values, tcpi.tcpi_state),
+		tcpi.tcpi_snd_cwnd, tcpi.tcpi_rtt,
+		tcpi.tcpi_rto, tcpi.tcpi_pmtu,
+		VTY_NEWLINE);
+}
+
+#ifdef HAVE_LIBSCTP
+static void show_one_asp_remaddr_sctp(struct vty *vty, struct osmo_ss7_asp *asp)
+{
+	struct sctp_paddrinfo pinfo[OSMO_SOCK_MAX_ADDRS];
+	struct osmo_sockaddr osa = {};
+	size_t pinfo_cnt = ARRAY_SIZE(pinfo);
+	bool more_needed;
+	int fd, rc;
+	unsigned int i;
+
+	fd = ss7_asp_get_fd(asp);
+	if (fd < 0) {
+		vty_out(vty, "%-12s  %-46s  uninitialized%s", asp->cfg.name, "", VTY_NEWLINE);
+		return;
+	}
+
+	rc = osmo_sock_sctp_get_peer_addr_info(fd, &pinfo[0], &pinfo_cnt);
+	if (rc < 0) {
+		char buf_err[128];
+		strerror_r(errno, buf_err, sizeof(buf_err));
+		vty_out(vty, "%-12s  %-46s  getsockopt(SCTP_GET_PEER_ADDR_INFO) failed: %s%s", asp->cfg.name, "", buf_err, VTY_NEWLINE);
+		return;
+	}
+
+	more_needed = pinfo_cnt > ARRAY_SIZE(pinfo);
+	if (pinfo_cnt > ARRAY_SIZE(pinfo))
+		pinfo_cnt = ARRAY_SIZE(pinfo);
+
+	for (i = 0; i < pinfo_cnt; i++) {
+		osa.u.sas = pinfo[i].spinfo_address;
+		vty_out(vty, "%-12s  %-46s  SCTP_%-18s  %-8u  %-8u  %-8u  %-8u%s",
+			asp->cfg.name,
+			osmo_sockaddr_to_str(&osa),
+			osmo_sctp_spinfo_state_str(pinfo[i].spinfo_state),
+			pinfo[i].spinfo_cwnd, pinfo[i].spinfo_srtt,
+			pinfo[i].spinfo_rto, pinfo[i].spinfo_mtu,
+			VTY_NEWLINE);
+	}
+
+	if (more_needed)
+		vty_out(vty, "%-12s  more address buffers needed!%s", asp->cfg.name, VTY_NEWLINE);
+}
+#endif
+
+static void show_one_asp_remaddr(struct vty *vty, struct osmo_ss7_asp *asp)
+{
+	int proto = ss7_asp_proto_to_ip_proto(asp->cfg.proto);
+
+	switch (proto) {
+	case IPPROTO_TCP:
+		show_one_asp_remaddr_tcp(vty, asp);
+		break;
+#ifdef HAVE_LIBSCTP
+	case IPPROTO_SCTP:
+		show_one_asp_remaddr_sctp(vty, asp);
+		break;
+#endif
+	default:
+		vty_out(vty, "%-12s  %-46s  unknown proto %u%s", asp->cfg.name, "", proto, VTY_NEWLINE);
+		break;
+	}
+}
+
+static int show_asp_remaddr(struct vty *vty, int id, const char *asp_name)
+{
+	struct osmo_ss7_instance *inst;
+	struct osmo_ss7_asp *asp = NULL;
+
+	inst = osmo_ss7_instance_find(id);
+	if (!inst) {
+		vty_out(vty, "No SS7 instance %d found%s", id, VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	if (asp_name) {
+		asp = osmo_ss7_asp_find_by_name(inst, asp_name);
+		if (!asp) {
+			vty_out(vty, "No ASP %s found%s", asp_name, VTY_NEWLINE);
+			return CMD_WARNING;
+		}
+	}
+
+	vty_out(vty, "ASP Name      Remote IP Address & Port                        State                    CWND      SRTT      RTO       MTU%s", VTY_NEWLINE);
+	vty_out(vty, "------------  ----------------------------------------------  -----------------------  --------  --------  --------  --------%s", VTY_NEWLINE);
+
+	if (asp) {
+		show_one_asp_remaddr(vty, asp);
+		return CMD_SUCCESS;
+	}
+
+	llist_for_each_entry(asp, &inst->asp_list, list) {
+		show_one_asp_remaddr(vty, asp);
+	}
+	return CMD_SUCCESS;
+}
+
+DEFUN(show_cs7_asp_remaddr, show_cs7_asp_remaddr_cmd,
+	"show cs7 instance <0-15> asp-remaddr",
+	SHOW_STR CS7_STR INST_STR INST_STR
+	"Application Server Process (ASP) remote addresses information\n")
+{
+	int id = atoi(argv[0]);
+
+	return show_asp_remaddr(vty, id, NULL);
+}
+
+
+DEFUN(show_cs7_asp_remaddr_name, show_cs7_asp_remaddr_name_cmd,
+	"show cs7 instance <0-15> asp-remaddr name ASP_NAME",
+	SHOW_STR CS7_STR INST_STR INST_STR
+	"Application Server Process (ASP) remote addresses information\n"
+	"Lookup ASP with a given name\n"
+	"Name of the Application Server Process (ASP)\n")
+{
+	int id = atoi(argv[0]);
+	const char *asp_name = argv[1];
+
+	return show_asp_remaddr(vty, id, asp_name);
 }
 
 static void write_one_asp(struct vty *vty, struct osmo_ss7_asp *asp, bool show_dyn_config)
@@ -2520,6 +2698,8 @@ static void vty_init_shared(void *ctx)
 	install_node(&asp_node, NULL);
 	install_lib_element_ve(&show_cs7_asp_cmd);
 	install_lib_element_ve(&show_cs7_asp_name_cmd);
+	install_lib_element_ve(&show_cs7_asp_remaddr_cmd);
+	install_lib_element_ve(&show_cs7_asp_remaddr_name_cmd);
 	install_lib_element(L_CS7_NODE, &cs7_asp_cmd);
 	install_lib_element(L_CS7_NODE, &no_cs7_asp_cmd);
 	install_lib_element(L_CS7_ASP_NODE, &cfg_description_cmd);

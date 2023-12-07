@@ -5,6 +5,8 @@ ss7_asp_vty_test> list
   show cs7 config
   show cs7 instance <0-15> asp
   show cs7 instance <0-15> asp name ASP_NAME
+  show cs7 instance <0-15> asp-remaddr
+  show cs7 instance <0-15> asp-remaddr name ASP_NAME
   show cs7 instance <0-15> as (active|all|m3ua|sua)
   show cs7 instance <0-15> route
   show cs7 instance <0-15> sccp addressbook
@@ -22,6 +24,8 @@ ss7_asp_vty_test# list
   show cs7 config
   show cs7 instance <0-15> asp
   show cs7 instance <0-15> asp name ASP_NAME
+  show cs7 instance <0-15> asp-remaddr
+  show cs7 instance <0-15> asp-remaddr name ASP_NAME
   show cs7 instance <0-15> as (active|all|m3ua|sua)
   show cs7 instance <0-15> route
   show cs7 instance <0-15> sccp addressbook
@@ -50,11 +54,12 @@ ss7_asp_vty_test# show cs7 instance ?
   <0-15>  An instance of the SS7 stack
 
 ss7_asp_vty_test# show cs7 instance 0 ?
-  users  User Table
-  asp    Application Server Process (ASP)
-  as     Application Server (AS)
-  route  Routing Table
-  sccp   Signalling Connection Control Part
+  users        User Table
+  asp          Application Server Process (ASP)
+  asp-remaddr  Application Server Process (ASP) remote addresses information
+  as           Application Server (AS)
+  route        Routing Table
+  sccp         Signalling Connection Control Part
 
 ss7_asp_vty_test# show cs7 instance 0 as ?
   active  Display all active ASs
