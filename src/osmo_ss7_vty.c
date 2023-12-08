@@ -1160,14 +1160,39 @@ static char *get_sockname_buf(char *buf, size_t buf_len, int fd, int proto, bool
 	return buf;
 }
 
-DEFUN(show_cs7_asp, show_cs7_asp_cmd,
-	"show cs7 instance <0-15> asp",
-	SHOW_STR CS7_STR INST_STR INST_STR "Application Server Process (ASP)\n")
+static void show_one_asp(struct vty *vty, struct osmo_ss7_asp *asp)
+{
+	char as_buf[64];
+	char buf_loc[OSMO_SOCK_MULTIADDR_PEER_STR_MAXLEN];
+	char buf_rem[sizeof(buf_loc)];
+
+	int fd = ss7_asp_get_fd(asp);
+	if (fd > 0) {
+		int proto = ss7_asp_proto_to_ip_proto(asp->cfg.proto);
+		if (!get_sockname_buf(buf_loc, sizeof(buf_loc), fd, proto, true))
+			OSMO_STRLCPY_ARRAY(buf_loc, "<sockname-error>");
+		if (!get_sockname_buf(buf_rem, sizeof(buf_rem), fd, proto, false))
+			OSMO_STRLCPY_ARRAY(buf_rem, "<sockname-error>");
+	} else {
+		osmo_ss7_asp_peer_snprintf(buf_loc, sizeof(buf_loc), &asp->cfg.local);
+		osmo_ss7_asp_peer_snprintf(buf_rem, sizeof(buf_rem), &asp->cfg.remote);
+	}
+
+	vty_out(vty, "%-12s  %-12s  %-13s  %-4s  %-4s  %-9s  %-23s  %-23s%s",
+		asp->cfg.name,
+		as_list_for_asp(asp, as_buf, sizeof(as_buf)),
+		asp->fi ? osmo_fsm_inst_state_name(asp->fi) : "uninitialized",
+		get_value_string(osmo_ss7_asp_protocol_vals, asp->cfg.proto),
+		osmo_str_tolower(get_value_string(osmo_ss7_asp_role_names, asp->cfg.role)),
+		asp->cfg.is_server ? "server" : "client",
+		buf_loc, buf_rem,
+		VTY_NEWLINE);
+}
+
+static int show_asp(struct vty *vty, int id, const char *asp_name)
 {
 	struct osmo_ss7_instance *inst;
-	struct osmo_ss7_asp *asp;
-	char as_buf[64];
-	int id = atoi(argv[0]);
+	struct osmo_ss7_asp *asp = NULL;
 
 	inst = osmo_ss7_instance_find(id);
 	if (!inst) {
@@ -1175,35 +1200,48 @@ DEFUN(show_cs7_asp, show_cs7_asp_cmd,
 		return CMD_WARNING;
 	}
 
+	if (asp_name) {
+		asp = osmo_ss7_asp_find_by_name(inst, asp_name);
+		if (!asp) {
+			vty_out(vty, "No ASP %s found%s", asp_name, VTY_NEWLINE);
+			return CMD_WARNING;
+		}
+	}
+
 	vty_out(vty, "ASP Name      AS Name       State          Type  Role  SCTP Role  Local Addresses          Remote Addresses%s", VTY_NEWLINE);
 	vty_out(vty, "------------  ------------  -------------  ----  ----  ---------  -----------------------  -----------------------%s", VTY_NEWLINE);
 
-	llist_for_each_entry(asp, &inst->asp_list, list) {
-		char buf_loc[OSMO_SOCK_MULTIADDR_PEER_STR_MAXLEN];
-		char buf_rem[sizeof(buf_loc)];
-		int fd = ss7_asp_get_fd(asp);
-		if (fd > 0) {
-			int proto = ss7_asp_proto_to_ip_proto(asp->cfg.proto);
-			if (!get_sockname_buf(buf_loc, sizeof(buf_loc), fd, proto, true))
-				OSMO_STRLCPY_ARRAY(buf_loc, "<sockname-error>");
-			if (!get_sockname_buf(buf_rem, sizeof(buf_rem), fd, proto, false))
-				OSMO_STRLCPY_ARRAY(buf_rem, "<sockname-error>");
-		} else {
-			osmo_ss7_asp_peer_snprintf(buf_loc, sizeof(buf_loc), &asp->cfg.local);
-			osmo_ss7_asp_peer_snprintf(buf_rem, sizeof(buf_rem), &asp->cfg.remote);
-		}
-
-		vty_out(vty, "%-12s  %-12s  %-13s  %-4s  %-4s  %-9s  %-23s  %-23s%s",
-			asp->cfg.name,
-			as_list_for_asp(asp, as_buf, sizeof(as_buf)),
-			asp->fi? osmo_fsm_inst_state_name(asp->fi) : "uninitialized",
-			get_value_string(osmo_ss7_asp_protocol_vals, asp->cfg.proto),
-			osmo_str_tolower(get_value_string(osmo_ss7_asp_role_names, asp->cfg.role)),
-			asp->cfg.is_server ? "server" : "client",
-			buf_loc, buf_rem,
-			VTY_NEWLINE);
+	if (asp) {
+		show_one_asp(vty, asp);
+		return CMD_SUCCESS;
 	}
+
+	llist_for_each_entry(asp, &inst->asp_list, list)
+		show_one_asp(vty, asp);
 	return CMD_SUCCESS;
+}
+
+DEFUN(show_cs7_asp, show_cs7_asp_cmd,
+	"show cs7 instance <0-15> asp",
+	SHOW_STR CS7_STR INST_STR INST_STR
+	"Application Server Process (ASP)\n")
+{
+	int id = atoi(argv[0]);
+
+	return show_asp(vty, id, NULL);
+}
+
+DEFUN(show_cs7_asp_name, show_cs7_asp_name_cmd,
+	"show cs7 instance <0-15> asp name ASP_NAME",
+	SHOW_STR CS7_STR INST_STR INST_STR
+	"Application Server Process (ASP)\n"
+	"Lookup ASP with a given name\n"
+	"Name of the Application Server Process (ASP)\n")
+{
+	int id = atoi(argv[0]);
+	const char *asp_name = argv[1];
+
+	return show_asp(vty, id, asp_name);
 }
 
 static void write_one_asp(struct vty *vty, struct osmo_ss7_asp *asp, bool show_dyn_config)
@@ -2481,6 +2519,7 @@ static void vty_init_shared(void *ctx)
 
 	install_node(&asp_node, NULL);
 	install_lib_element_ve(&show_cs7_asp_cmd);
+	install_lib_element_ve(&show_cs7_asp_name_cmd);
 	install_lib_element(L_CS7_NODE, &cs7_asp_cmd);
 	install_lib_element(L_CS7_NODE, &no_cs7_asp_cmd);
 	install_lib_element(L_CS7_ASP_NODE, &cfg_description_cmd);
