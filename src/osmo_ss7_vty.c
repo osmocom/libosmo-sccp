@@ -28,6 +28,7 @@
 
 #include <netdb.h>
 #include <arpa/inet.h>
+#include <sys/ioctl.h>
 
 #include <osmocom/core/sockaddr_str.h>
 
@@ -1422,6 +1423,161 @@ DEFUN(show_cs7_asp_remaddr_name, show_cs7_asp_remaddr_name_cmd,
 	return show_asp_remaddr(vty, id, asp_name);
 }
 
+static void show_one_asp_assoc_status_tcp(struct vty *vty, struct osmo_ss7_asp *asp)
+{
+	struct osmo_sockaddr osa = {};
+	struct tcp_info tcpi = {};
+	socklen_t len;
+	int fd, rc;
+	int rx_pend_bytes = 0;
+
+	fd = ss7_asp_get_fd(asp);
+	if (fd < 0) {
+		vty_out(vty, "%-12s  uninitialized%s", asp->cfg.name, VTY_NEWLINE);
+		return;
+	}
+
+	len = sizeof(osa.u.sas);
+	rc = getpeername(fd, &osa.u.sa, &len);
+
+	len = sizeof(tcpi);
+	rc = getsockopt(fd, SOL_TCP, TCP_INFO, &tcpi, &len);
+	if (rc < 0) {
+		char buf_err[128];
+		strerror_r(errno, buf_err, sizeof(buf_err));
+		vty_out(vty, "%-12s  getsockopt(TCP_INFO) failed: %s%s",
+			asp->cfg.name, buf_err, VTY_NEWLINE);
+		return;
+	}
+
+	rc = ioctl(fd, FIONREAD, &rx_pend_bytes);
+
+	/* FIXME: RWND: struct tcp_info from linux/tcp.h contains more fields
+	 * than the one from netinet/tcp.h we currently use, including
+	 * "tcpi_rcv_wnd" which we could use to print RWND here. However,
+	 * linux/tcp.h seems to be missing the state defines used in
+	 * "tcp_info_state_values", so we cannot use that one instead.
+	 */
+
+	vty_out(vty, "%-12s  TCP_%-19s  %-9s  %-10s  %-8s  %-9u  %-7u  %-9u  %-46s%s",
+		asp->cfg.name,
+		get_value_string(tcp_info_state_values, tcpi.tcpi_state),
+		"-", "-", "-", tcpi.tcpi_unacked, rx_pend_bytes,
+		tcpi.tcpi_pmtu, osmo_sockaddr_to_str(&osa),
+		VTY_NEWLINE);
+}
+
+#ifdef HAVE_LIBSCTP
+static void show_one_asp_assoc_status_sctp(struct vty *vty, struct osmo_ss7_asp *asp)
+{
+	struct osmo_sockaddr osa = {};
+	struct sctp_status st;
+	socklen_t len;
+	int fd, rc;
+
+	fd = ss7_asp_get_fd(asp);
+	if (fd < 0) {
+		vty_out(vty, "%-12s  uninitialized%s", asp->cfg.name, VTY_NEWLINE);
+		return;
+	}
+
+	memset(&st, 0, sizeof(st));
+	len = sizeof(st);
+	rc = getsockopt(fd, IPPROTO_SCTP, SCTP_STATUS, &st, &len);
+	if (rc < 0) {
+		char buf_err[128];
+		strerror_r(errno, buf_err, sizeof(buf_err));
+		vty_out(vty, "%-12s  getsockopt(SCTP_STATUS) failed: %s%s", asp->cfg.name, buf_err, VTY_NEWLINE);
+		return;
+	}
+
+	osa.u.sas = st.sstat_primary.spinfo_address;
+	vty_out(vty, "%-12s  SCTP_%-18s  %-9u  %-10u  %-8u  %-9u  %-7u  %-9u  %-46s%s",
+		asp->cfg.name,
+		osmo_sctp_sstat_state_str(st.sstat_state),
+		st.sstat_instrms, st.sstat_outstrms,
+		st.sstat_rwnd, st.sstat_unackdata, st.sstat_penddata,
+		st.sstat_fragmentation_point,
+		osmo_sockaddr_to_str(&osa),
+		VTY_NEWLINE);
+}
+#endif
+
+static void show_one_asp_assoc_status(struct vty *vty, struct osmo_ss7_asp *asp)
+{
+	int proto = ss7_asp_proto_to_ip_proto(asp->cfg.proto);
+
+	switch (proto) {
+	case IPPROTO_TCP:
+		show_one_asp_assoc_status_tcp(vty, asp);
+		break;
+#ifdef HAVE_LIBSCTP
+	case IPPROTO_SCTP:
+		show_one_asp_assoc_status_sctp(vty, asp);
+		break;
+#endif
+	default:
+		vty_out(vty, "%-12s  unknown proto %u%s", asp->cfg.name, proto, VTY_NEWLINE);
+		break;
+	}
+}
+
+static int show_asp_assoc_status(struct vty *vty, int id, const char *asp_name)
+{
+	struct osmo_ss7_instance *inst;
+	struct osmo_ss7_asp *asp = NULL;
+
+	inst = osmo_ss7_instance_find(id);
+	if (!inst) {
+		vty_out(vty, "No SS7 instance %d found%s", id, VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	if (asp_name) {
+		asp = osmo_ss7_asp_find_by_name(inst, asp_name);
+		if (!asp) {
+			vty_out(vty, "No ASP %s found%s", asp_name, VTY_NEWLINE);
+			return CMD_WARNING;
+		}
+	}
+
+	vty_out(vty, "ASP Name      State                    InStreams  OutStreams  RWND      UnackData  PenData  FragPoint  Current Primary Remote IP Address & Port%s", VTY_NEWLINE);
+	vty_out(vty, "------------  -----------------------  ---------  ----------  --------  ---------  -------  ---------  ----------------------------------------------%s", VTY_NEWLINE);
+
+	if (asp) {
+		show_one_asp_assoc_status(vty, asp);
+		return CMD_SUCCESS;
+	}
+
+	llist_for_each_entry(asp, &inst->asp_list, list)
+		show_one_asp_assoc_status(vty, asp);
+	return CMD_SUCCESS;
+}
+
+DEFUN(show_cs7_asp_assoc_status, show_cs7_asp_assoc_status_cmd,
+	"show cs7 instance <0-15> asp-assoc-status",
+	SHOW_STR CS7_STR INST_STR INST_STR
+	"Application Server Process (ASP) SCTP association status\n")
+{
+	int id = atoi(argv[0]);
+
+	return show_asp_assoc_status(vty, id, NULL);
+}
+
+
+DEFUN(show_cs7_asp_assoc_status_name, show_cs7_asp_assoc_status_name_cmd,
+	"show cs7 instance <0-15> asp-assoc-status name ASP_NAME",
+	SHOW_STR CS7_STR INST_STR INST_STR
+	"Application Server Process (ASP) SCTP association information\n"
+	"Lookup ASP with a given name\n"
+	"Name of the Application Server Process (ASP)\n")
+{
+	int id = atoi(argv[0]);
+	const char *asp_name = argv[1];
+
+	return show_asp_assoc_status(vty, id, asp_name);
+}
+
 static void write_one_asp(struct vty *vty, struct osmo_ss7_asp *asp, bool show_dyn_config)
 {
 	int i;
@@ -2700,6 +2856,8 @@ static void vty_init_shared(void *ctx)
 	install_lib_element_ve(&show_cs7_asp_name_cmd);
 	install_lib_element_ve(&show_cs7_asp_remaddr_cmd);
 	install_lib_element_ve(&show_cs7_asp_remaddr_name_cmd);
+	install_lib_element_ve(&show_cs7_asp_assoc_status_cmd);
+	install_lib_element_ve(&show_cs7_asp_assoc_status_name_cmd);
 	install_lib_element(L_CS7_NODE, &cs7_asp_cmd);
 	install_lib_element(L_CS7_NODE, &no_cs7_asp_cmd);
 	install_lib_element(L_CS7_ASP_NODE, &cfg_description_cmd);
