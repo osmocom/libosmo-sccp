@@ -1180,7 +1180,7 @@ struct osmo_fsm ipa_asp_fsm = {
 };
 
 
-/*! \brief Start a new ASP finite stae machine for given ASP
+/*! \brief Start a new ASP finite state machine for given ASP
  *  \param[in] asp Application Server Process for which to start FSM
  *  \param[in] role Role (ASP, SG, IPSP) of this FSM
  *  \param[in] log_level Logging Level for ASP FSM logging
