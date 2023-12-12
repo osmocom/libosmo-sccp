@@ -65,6 +65,8 @@ static const struct value_string xua_asp_event_names[] = {
 	{ XUA_ASP_E_ASPSM_BEAT,		"ASPSM_BEAT" },
 	{ XUA_ASP_E_ASPSM_BEAT_ACK,	"ASPSM_BEAT_ACK" },
 
+	{ XUA_ASP_E_AS_ASSIGNED,	"AS_ASSIGNED" },
+
 	{ IPA_ASP_E_ID_RESP,		"IPA_CCM_ID_RESP" },
 	{ IPA_ASP_E_ID_GET,		"IPA_CCM_ID_GET" },
 	{ IPA_ASP_E_ID_ACK,		"IPA_CCM_ID_ACK" },
@@ -687,6 +689,9 @@ static void xua_asp_allstate(struct osmo_fsm_inst *fi, uint32_t event, void *dat
 	case XUA_ASP_E_ASPSM_BEAT_ACK:
 		/* FIXME: stop timer, if any */
 		break;
+	case XUA_ASP_E_AS_ASSIGNED:
+		/* Ignore, only used in IPA asps so far. */
+		break;
 	default:
 		break;
 	}
@@ -1058,6 +1063,7 @@ static void ipa_asp_fsm_inactive(struct osmo_fsm_inst *fi, uint32_t event, void 
 static void ipa_asp_allstate(struct osmo_fsm_inst *fi, uint32_t event, void *data)
 {
 	struct ipa_asp_fsm_priv *iafp = fi->priv;
+	struct osmo_ss7_as *as;
 	int fd;
 
 	switch (event) {
@@ -1076,6 +1082,15 @@ static void ipa_asp_allstate(struct osmo_fsm_inst *fi, uint32_t event, void *dat
 	case XUA_ASP_E_ASPSM_BEAT_ACK:
 		/* stop timer, if any */
 		osmo_timer_del(&iafp->pong_timer);
+		break;
+	case XUA_ASP_E_AS_ASSIGNED:
+		as = data;
+		osmo_talloc_replace_string(iafp->ipa_unit, &iafp->ipa_unit->unit_name, as->cfg.name);
+		/* Now that the AS is known, start the client side: */
+		if (iafp->role == OSMO_SS7_ASP_ROLE_ASP && fi->state == IPA_ASP_S_DOWN) {
+			LOGPFSML(fi, LOGL_NOTICE, "Bringing up ASP now once it has been assigned to an AS\n");
+			osmo_fsm_inst_dispatch(fi, XUA_ASP_E_M_ASP_UP_REQ, NULL);
+		}
 		break;
 	default:
 		break;
@@ -1175,7 +1190,8 @@ struct osmo_fsm ipa_asp_fsm = {
 	.allstate_event_mask = S(XUA_ASP_E_SCTP_COMM_DOWN_IND) |
 			       S(XUA_ASP_E_SCTP_RESTART_IND) |
 			       S(XUA_ASP_E_ASPSM_BEAT) |
-			       S(XUA_ASP_E_ASPSM_BEAT_ACK),
+			       S(XUA_ASP_E_ASPSM_BEAT_ACK) |
+			       S(XUA_ASP_E_AS_ASSIGNED),
 	.allstate_action = ipa_asp_allstate,
 };
 
@@ -1191,30 +1207,44 @@ static struct osmo_fsm_inst *ipa_asp_fsm_start(struct osmo_ss7_asp *asp,
 	struct osmo_fsm_inst *fi;
 	struct ipa_asp_fsm_priv *iafp;
 	struct osmo_ss7_as *as = ipa_find_as_for_asp(asp);
+	const char *unit_name;
+	bool can_start = true;
 
 	/* allocate as child of AS? */
 	fi = osmo_fsm_inst_alloc(&ipa_asp_fsm, asp, NULL, log_level, asp->cfg.name);
-
-	if (!as) {
-		osmo_fsm_inst_term(fi, OSMO_FSM_TERM_ERROR, NULL);
-		return NULL;
-	}
 
 	iafp = talloc_zero(fi, struct ipa_asp_fsm_priv);
 	if (!iafp) {
 		osmo_fsm_inst_term(fi, OSMO_FSM_TERM_ERROR, NULL);
 		return NULL;
 	}
+
+	if (as) {
+		unit_name = as->cfg.name;
+	} else if (asp->dyn_allocated) {
+		LOGPFSML(fi, LOGL_INFO, "Dynamic ASP is not assigned to any AS, "
+			 "using ASP name instead of AS name as ipa_unit_name\n");
+		unit_name = asp->cfg.name;
+	} else {
+		/* ASP in client mode will be brought up when this ASP is added
+		 * to an AS, see XUA_ASP_E_AS_ASSIGNED. */
+		if (role == OSMO_SS7_ASP_ROLE_ASP) {
+			LOGPFSML(fi, LOGL_NOTICE, "ASP is not assigned to any AS. ASP bring up delayed\n");
+			can_start = false;
+		}
+		unit_name = asp->cfg.name;
+	}
+
 	iafp->role = role;
 	iafp->asp = asp;
 	iafp->ipa_unit = talloc_zero(iafp, struct ipaccess_unit);
-	iafp->ipa_unit->unit_name = talloc_strdup(iafp->ipa_unit, as->cfg.name);
+	iafp->ipa_unit->unit_name = talloc_strdup(iafp->ipa_unit, unit_name);
 	iafp->pong_timer.cb = ipa_pong_timer_cb;
 	iafp->pong_timer.data = fi;
 
 	fi->priv = iafp;
 
-	if (role == OSMO_SS7_ASP_ROLE_ASP)
+	if (can_start && role == OSMO_SS7_ASP_ROLE_ASP)
 		osmo_fsm_inst_dispatch(fi, XUA_ASP_E_M_ASP_UP_REQ, NULL);
 
 	return fi;

@@ -35,6 +35,7 @@
 
 #include "ss7_internal.h"
 #include "xua_as_fsm.h"
+#include "xua_asp_fsm.h"
 
 /***********************************************************************
  * SS7 Application Server
@@ -114,6 +115,7 @@ int osmo_ss7_as_add_asp(struct osmo_ss7_as *as, const char *asp_name)
 	for (i = 0; i < ARRAY_SIZE(as->cfg.asps); i++) {
 		if (!as->cfg.asps[i]) {
 			as->cfg.asps[i] = asp;
+			osmo_fsm_inst_dispatch(asp->fi, XUA_ASP_E_AS_ASSIGNED, as);
 			return 0;
 		}
 	}

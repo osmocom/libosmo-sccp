@@ -28,6 +28,9 @@ enum xua_asp_event {
 	XUA_ASP_E_ASPSM_BEAT,
 	XUA_ASP_E_ASPSM_BEAT_ACK,
 
+	/* The ASP was added to an AS. data: (struct osmo_ss7_as *) */
+	XUA_ASP_E_AS_ASSIGNED,
+
 	/* IPA specific */
 	IPA_ASP_E_ID_RESP,
 	IPA_ASP_E_ID_ACK,
