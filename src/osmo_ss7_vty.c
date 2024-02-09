@@ -491,7 +491,7 @@ DEFUN_ATTR(cs7_xua, cs7_xua_cmd,
 	if (!xs) {
 		xs = osmo_ss7_xua_server_create(inst, proto, port, NULL);
 		if (!xs)
-			return CMD_SUCCESS;
+			return CMD_WARNING;
 		/* Drop first dummy address created automatically by _create(): */
 		osmo_ss7_xua_server_set_local_hosts(xs, NULL, 0);
 	}
