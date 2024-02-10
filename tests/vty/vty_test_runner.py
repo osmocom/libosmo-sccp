@@ -30,6 +30,8 @@ from osmopy.osmo_ipa import IPA
 # to be able to find $top_srcdir/doc/...
 confpath = os.path.join(sys.path[0], '..')
 
+TIMEOUT = 10
+
 class TestVTYBase(unittest.TestCase):
 
     def checkForEndAndExit(self):
@@ -127,6 +129,7 @@ class TestVTYSTP(TestVTYBase):
         # IPv4:
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM, proto)
         s.bind(('127.0.0.3', 0))
+        s.settimeout(TIMEOUT)
         try:
             s.connect(('127.0.0.2',2905))
         except socket.error as msg:
@@ -137,6 +140,7 @@ class TestVTYSTP(TestVTYBase):
         # IPv6:
         s = socket.socket(socket.AF_INET6, socket.SOCK_STREAM, proto)
         s.bind(('::1', 0))
+        s.settimeout(TIMEOUT)
         try:
             s.connect(('::1',2905))
         except socket.error as msg:
