@@ -698,6 +698,31 @@ DEFUN(show_cs7_config, show_cs7_config_cmd,
 	return CMD_SUCCESS;
 }
 
+DEFUN(cs7_asp_disconnect, cs7_asp_disconnect_cmd,
+      "cs7 instance <0-15> asp NAME disconnect",
+      CS7_STR "Instance related commands\n" "SS7 Instance Number\n"
+      "ASP related commands\n" "Name of ASP\n"
+      "Disconnect the ASP (client will reconnect)\n")
+{
+	struct osmo_ss7_instance *inst;
+	struct osmo_ss7_asp *asp;
+
+	inst = osmo_ss7_instance_find(atoi(argv[0]));
+	if (!inst) {
+		vty_out(vty, "unknown instance '%s'%s", argv[0], VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	asp = osmo_ss7_asp_find_by_name(inst, argv[1]);
+	if (!asp) {
+		vty_out(vty, "unknown ASP '%s'%s", argv[1], VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	osmo_ss7_asp_disconnect(asp);
+	return CMD_SUCCESS;
+}
+
 
 /***********************************************************************
  * Application Server Process
@@ -2838,6 +2863,7 @@ static void vty_init_shared(void *ctx)
 	install_lib_element_ve(&show_cs7_user_cmd);
 	install_lib_element_ve(&show_cs7_xua_cmd);
 	install_lib_element_ve(&show_cs7_config_cmd);
+	install_lib_element(ENABLE_NODE, &cs7_asp_disconnect_cmd);
 
 	/* the mother of all VTY config nodes */
 	install_lib_element(CONFIG_NODE, &cs7_instance_cmd);
