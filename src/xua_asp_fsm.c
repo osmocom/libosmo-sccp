@@ -293,6 +293,8 @@ static int peer_send_error(struct osmo_fsm_inst *fi, uint32_t err_code)
 	struct xua_msg *xua = xua_msg_alloc();
 	struct msgb *msg;
 
+	LOGPFSML(fi, LOGL_ERROR, "Tx MGMT_ERR '%s'\n", get_value_string(m3ua_err_names, err_code));
+
 	xua->hdr = XUA_HDR(SUA_MSGC_MGMT, SUA_MGMT_ERR);
 	xua->hdr.version = SUA_VERSION;
 	xua_msg_add_u32(xua, SUA_IEI_ERR_CODE, err_code);
