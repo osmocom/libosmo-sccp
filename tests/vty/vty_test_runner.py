@@ -131,7 +131,7 @@ class TestVTYSTP(TestVTYBase):
             s.connect(('127.0.0.2',2905))
         except socket.error as msg:
             s.close()
-            self.assertTrue(False)
+            self.fail("Failed to connect IPv4 socket: %s" % msg)
         print("Connected to STP through SCTP (IPv4)")
         s.close()
         # IPv6:
@@ -141,7 +141,7 @@ class TestVTYSTP(TestVTYBase):
             s.connect(('::1',2905))
         except socket.error as msg:
             s.close()
-            self.assertTrue(False)
+            self.fail("Failed to connect IPv6 socket: %s" % msg)
         print("Connected to STP through SCTP (IPv6)")
         s.close()
 
