@@ -835,11 +835,10 @@ static int xua_cli_connect_cb(struct osmo_stream_cli *cli)
 	return rc;
 }
 
-static void xua_cli_close(struct osmo_stream_cli *cli)
+static void xua_cli_sctp_down(struct osmo_stream_cli *cli)
 {
 	struct osmo_ss7_asp *asp = osmo_stream_cli_get_data(cli);
 
-	osmo_stream_cli_close(cli);
 	osmo_fsm_inst_dispatch(asp->fi, XUA_ASP_E_SCTP_COMM_DOWN_IND, asp);
 	/* send M-SCTP_RELEASE.ind to XUA Layer Manager */
 	xua_asp_send_xlm_prim_simple(asp, OSMO_XLM_PRIM_M_SCTP_RELEASE, PRIM_OP_INDICATION);
@@ -847,7 +846,8 @@ static void xua_cli_close(struct osmo_stream_cli *cli)
 
 static void xua_cli_close_and_reconnect(struct osmo_stream_cli *cli)
 {
-	xua_cli_close(cli);
+	osmo_stream_cli_close(cli);
+	xua_cli_sctp_down(cli);
 	osmo_stream_cli_reconnect(cli);
 }
 
@@ -889,6 +889,13 @@ static int xua_cli_read_cb(struct osmo_stream_cli *conn, struct msgb *msg)
 		default:
 			break;
 		}
+		goto out;
+	}
+
+	/* If connection has been closed, the client will try to re-connect.
+	 * Indicate towards state machine that the connection has been closed. */
+	if (msg->len == 0) {
+		xua_cli_sctp_down(conn);
 		goto out;
 	}
 
