@@ -1054,11 +1054,11 @@ DEFUN_ATTR(asp_role, asp_role_cmd,
 	return CMD_SUCCESS;
 }
 
-DEFUN_ATTR(sctp_role, asp_sctp_role_cmd,
-	   "sctp-role (client|server)",
-	   "Specify the SCTP role for this ASP\n"
-	   "Operate as SCTP client; connect to a server\n"
-	   "Operate as SCTP server; wait for client connections\n",
+DEFUN_ATTR(asp_transport_role, asp_transport_role_cmd,
+	   "transport-role (client|server)",
+	   "Specify the transport layer role for this ASP\n"
+	   "Operate as a client; connect to a server\n"
+	   "Operate as a server; wait for client connections\n",
 	   CMD_ATTR_NODE_EXIT)
 {
 	struct osmo_ss7_asp *asp = vty->index;
@@ -1070,9 +1070,16 @@ DEFUN_ATTR(sctp_role, asp_sctp_role_cmd,
 	else
 		OSMO_ASSERT(0);
 
-	asp->cfg.sctp_role_set_by_vty = true;
+	asp->cfg.trans_role_set_by_vty = true;
 	return CMD_SUCCESS;
 }
+
+ALIAS_ATTR(asp_transport_role, asp_sctp_role_cmd,
+	   "sctp-role (client|server)",
+	   "Specify the SCTP role for this ASP\n"
+	   "Operate as SCTP client; connect to a server\n"
+	   "Operate as SCTP server; wait for client connections\n",
+	   CMD_ATTR_HIDDEN | CMD_ATTR_NODE_EXIT);
 
 #define ASP_SCTP_PARAM_INIT_DESC \
 	"Configure SCTP parameters\n" \
@@ -1719,7 +1726,7 @@ static void write_one_asp(struct vty *vty, struct osmo_ss7_asp *asp, bool show_d
 		vty_out(vty, "  qos-class %u%s", asp->cfg.qos_class, VTY_NEWLINE);
 	vty_out(vty, "  role %s%s", osmo_str_tolower(get_value_string(osmo_ss7_asp_role_names, asp->cfg.role)),
 		VTY_NEWLINE);
-	vty_out(vty, "  sctp-role %s%s", asp->cfg.is_server ? "server" : "client", VTY_NEWLINE);
+	vty_out(vty, "  transport-role %s%s", asp->cfg.is_server ? "server" : "client", VTY_NEWLINE);
 	if (asp->cfg.sctp_init.num_ostreams_present)
 		vty_out(vty, "  sctp-param init num-ostreams %u%s", asp->cfg.sctp_init.num_ostreams_value, VTY_NEWLINE);
 	if (asp->cfg.sctp_init.max_instreams_present)
@@ -2984,6 +2991,7 @@ static void vty_init_shared(void *ctx)
 	install_lib_element(L_CS7_ASP_NODE, &asp_no_local_ip_cmd);
 	install_lib_element(L_CS7_ASP_NODE, &asp_qos_class_cmd);
 	install_lib_element(L_CS7_ASP_NODE, &asp_role_cmd);
+	install_lib_element(L_CS7_ASP_NODE, &asp_transport_role_cmd);
 	install_lib_element(L_CS7_ASP_NODE, &asp_sctp_role_cmd);
 	install_lib_element(L_CS7_ASP_NODE, &asp_sctp_param_init_cmd);
 	install_lib_element(L_CS7_ASP_NODE, &asp_no_sctp_param_init_cmd);

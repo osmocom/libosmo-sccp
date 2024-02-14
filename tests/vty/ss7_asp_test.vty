@@ -257,7 +257,7 @@ ss7_asp_vty_test(config-cs7-asp)# list
   no local-ip (A.B.C.D|X:X::X:X)
   qos-class <0-255>
   role (sg|asp|ipsp)
-  sctp-role (client|server)
+  transport-role (client|server)
   sctp-param init (num-ostreams|max-instreams|max-attempts|timeout) <0-65535>
   no sctp-param init (num-ostreams|max-instreams|max-attempts|timeout)
   block
@@ -266,16 +266,16 @@ ss7_asp_vty_test(config-cs7-asp)# list
 
 ss7_asp_vty_test(config-cs7-asp)# ?
 ...
-  description  Save human-readable description of the object
-  remote-ip    Specify Remote IP Address of ASP
-  no           Negate a command or set its defaults
-  local-ip     Specify Local IP Address from which to contact ASP
-  qos-class    Specify QoS Class of ASP
-  role         Specify the xUA role for this ASP
-  sctp-role    Specify the SCTP role for this ASP
-  sctp-param   Configure SCTP parameters
-  block        Allows a SCTP Association with ASP, but doesn't let it become active
-  shutdown     Terminates SCTP association; New associations will be rejected
+  description     Save human-readable description of the object
+  remote-ip       Specify Remote IP Address of ASP
+  no              Negate a command or set its defaults
+  local-ip        Specify Local IP Address from which to contact ASP
+  qos-class       Specify QoS Class of ASP
+  role            Specify the xUA role for this ASP
+  transport-role  Specify the transport layer role for this ASP
+  sctp-param      Configure SCTP parameters
+  block           Allows a SCTP Association with ASP, but doesn't let it become active
+  shutdown        Terminates SCTP association; New associations will be rejected
 ...
 
 ss7_asp_vty_test(config-cs7-asp)# no ?
@@ -423,7 +423,7 @@ cs7 instance 0
   remote-ip 127.0.0.200
   remote-ip 127.0.0.201
   role sg
-  sctp-role server
+  transport-role server
  as my-ass m3ua
   asp my-asp
   routing-key 0 3.2.1
