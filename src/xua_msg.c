@@ -531,7 +531,7 @@ char *xua_msg_dump(struct xua_msg *xua, const struct xua_dialect *dialect)
 	buf[0] = '\0';
 
 	OSMO_STRBUF_PRINTF(sb, "HDR=(%s,V=%u,LEN=%u)", xua_hdr_dump(xua, dialect),
-			   xua->hdr.version, xua->hdr.msg_length);
+			   xua->hdr.version, ntohl(xua->hdr.msg_length));
 
 	llist_for_each_entry(part, &xua->headers, entry)
 		OSMO_STRBUF_PRINTF(sb, ", PART(T=%s,L=%u,D=%s)",
