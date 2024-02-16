@@ -113,7 +113,7 @@ static void usage(void) {
 			"             [-r REMOTE_ADDRESS[:REMOTE_PORT]]\n"
 			"             [-L LOCAL_POINT_CODE] [-R REMOTE_POINT_CODE]\n"
 			"Options:\n"
-			"  -p: protocol to use (m3ua, sua, ipa; default is ipa)\n"
+			"  -p: protocol to use (m3ua, sua, ipa; default is m3ua)\n"
 			"  -c: Run in client mode (default is server mode)\n"
 			"  -C filename  The config file to use\n"
 			"  -l: local IP address and SCTP port (default is %s:%d in server mode,\n"
