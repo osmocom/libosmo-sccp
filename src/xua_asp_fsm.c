@@ -112,8 +112,8 @@ void xua_asp_send_xlm_prim(struct osmo_ss7_asp *asp, struct osmo_xlm_prim *prim)
 	if (lm && lm->prim_cb)
 		lm->prim_cb(&prim->oph, asp);
 	else {
-		LOGPASP(asp, DLSS7, LOGL_DEBUG, "No Layer Manager, dropping %s\n",
-			osmo_xlm_prim_name(&prim->oph));
+		LOGPFSML(asp->fi, LOGL_DEBUG, "No Layer Manager, dropping %s\n",
+			 osmo_xlm_prim_name(&prim->oph));
 	}
 
 	msgb_free(prim->oph.msg);
