@@ -868,7 +868,7 @@ static int xua_cli_connect_cb(struct osmo_stream_cli *cli)
 		 * established */
 		xua_asp_send_xlm_prim_simple(asp, OSMO_XLM_PRIM_M_SCTP_ESTABLISH, PRIM_OP_INDICATION);
 	} else {
-		/* directly as the ASP FSM to start by sending an ASP-UP ... */
+		/* directly ask the ASP FSM to start by sending an ASP-UP ... */
 		osmo_fsm_inst_dispatch(asp->fi, XUA_ASP_E_M_ASP_UP_REQ, NULL);
 	}
 
