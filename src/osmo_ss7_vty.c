@@ -62,6 +62,11 @@
 	"MTP3 User Adaptation\n"	\
 	"IPA Multiplex (SCCP Lite)\n"
 
+#define IPPROTO_VAR_STR "(sctp|tcp)"
+#define IPPROTO_VAR_HELP_STR \
+	"SCTP (Stream Control Transmission Protocol)\n" \
+	"TCP (Transmission Control Protocol)\n"
+
 /* netinet/tcp.h */
 static const struct value_string tcp_info_state_values[] = {
 	{ TCP_ESTABLISHED,	"ESTABLISHED" },
@@ -465,6 +470,17 @@ DEFUN(show_cs7_route, show_cs7_route_cmd,
  * xUA Listener Configuration (SG)
  ***********************************************************************/
 
+static const struct value_string ipproto_vals[] = {
+	{ IPPROTO_SCTP,		"sctp" },
+	{ IPPROTO_TCP,		"tcp" },
+	{ 0, NULL },
+};
+
+static int parse_trans_proto(const char *protocol)
+{
+	return get_string_value(ipproto_vals, protocol);
+}
+
 static enum osmo_ss7_asp_protocol parse_asp_proto(const char *protocol)
 {
 	return get_string_value(osmo_ss7_asp_protocol_vals, protocol);
@@ -477,19 +493,29 @@ static struct cmd_node xua_node = {
 };
 
 DEFUN_ATTR(cs7_xua, cs7_xua_cmd,
-	   "listen " XUA_VAR_STR " <0-65534>",
+	   "listen " XUA_VAR_STR " <0-65534> [" IPPROTO_VAR_STR "]",
 	   "Configure/Enable xUA Listener\n"
-	   XUA_VAR_HELP_STR "SCTP Port number\n",
+	   XUA_VAR_HELP_STR
+	   "Port number\n"
+	   IPPROTO_VAR_HELP_STR,
 	   CMD_ATTR_IMMEDIATE)
 {
 	struct osmo_ss7_instance *inst = vty->index;
 	struct osmo_xua_server *xs;
 	enum osmo_ss7_asp_protocol proto = parse_asp_proto(argv[0]);
 	uint16_t port = atoi(argv[1]);
+	int trans_proto;
 
-	xs = osmo_ss7_xua_server_find(inst, proto, port);
+	if (argc > 2)
+		trans_proto = parse_trans_proto(argv[2]);
+	else /* default transport protocol */
+		trans_proto = ss7_default_trans_proto_for_asp_proto(proto);
+	if (trans_proto < 0)
+		return CMD_WARNING;
+
+	xs = osmo_ss7_xua_server_find2(inst, trans_proto, proto, port);
 	if (!xs) {
-		xs = osmo_ss7_xua_server_create(inst, proto, port, NULL);
+		xs = osmo_ss7_xua_server_create2(inst, trans_proto, proto, port, NULL);
 		if (!xs)
 			return CMD_WARNING;
 		/* Drop first dummy address created automatically by _create(): */
@@ -502,17 +528,27 @@ DEFUN_ATTR(cs7_xua, cs7_xua_cmd,
 }
 
 DEFUN_ATTR(no_cs7_xua, no_cs7_xua_cmd,
-	   "no listen " XUA_VAR_STR " <0-65534>",
-	   NO_STR "Disable xUA Listener on given SCTP Port\n"
-	   XUA_VAR_HELP_STR "SCTP Port number\n",
+	   "no listen " XUA_VAR_STR " <0-65534> [" IPPROTO_VAR_STR "]",
+	   NO_STR "Disable xUA Listener on given port\n"
+	   XUA_VAR_HELP_STR
+	   "Port number\n"
+	   IPPROTO_VAR_HELP_STR,
 	   CMD_ATTR_IMMEDIATE)
 {
 	struct osmo_ss7_instance *inst = vty->index;
 	struct osmo_xua_server *xs;
 	enum osmo_ss7_asp_protocol proto = parse_asp_proto(argv[0]);
 	uint16_t port = atoi(argv[1]);
+	int trans_proto;
 
-	xs = osmo_ss7_xua_server_find(inst, proto, port);
+	if (argc > 2)
+		trans_proto = parse_trans_proto(argv[2]);
+	else /* default transport protocol */
+		trans_proto = ss7_default_trans_proto_for_asp_proto(proto);
+	if (trans_proto < 0)
+		return CMD_WARNING;
+
+	xs = osmo_ss7_xua_server_find2(inst, trans_proto, proto, port);
 	if (!xs) {
 		vty_out(vty, "No xUA server for port %u found%s", port, VTY_NEWLINE);
 		return CMD_WARNING;
@@ -616,9 +652,13 @@ DEFUN_ATTR(xua_no_sctp_param_init, xua_no_sctp_param_init_cmd,
 static void write_one_xua(struct vty *vty, struct osmo_xua_server *xs)
 {
 	int i;
-	vty_out(vty, " listen %s %u%s",
+
+	vty_out(vty, " listen %s %u",
 		get_value_string(osmo_ss7_asp_protocol_vals, xs->cfg.proto),
-		xs->cfg.local.port, VTY_NEWLINE);
+		xs->cfg.local.port);
+	if (xs->cfg.trans_proto != ss7_default_trans_proto_for_asp_proto(xs->cfg.proto))
+		vty_out(vty, " %s", get_value_string(ipproto_vals, xs->cfg.trans_proto));
+	vty_out(vty, "%s", VTY_NEWLINE);
 
 	for (i = 0; i < xs->cfg.local.host_cnt; i++) {
 		if (xs->cfg.local.host[i])
@@ -646,7 +686,7 @@ static void vty_dump_xua_server(struct vty *vty, struct osmo_xua_server *xs)
 		size_t num_hostbuf = ARRAY_SIZE(hostbuf);
 		char portbuf[6];
 		int rc;
-		rc = osmo_sock_multiaddr_get_ip_and_port(fd, ss7_asp_proto_to_ip_proto(xs->cfg.proto),
+		rc = osmo_sock_multiaddr_get_ip_and_port(fd, xs->cfg.trans_proto,
 							 &hostbuf[0][0], &num_hostbuf, sizeof(hostbuf[0]),
 							 portbuf, sizeof(portbuf), true);
 		if (rc < 0) {
@@ -659,35 +699,58 @@ static void vty_dump_xua_server(struct vty *vty, struct osmo_xua_server *xs)
 							    portbuf);
 		}
 	}
-	vty_out(vty, "xUA server for %s on %s is %s%s",
-		proto, buf, fd >= 0 ? "listening" : "inactive", VTY_NEWLINE);
+	vty_out(vty, "xUA server for %s/%s on %s is %s%s",
+		proto, get_value_string(ipproto_vals, xs->cfg.trans_proto),
+		buf, fd >= 0 ? "listening" : "inactive", VTY_NEWLINE);
 }
 
-DEFUN(show_cs7_xua, show_cs7_xua_cmd,
-      "show cs7 "XUA_VAR_STR" [<0-65534>]",
-      SHOW_STR CS7_STR XUA_VAR_HELP_STR "Port Number")
+static int _show_cs7_xua(struct vty *vty,
+			 enum osmo_ss7_asp_protocol proto,
+			 int trans_proto, int local_port)
 {
-	struct osmo_ss7_instance *inst;
-	struct osmo_xua_server *xs;
-	enum osmo_ss7_asp_protocol proto = parse_asp_proto(argv[0]);
+	const struct osmo_ss7_instance *inst;
 
 	llist_for_each_entry(inst, &osmo_ss7_instances, list) {
-		if (argc > 1) {
-			int port = atoi(argv[1]);
-			xs = osmo_ss7_xua_server_find(inst, proto, port);
-			if (!xs) {
-				vty_out(vty, "%% No matching server found%s", VTY_NEWLINE);
-				return CMD_WARNING;
-			}
+		struct osmo_xua_server *xs;
+
+		llist_for_each_entry(xs, &inst->xua_servers, list) {
+			if (xs->cfg.proto != proto)
+				continue;
+			if (local_port >= 0 && xs->cfg.local.port != local_port) /* optional */
+				continue;
+			if (trans_proto >= 0 && xs->cfg.trans_proto != trans_proto) /* optional */
+				continue;
 			vty_dump_xua_server(vty, xs);
-		} else {
-			llist_for_each_entry(xs, &inst->xua_servers, list) {
-				if (xs->cfg.proto == proto)
-					vty_dump_xua_server(vty, xs);
-			}
 		}
 	}
+
 	return CMD_SUCCESS;
+}
+
+#define SHOW_CS7_XUA_CMD \
+	"show cs7 " XUA_VAR_STR
+#define SHOW_CS7_XUA_CMD_HELP \
+	SHOW_STR CS7_STR XUA_VAR_HELP_STR
+
+DEFUN(show_cs7_xua, show_cs7_xua_cmd,
+      SHOW_CS7_XUA_CMD " [<0-65534>]",
+      SHOW_CS7_XUA_CMD_HELP "Local Port Number\n")
+{
+	enum osmo_ss7_asp_protocol proto = parse_asp_proto(argv[0]);
+	int local_port = (argc > 1) ? atoi(argv[1]) : -1;
+
+	return _show_cs7_xua(vty, proto, -1, local_port);
+}
+
+DEFUN(show_cs7_xua_trans_proto, show_cs7_xua_trans_proto_cmd,
+      SHOW_CS7_XUA_CMD " " IPPROTO_VAR_STR " [<0-65534>]",
+      SHOW_CS7_XUA_CMD_HELP IPPROTO_VAR_HELP_STR "Local Port Number\n")
+{
+	enum osmo_ss7_asp_protocol proto = parse_asp_proto(argv[0]);
+	int trans_proto = parse_trans_proto(argv[1]);
+	int local_port = (argc > 2) ? atoi(argv[2]) : -1;
+
+	return _show_cs7_xua(vty, proto, trans_proto, local_port);
 }
 
 DEFUN(show_cs7_config, show_cs7_config_cmd,
@@ -738,8 +801,8 @@ DEFUN_ATTR(cs7_asp, cs7_asp_cmd,
 	   "asp NAME <0-65535> <0-65535> " XUA_VAR_STR,
 	   "Configure Application Server Process\n"
 	   "Name of ASP\n"
-	   "Remote SCTP port number\n"
-	   "Local SCTP port number\n"
+	   "Remote port number\n"
+	   "Local port number\n"
 	   XUA_VAR_HELP_STR,
 	   CMD_ATTR_NODE_EXIT)
 {
@@ -747,17 +810,30 @@ DEFUN_ATTR(cs7_asp, cs7_asp_cmd,
 	const char *name = argv[0];
 	uint16_t remote_port = atoi(argv[1]);
 	uint16_t local_port = atoi(argv[2]);
-	enum osmo_ss7_asp_protocol protocol = parse_asp_proto(argv[3]);
+	enum osmo_ss7_asp_protocol proto = parse_asp_proto(argv[3]);
 	struct osmo_ss7_asp *asp;
+	int trans_proto;
 
-	if (protocol == OSMO_SS7_ASP_PROT_NONE) {
+	if (proto == OSMO_SS7_ASP_PROT_NONE) {
 		vty_out(vty, "invalid protocol '%s'%s", argv[3], VTY_NEWLINE);
 		return CMD_WARNING;
 	}
 
-	asp = osmo_ss7_asp_find(inst, name, remote_port, local_port, protocol);
+	/* argv[4] can be supplied by an alias (see below) */
+	if (argc > 4)
+		trans_proto = parse_trans_proto(argv[4]);
+	else /* default transport protocol */
+		trans_proto = ss7_default_trans_proto_for_asp_proto(proto);
+	if (trans_proto < 0)
+		return CMD_WARNING;
+
+	asp = osmo_ss7_asp_find2(inst, name,
+				 remote_port, local_port,
+				 trans_proto, proto);
 	if (!asp) {
-		asp = osmo_ss7_asp_find_or_create(inst, name, remote_port, local_port, protocol);
+		asp = osmo_ss7_asp_find_or_create2(inst, name,
+						   remote_port, local_port,
+						   trans_proto, proto);
 		if (!asp) {
 			vty_out(vty, "cannot create ASP '%s'%s", name, VTY_NEWLINE);
 			return CMD_WARNING;
@@ -771,6 +847,18 @@ DEFUN_ATTR(cs7_asp, cs7_asp_cmd,
 	vty->index_sub = &asp->cfg.description;
 	return CMD_SUCCESS;
 }
+
+/* XXX: workaround for https://osmocom.org/issues/6360, can be removed once it's fixed.
+ * Currently we hit an assert if we make the IPPROTO_VAR_STR optional in cs7_asp_cmd. */
+ALIAS_ATTR(cs7_asp, cs7_asp_trans_proto_cmd,
+	   "asp NAME <0-65535> <0-65535> " XUA_VAR_STR " " IPPROTO_VAR_STR,
+	   "Configure Application Server Process\n"
+	   "Name of ASP\n"
+	   "Remote port number\n"
+	   "Local port number\n"
+	   XUA_VAR_HELP_STR
+	   IPPROTO_VAR_HELP_STR,
+	   CMD_ATTR_NODE_EXIT);
 
 DEFUN_ATTR(no_cs7_asp, no_cs7_asp_cmd,
 	   "no asp NAME",
@@ -1217,10 +1305,10 @@ static void show_one_asp(struct vty *vty, struct osmo_ss7_asp *asp)
 
 	int fd = ss7_asp_get_fd(asp);
 	if (fd > 0) {
-		int proto = ss7_asp_proto_to_ip_proto(asp->cfg.proto);
-		if (!get_sockname_buf(buf_loc, sizeof(buf_loc), fd, proto, true))
+		const int trans_proto = asp->cfg.trans_proto;
+		if (!get_sockname_buf(buf_loc, sizeof(buf_loc), fd, trans_proto, true))
 			OSMO_STRLCPY_ARRAY(buf_loc, "<sockname-error>");
-		if (!get_sockname_buf(buf_rem, sizeof(buf_rem), fd, proto, false))
+		if (!get_sockname_buf(buf_rem, sizeof(buf_rem), fd, trans_proto, false))
 			OSMO_STRLCPY_ARRAY(buf_rem, "<sockname-error>");
 	} else {
 		osmo_ss7_asp_peer_snprintf(buf_loc, sizeof(buf_loc), &asp->cfg.local);
@@ -1374,9 +1462,7 @@ static void show_one_asp_remaddr_sctp(struct vty *vty, struct osmo_ss7_asp *asp)
 
 static void show_one_asp_remaddr(struct vty *vty, struct osmo_ss7_asp *asp)
 {
-	int proto = ss7_asp_proto_to_ip_proto(asp->cfg.proto);
-
-	switch (proto) {
+	switch (asp->cfg.trans_proto) {
 	case IPPROTO_TCP:
 		show_one_asp_remaddr_tcp(vty, asp);
 		break;
@@ -1386,7 +1472,8 @@ static void show_one_asp_remaddr(struct vty *vty, struct osmo_ss7_asp *asp)
 		break;
 #endif
 	default:
-		vty_out(vty, "%-12s  %-46s  unknown proto %u%s", asp->cfg.name, "", proto, VTY_NEWLINE);
+		vty_out(vty, "%-12s  %-46s  unknown proto %d%s",
+			asp->cfg.name, "", asp->cfg.trans_proto, VTY_NEWLINE);
 		break;
 	}
 }
@@ -1530,9 +1617,7 @@ static void show_one_asp_assoc_status_sctp(struct vty *vty, struct osmo_ss7_asp 
 
 static void show_one_asp_assoc_status(struct vty *vty, struct osmo_ss7_asp *asp)
 {
-	int proto = ss7_asp_proto_to_ip_proto(asp->cfg.proto);
-
-	switch (proto) {
+	switch (asp->cfg.trans_proto) {
 	case IPPROTO_TCP:
 		show_one_asp_assoc_status_tcp(vty, asp);
 		break;
@@ -1542,7 +1627,8 @@ static void show_one_asp_assoc_status(struct vty *vty, struct osmo_ss7_asp *asp)
 		break;
 #endif
 	default:
-		vty_out(vty, "%-12s  unknown proto %u%s", asp->cfg.name, proto, VTY_NEWLINE);
+		vty_out(vty, "%-12s  unknown proto %d%s",
+			asp->cfg.name, asp->cfg.trans_proto, VTY_NEWLINE);
 		break;
 	}
 }
@@ -1611,9 +1697,12 @@ static void write_one_asp(struct vty *vty, struct osmo_ss7_asp *asp, bool show_d
 	    && !show_dyn_config)
 		return;
 
-	vty_out(vty, " asp %s %u %u %s%s",
+	vty_out(vty, " asp %s %u %u %s",
 		asp->cfg.name, asp->cfg.remote.port, asp->cfg.local.port,
-		osmo_ss7_asp_protocol_name(asp->cfg.proto), VTY_NEWLINE);
+		osmo_ss7_asp_protocol_name(asp->cfg.proto));
+	if (asp->cfg.trans_proto != ss7_default_trans_proto_for_asp_proto(asp->cfg.proto))
+		vty_out(vty, " %s", get_value_string(ipproto_vals, asp->cfg.trans_proto));
+	vty_out(vty, "%s", VTY_NEWLINE);
 	if (asp->cfg.description)
 		vty_out(vty, "  description %s%s", asp->cfg.description, VTY_NEWLINE);
 	for (i = 0; i < asp->cfg.local.host_cnt; i++) {
@@ -2862,6 +2951,7 @@ static void vty_init_shared(void *ctx)
 
 	install_lib_element_ve(&show_cs7_user_cmd);
 	install_lib_element_ve(&show_cs7_xua_cmd);
+	install_lib_element_ve(&show_cs7_xua_trans_proto_cmd);
 	install_lib_element_ve(&show_cs7_config_cmd);
 	install_lib_element(ENABLE_NODE, &cs7_asp_disconnect_cmd);
 
@@ -2885,6 +2975,7 @@ static void vty_init_shared(void *ctx)
 	install_lib_element_ve(&show_cs7_asp_assoc_status_cmd);
 	install_lib_element_ve(&show_cs7_asp_assoc_status_name_cmd);
 	install_lib_element(L_CS7_NODE, &cs7_asp_cmd);
+	install_lib_element(L_CS7_NODE, &cs7_asp_trans_proto_cmd);
 	install_lib_element(L_CS7_NODE, &no_cs7_asp_cmd);
 	install_lib_element(L_CS7_ASP_NODE, &cfg_description_cmd);
 	install_lib_element(L_CS7_ASP_NODE, &asp_remote_ip_cmd);

@@ -127,7 +127,32 @@ const struct value_string osmo_ss7_asp_role_names[] = {
 	{ 0, NULL }
 };
 
-int ss7_asp_proto_to_ip_proto(enum osmo_ss7_asp_protocol proto)
+/* check if the given transport and ASP protocols are compatible (and implemented) */
+bool ss7_asp_protocol_check_trans_proto(enum osmo_ss7_asp_protocol proto, int trans_proto)
+{
+	switch (proto) {
+	case OSMO_SS7_ASP_PROT_IPA:
+		if (trans_proto == IPPROTO_TCP)
+			return true;
+		return false;
+	case OSMO_SS7_ASP_PROT_SUA:
+		if (trans_proto == IPPROTO_SCTP)
+			return true;
+		return false;
+	case OSMO_SS7_ASP_PROT_M3UA:
+		if (trans_proto == IPPROTO_SCTP)
+			return true;
+		if (trans_proto == IPPROTO_TCP)
+			return true;
+		return false;
+	case OSMO_SS7_ASP_PROT_NONE:
+	default:
+		return false;
+	}
+}
+
+/* get _default_ transport protocol for the given ASP protocol */
+int ss7_default_trans_proto_for_asp_proto(enum osmo_ss7_asp_protocol proto)
 {
 	switch (proto) {
 	case OSMO_SS7_ASP_PROT_IPA:
@@ -503,9 +528,18 @@ ss7_asp_find_by_socket_addr(int fd)
 
 struct osmo_ss7_asp *ss7_asp_alloc(struct osmo_ss7_instance *inst, const char *name,
 				   uint16_t remote_port, uint16_t local_port,
-				   enum osmo_ss7_asp_protocol proto)
+				   int trans_proto, enum osmo_ss7_asp_protocol proto)
 {
-	struct osmo_ss7_asp *asp = talloc_zero(inst, struct osmo_ss7_asp);
+	struct osmo_ss7_asp *asp;
+
+	if (!ss7_asp_protocol_check_trans_proto(proto, trans_proto)) {
+		LOGP(DLSCCP, LOGL_ERROR,
+		     "ASP protocol '%s' with transport protocol %d is not supported",
+		     osmo_ss7_asp_protocol_name(proto), trans_proto);
+		return NULL;
+	}
+
+	asp = talloc_zero(inst, struct osmo_ss7_asp);
 	asp->ctrg = rate_ctr_group_alloc(asp, &ss7_asp_rcgd, g_ss7_asp_rcg_idx++);
 	if (!asp->ctrg) {
 		talloc_free(asp);
@@ -517,6 +551,7 @@ struct osmo_ss7_asp *ss7_asp_alloc(struct osmo_ss7_instance *inst, const char *n
 	asp->cfg.remote.port = remote_port;
 	osmo_ss7_asp_peer_init(&asp->cfg.local);
 	asp->cfg.local.port = local_port;
+	asp->cfg.trans_proto = trans_proto;
 	asp->cfg.proto = proto;
 	asp->cfg.name = talloc_strdup(asp, name);
 
@@ -566,6 +601,7 @@ void osmo_ss7_asp_destroy(struct osmo_ss7_asp *asp)
 
 static int xua_cli_read_cb(struct osmo_stream_cli *conn);
 static int ipa_cli_read_cb(struct osmo_stream_cli *conn);
+static int m3ua_tcp_cli_read_cb(struct osmo_stream_cli *conn);
 static int xua_cli_connect_cb(struct osmo_stream_cli *cli);
 
 int osmo_ss7_asp_restart(struct osmo_ss7_asp *asp)
@@ -601,13 +637,27 @@ int osmo_ss7_asp_restart(struct osmo_ss7_asp *asp)
 		osmo_stream_cli_set_port(asp->client, asp->cfg.remote.port);
 		osmo_stream_cli_set_local_addrs(asp->client, (const char **)asp->cfg.local.host, asp->cfg.local.host_cnt);
 		osmo_stream_cli_set_local_port(asp->client, asp->cfg.local.port);
-		osmo_stream_cli_set_proto(asp->client, ss7_asp_proto_to_ip_proto(asp->cfg.proto));
+		osmo_stream_cli_set_proto(asp->client, asp->cfg.trans_proto);
 		osmo_stream_cli_set_reconnect_timeout(asp->client, 5);
 		osmo_stream_cli_set_connect_cb(asp->client, xua_cli_connect_cb);
-		if (asp->cfg.proto == OSMO_SS7_ASP_PROT_IPA)
+		switch (asp->cfg.proto) {
+		case OSMO_SS7_ASP_PROT_IPA:
+			OSMO_ASSERT(asp->cfg.trans_proto == IPPROTO_TCP);
 			osmo_stream_cli_set_read_cb(asp->client, ipa_cli_read_cb);
-		else
+			break;
+		case OSMO_SS7_ASP_PROT_M3UA:
+			if (asp->cfg.trans_proto == IPPROTO_SCTP)
+				osmo_stream_cli_set_read_cb(asp->client, xua_cli_read_cb);
+			else if (asp->cfg.trans_proto == IPPROTO_TCP)
+				osmo_stream_cli_set_read_cb(asp->client, m3ua_tcp_cli_read_cb);
+			else
+				OSMO_ASSERT(0);
+			break;
+		default:
+			OSMO_ASSERT(asp->cfg.trans_proto == IPPROTO_SCTP);
 			osmo_stream_cli_set_read_cb(asp->client, xua_cli_read_cb);
+			break;
+		}
 		osmo_stream_cli_set_data(asp->client, asp);
 		byte = 1; /*AUTH is needed by ASCONF. enable, don't abort socket creation if AUTH can't be enabled */
 		osmo_stream_cli_set_param(asp->client, OSMO_STREAM_CLI_PAR_SCTP_SOCKOPT_AUTH_SUPPORTED, &byte, sizeof(byte));
@@ -838,6 +888,78 @@ out:
 	return rc;
 }
 
+/* netif code tells us we can read something from the socket */
+int ss7_asp_m3ua_tcp_srv_conn_cb(struct osmo_stream_srv *conn)
+{
+	struct osmo_ss7_asp *asp = osmo_stream_srv_get_data(conn);
+	int fd = osmo_stream_srv_get_fd(conn);
+	struct msgb *msg = asp->pending_msg;
+	const struct xua_common_hdr *hdr;
+	size_t msg_length;
+	int rc;
+
+	OSMO_ASSERT(fd >= 0);
+
+	if (msg == NULL) {
+		msg = m3ua_msgb_alloc(__func__);
+		asp->pending_msg = msg;
+	}
+
+	/* read message header first */
+	if (msg->len < sizeof(*hdr)) {
+		errno = 0;
+		rc = recv(fd, msg->tail, sizeof(*hdr) - msg->len, 0);
+		if (rc <= 0) {
+			if (errno == EAGAIN || errno == EINTR)
+				return 0; /* need more data */
+			osmo_stream_srv_destroy(conn);
+			asp->pending_msg = NULL;
+			msgb_free(msg);
+			return rc;
+		}
+
+		msgb_put(msg, rc);
+		if (msg->len < sizeof(*hdr))
+			return 0; /* need more data */
+	}
+
+	hdr = (const struct xua_common_hdr *)msg->data;
+	msg_length = ntohl(hdr->msg_length); /* includes sizeof(*hdr) */
+
+	/* read the rest of the message */
+	if (msg->len < msg_length) {
+		errno = 0;
+		rc = recv(fd, msg->tail, msg_length - msg->len, 0);
+		if (rc <= 0) {
+			if (errno == EAGAIN || errno == EINTR)
+				return 0; /* need more data */
+			osmo_stream_srv_destroy(conn);
+			asp->pending_msg = NULL;
+			msgb_free(msg);
+			return rc;
+		}
+
+		msgb_put(msg, rc);
+		if (msg->len < msg_length)
+			return 0; /* need more data */
+	}
+
+	msg->dst = asp;
+	rate_ctr_inc2(asp->ctrg, SS7_ASP_CTR_PKT_RX_TOTAL);
+
+	/* spoof SCTP Stream ID */
+	if (hdr->msg_class == M3UA_MSGC_XFER)
+		msgb_sctp_stream(msg) = 1;
+	else
+		msgb_sctp_stream(msg) = 0;
+
+	rc = m3ua_rx_msg(asp, msg);
+	asp->pending_msg = NULL;
+	msgb_free(msg);
+
+	return rc;
+}
+
 /* client has established SCTP connection to server */
 static int xua_cli_connect_cb(struct osmo_stream_cli *cli)
 {
@@ -858,7 +980,7 @@ static int xua_cli_connect_cb(struct osmo_stream_cli *cli)
 	 * fed and the local port is known for sure. Apply SCTP Primary addresses
 	 * if needed:
 	 */
-	if (asp->cfg.proto != OSMO_SS7_ASP_PROT_IPA) {
+	if (asp->cfg.trans_proto == IPPROTO_SCTP) {
 		rc = ss7_asp_apply_peer_primary_address(asp);
 		rc = ss7_asp_apply_primary_address(asp);
 	}
@@ -924,6 +1046,78 @@ static int ipa_cli_read_cb(struct osmo_stream_cli *conn)
 	/* we can use the 'fd' return value of osmo_stream_srv_get_fd() here unverified as all we do
 	 * is 'roll the dice' to obtain a 4-bit SLS value. */
 	return ipa_rx_msg(asp, msg, fd & 0xf);
+}
+
+/* read call-back for M3UA-over-TCP socket */
+static int m3ua_tcp_cli_read_cb(struct osmo_stream_cli *conn)
+{
+	struct osmo_ss7_asp *asp = osmo_stream_cli_get_data(conn);
+	int fd = osmo_stream_cli_get_fd(conn);
+	struct msgb *msg = asp->pending_msg;
+	const struct xua_common_hdr *hdr;
+	size_t msg_length;
+	int rc;
+
+	OSMO_ASSERT(fd >= 0);
+
+	if (msg == NULL) {
+		msg = m3ua_msgb_alloc(__func__);
+		asp->pending_msg = msg;
+	}
+
+	/* read message header first */
+	if (msg->len < sizeof(*hdr)) {
+		errno = 0;
+		rc = recv(fd, msg->tail, sizeof(*hdr) - msg->len, 0);
+		if (rc <= 0) {
+			if (errno == EAGAIN || errno == EINTR)
+				return 0; /* need more data */
+			xua_cli_close_and_reconnect(conn);
+			asp->pending_msg = NULL;
+			msgb_free(msg);
+			return rc;
+		}
+
+		msgb_put(msg, rc);
+		if (msg->len < sizeof(*hdr))
+			return 0; /* need more data */
+	}
+
+	hdr = (const struct xua_common_hdr *)msg->data;
+	msg_length = ntohl(hdr->msg_length); /* includes sizeof(*hdr) */
+
+	/* read the rest of the message */
+	if (msg->len < msg_length) {
+		errno = 0;
+		rc = recv(fd, msg->tail, msg_length - msg->len, 0);
+		if (rc <= 0) {
+			if (errno == EAGAIN || errno == EINTR)
+				return 0; /* need more data */
+			xua_cli_close_and_reconnect(conn);
+			asp->pending_msg = NULL;
+			msgb_free(msg);
+			return rc;
+		}
+
+		msgb_put(msg, rc);
+		if (msg->len < msg_length)
+			return 0; /* need more data */
+	}
+
+	msg->dst = asp;
+	rate_ctr_inc2(asp->ctrg, SS7_ASP_CTR_PKT_RX_TOTAL);
+
+	/* spoof SCTP Stream ID */
+	if (hdr->msg_class == M3UA_MSGC_XFER)
+		msgb_sctp_stream(msg) = 1;
+	else
+		msgb_sctp_stream(msg) = 0;
+
+	rc = m3ua_rx_msg(asp, msg);
+	asp->pending_msg = NULL;
+	msgb_free(msg);
+
+	return rc;
 }
 
 static int xua_cli_read_cb(struct osmo_stream_cli *conn)
@@ -1133,6 +1327,15 @@ const char *osmo_ss7_asp_get_name(const struct osmo_ss7_asp *asp)
 enum osmo_ss7_asp_protocol osmo_ss7_asp_get_proto(const struct osmo_ss7_asp *asp)
 {
 	return asp->cfg.proto;
+}
+
+/*! \brief Get the transport proto of a given ASP
+ *  \param[in] asp The ASP for which the transport proto is requested
+ *  \returns The transport proto of the ASP (one of IPPROTO_*)
+ */
+int osmo_ss7_asp_get_trans_proto(const struct osmo_ss7_asp *asp)
+{
+	return asp->cfg.trans_proto;
 }
 
 /*! \brief Get the fd of a given ASP

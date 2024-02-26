@@ -1017,9 +1017,9 @@ osmo_ss7_asp_find_by_proto(struct osmo_ss7_as *as,
 }
 
 struct osmo_ss7_asp *
-osmo_ss7_asp_find(struct osmo_ss7_instance *inst, const char *name,
-		  uint16_t remote_port, uint16_t local_port,
-		  enum osmo_ss7_asp_protocol proto)
+osmo_ss7_asp_find2(struct osmo_ss7_instance *inst, const char *name,
+		   uint16_t remote_port, uint16_t local_port,
+		   int trans_proto, enum osmo_ss7_asp_protocol proto)
 {
 	struct osmo_ss7_asp *asp;
 
@@ -1028,10 +1028,48 @@ osmo_ss7_asp_find(struct osmo_ss7_instance *inst, const char *name,
 	if (!asp)
 		return NULL;
 
-	if ((asp->cfg.remote.port != remote_port || asp->cfg.local.port != local_port || asp->cfg.proto != proto))
+	if (asp->cfg.remote.port != remote_port || asp->cfg.local.port != local_port)
+		return NULL;
+	if (asp->cfg.trans_proto != trans_proto)
+		return NULL;
+	if (asp->cfg.proto != proto)
 		return NULL;
 
 	return asp;
+}
+
+struct osmo_ss7_asp *
+osmo_ss7_asp_find(struct osmo_ss7_instance *inst, const char *name,
+		  uint16_t remote_port, uint16_t local_port,
+		  enum osmo_ss7_asp_protocol proto)
+{
+	const int trans_proto = ss7_default_trans_proto_for_asp_proto(proto);
+
+	return osmo_ss7_asp_find2(inst, name,
+				  remote_port, local_port,
+				  trans_proto, proto);
+}
+
+struct osmo_ss7_asp *
+osmo_ss7_asp_find_or_create2(struct osmo_ss7_instance *inst, const char *name,
+			     uint16_t remote_port, uint16_t local_port,
+			     int trans_proto, enum osmo_ss7_asp_protocol proto)
+{
+	struct osmo_ss7_asp *asp;
+
+	OSMO_ASSERT(ss7_initialized);
+	asp = osmo_ss7_asp_find_by_name(inst, name);
+	if (asp) {
+		if (asp->cfg.remote.port != remote_port || asp->cfg.local.port != local_port)
+			return NULL;
+		if (asp->cfg.trans_proto != trans_proto)
+			return NULL;
+		if (asp->cfg.proto != proto)
+			return NULL;
+		return asp;
+	}
+
+	return ss7_asp_alloc(inst, name, remote_port, local_port, trans_proto, proto);
 }
 
 struct osmo_ss7_asp *
@@ -1039,34 +1077,56 @@ osmo_ss7_asp_find_or_create(struct osmo_ss7_instance *inst, const char *name,
 			    uint16_t remote_port, uint16_t local_port,
 			    enum osmo_ss7_asp_protocol proto)
 {
-	struct osmo_ss7_asp *asp;
+	const int trans_proto = ss7_default_trans_proto_for_asp_proto(proto);
 
-	OSMO_ASSERT(ss7_initialized);
-	asp = osmo_ss7_asp_find_by_name(inst, name);
-	if (asp) {
-		if (asp->cfg.remote.port != remote_port ||
-		    asp->cfg.local.port != local_port ||
-		    asp->cfg.proto != proto)
-			return NULL;
-		return asp;
-	}
-
-	return ss7_asp_alloc(inst, name, remote_port, local_port, proto);
+	return osmo_ss7_asp_find_or_create2(inst, name,
+					    remote_port, local_port,
+					    trans_proto, proto);
 }
 
+/*! \brief find an xUA server with the given parameters
+ *  \param[in] inst SS7 Instance on which we operate
+ *  \param[in] trans_proto transport protocol in use (one of IPPROTO_*)
+ *  \param[in] proto protocol (xUA variant) in use
+ *  \param[in] local_port local port of the server
+ *  \returns \ref osmo_xua_server or NULL (not found)
+ */
 struct osmo_xua_server *
-osmo_ss7_xua_server_find(struct osmo_ss7_instance *inst, enum osmo_ss7_asp_protocol proto,
-			 uint16_t local_port)
+osmo_ss7_xua_server_find2(struct osmo_ss7_instance *inst,
+			  int trans_proto,
+			  enum osmo_ss7_asp_protocol proto,
+			  uint16_t local_port)
 {
 	struct osmo_xua_server *xs;
 
 	OSMO_ASSERT(ss7_initialized);
 	llist_for_each_entry(xs, &inst->xua_servers, list) {
-		if (proto == xs->cfg.proto &&
-		    local_port == xs->cfg.local.port)
-			return xs;
+		if (trans_proto != xs->cfg.trans_proto)
+			continue;
+		if (proto != xs->cfg.proto)
+			continue;
+		if (local_port != xs->cfg.local.port)
+			continue;
+		return xs;
 	}
+
 	return NULL;
+}
+
+/*! \brief find an xUA server with the given parameters
+ *  \param[in] inst SS7 Instance on which we operate
+ *  \param[in] proto protocol (xUA variant) in use
+ *  \param[in] local_port local port of the server
+ *  \returns \ref osmo_xua_server or NULL (not found)
+ */
+struct osmo_xua_server *
+osmo_ss7_xua_server_find(struct osmo_ss7_instance *inst,
+			 enum osmo_ss7_asp_protocol proto,
+			 uint16_t local_port)
+{
+	const int trans_proto = ss7_default_trans_proto_for_asp_proto(proto);
+
+	return osmo_ss7_xua_server_find2(inst, trans_proto, proto, local_port);
 }
 
 bool osmo_ss7_pc_is_local(struct osmo_ss7_instance *inst, uint32_t pc)

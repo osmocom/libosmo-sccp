@@ -248,7 +248,8 @@ static void test_as(void)
 	OSMO_ASSERT(osmo_ss7_as_find_by_rctx(s7i, 2342) == as);
 	OSMO_ASSERT(osmo_ss7_as_add_asp(as, "asp1") == -ENODEV);
 
-	asp = osmo_ss7_asp_find_or_create(s7i, "asp1", 0, M3UA_PORT, OSMO_SS7_ASP_PROT_M3UA);
+	asp = osmo_ss7_asp_find_or_create2(s7i, "asp1", 0, M3UA_PORT,
+					   IPPROTO_SCTP, OSMO_SS7_ASP_PROT_M3UA);
 	OSMO_ASSERT(asp);
 
 	OSMO_ASSERT(osmo_ss7_as_has_asp(as, asp) == false);

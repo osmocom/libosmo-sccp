@@ -67,19 +67,32 @@ static int xua_accept_cb(struct osmo_stream_srv_link *link, int fd)
 	struct osmo_ss7_asp *asp;
 	char *sock_name = osmo_sock_get_name(link, fd);
 	const char *proto_name = get_value_string(osmo_ss7_asp_protocol_vals, oxs->cfg.proto);
+	int (*read_cb)(struct osmo_stream_srv *conn) = NULL;
 	int rc = 0;
 
 	LOGP(DLSS7, LOGL_INFO, "%s: New %s connection accepted\n", sock_name, proto_name);
 
-	if (oxs->cfg.proto == OSMO_SS7_ASP_PROT_IPA) {
-		srv = osmo_stream_srv_create(oxs, link, fd,
-					     ss7_asp_ipa_srv_conn_cb,
-					     ss7_asp_xua_srv_conn_closed_cb, NULL);
-	} else {
-		srv = osmo_stream_srv_create(oxs, link, fd,
-					     ss7_asp_xua_srv_conn_cb,
-					     ss7_asp_xua_srv_conn_closed_cb, NULL);
+	switch (oxs->cfg.proto) {
+	case OSMO_SS7_ASP_PROT_IPA:
+		OSMO_ASSERT(oxs->cfg.trans_proto == IPPROTO_TCP);
+		read_cb = &ss7_asp_ipa_srv_conn_cb;
+		break;
+	case OSMO_SS7_ASP_PROT_M3UA:
+		if (oxs->cfg.trans_proto == IPPROTO_SCTP)
+			read_cb = &ss7_asp_xua_srv_conn_cb;
+		else if (oxs->cfg.trans_proto == IPPROTO_TCP)
+			read_cb = &ss7_asp_m3ua_tcp_srv_conn_cb;
+		else
+			OSMO_ASSERT(0);
+		break;
+	default:
+		OSMO_ASSERT(oxs->cfg.trans_proto == IPPROTO_SCTP);
+		read_cb = &ss7_asp_xua_srv_conn_cb;
+		break;
 	}
+
+	srv = osmo_stream_srv_create(oxs, link, fd, read_cb,
+				     &ss7_asp_xua_srv_conn_closed_cb, NULL);
 	if (!srv) {
 		LOGP(DLSS7, LOGL_ERROR, "%s: Unable to create stream server "
 		     "for connection\n", sock_name);
@@ -112,8 +125,9 @@ static int xua_accept_cb(struct osmo_stream_srv_link *link, int fd)
 			char namebuf[32];
 			static uint32_t dyn_asp_num = 0;
 			snprintf(namebuf, sizeof(namebuf), "asp-dyn-%u", dyn_asp_num++);
-			asp = osmo_ss7_asp_find_or_create(oxs->inst, namebuf, 0, 0,
-							  oxs->cfg.proto);
+			asp = osmo_ss7_asp_find_or_create2(oxs->inst, namebuf, 0, 0,
+							   oxs->cfg.trans_proto,
+							   oxs->cfg.proto);
 			if (asp) {
 				char hostbuf[INET6_ADDRSTRLEN];
 				const char *hostbuf_ptr = &hostbuf[0];
@@ -157,7 +171,7 @@ static int xua_accept_cb(struct osmo_stream_srv_link *link, int fd)
 	 * data */
 	osmo_stream_srv_set_data(srv, asp);
 
-	if (oxs->cfg.proto != OSMO_SS7_ASP_PROT_IPA) {
+	if (oxs->cfg.trans_proto == IPPROTO_SCTP) {
 		rc = ss7_asp_apply_peer_primary_address(asp);
 		rc = ss7_asp_apply_primary_address(asp);
 	}
@@ -170,19 +184,29 @@ static int xua_accept_cb(struct osmo_stream_srv_link *link, int fd)
 }
 
 /*! \brief create a new xUA server configured with given ip/port
- *  \param[in] ctx talloc allocation context
+ *  \param[in] inst SS7 Instance on which we operate
+ *  \param[in] trans_proto transport protocol to use (one of IPPROTO_*)
  *  \param[in] proto protocol (xUA variant) to use
  *  \param[in] local_port local SCTP port to bind/listen to
  *  \param[in] local_host local IP address to bind/listen to (optional)
  *  \returns callee-allocated \ref osmo_xua_server in case of success
  */
 struct osmo_xua_server *
-osmo_ss7_xua_server_create(struct osmo_ss7_instance *inst, enum osmo_ss7_asp_protocol proto,
-			   uint16_t local_port, const char *local_host)
+osmo_ss7_xua_server_create2(struct osmo_ss7_instance *inst,
+			    int trans_proto, enum osmo_ss7_asp_protocol proto,
+			    uint16_t local_port, const char *local_host)
 {
-	struct osmo_xua_server *oxs = talloc_zero(inst, struct osmo_xua_server);
+	struct osmo_xua_server *oxs;
+
+	if (!ss7_asp_protocol_check_trans_proto(proto, trans_proto)) {
+		LOGP(DLSCCP, LOGL_ERROR,
+		     "ASP protocol '%s' with transport protocol %d is not supported",
+		     osmo_ss7_asp_protocol_name(proto), trans_proto);
+		return NULL;
+	}
 
 	OSMO_ASSERT(ss7_initialized);
+	oxs = talloc_zero(inst, struct osmo_xua_server);
 	if (!oxs)
 		return NULL;
 
@@ -191,6 +215,7 @@ osmo_ss7_xua_server_create(struct osmo_ss7_instance *inst, enum osmo_ss7_asp_pro
 
 	INIT_LLIST_HEAD(&oxs->asp_list);
 
+	oxs->cfg.trans_proto = trans_proto;
 	oxs->cfg.proto = proto;
 	oxs->cfg.local.port = local_port;
 
@@ -201,7 +226,7 @@ osmo_ss7_xua_server_create(struct osmo_ss7_instance *inst, enum osmo_ss7_asp_pro
 
 	osmo_stream_srv_link_set_nodelay(oxs->server, true);
 	osmo_stream_srv_link_set_port(oxs->server, oxs->cfg.local.port);
-	osmo_stream_srv_link_set_proto(oxs->server, ss7_asp_proto_to_ip_proto(proto));
+	osmo_stream_srv_link_set_proto(oxs->server, trans_proto);
 
 	osmo_ss7_xua_server_set_local_host(oxs, local_host);
 
@@ -216,6 +241,24 @@ osmo_ss7_xua_server_create(struct osmo_ss7_instance *inst, enum osmo_ss7_asp_pro
 		osmo_ss7_ensure_sccp(inst);
 
 	return oxs;
+}
+
+/*! \brief create a new xUA server configured with given ip/port
+ *  \param[in] ctx talloc allocation context
+ *  \param[in] proto protocol (xUA variant) to use
+ *  \param[in] local_port local SCTP port to bind/listen to
+ *  \param[in] local_host local IP address to bind/listen to (optional)
+ *  \returns callee-allocated \ref osmo_xua_server in case of success
+ */
+struct osmo_xua_server *
+osmo_ss7_xua_server_create(struct osmo_ss7_instance *inst,
+			   enum osmo_ss7_asp_protocol proto,
+			   uint16_t local_port, const char *local_host)
+{
+	const int trans_proto = ss7_default_trans_proto_for_asp_proto(proto);
+
+	return osmo_ss7_xua_server_create2(inst, trans_proto, proto,
+					   local_port, local_host);
 }
 
 /*! \brief Set the xUA server to bind/listen to the currently configured ip/port

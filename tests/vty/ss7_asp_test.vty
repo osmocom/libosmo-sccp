@@ -2,6 +2,7 @@ ss7_asp_vty_test> list
 ... !show cs7
   show cs7 instance <0-15> users
   show cs7 (sua|m3ua|ipa) [<0-65534>]
+  show cs7 (sua|m3ua|ipa) (sctp|tcp) [<0-65534>]
   show cs7 config
   show cs7 instance <0-15> asp
   show cs7 instance <0-15> asp name ASP_NAME
@@ -23,6 +24,7 @@ ss7_asp_vty_test# list
 ... !show cs7
   show cs7 instance <0-15> users
   show cs7 (sua|m3ua|ipa) [<0-65534>]
+  show cs7 (sua|m3ua|ipa) (sctp|tcp) [<0-65534>]
   show cs7 config
   cs7 instance <0-15> asp NAME disconnect
   show cs7 instance <0-15> asp
@@ -53,7 +55,18 @@ ss7_asp_vty_test# show cs7 ?
   config    Currently running cs7 configuration
 
 ss7_asp_vty_test# show cs7 m3ua ?
-  [<0-65534>]  Port Number
+  [<0-65534>]  Local Port Number
+  sctp         SCTP (Stream Control Transmission Protocol)
+  tcp          TCP (Transmission Control Protocol)
+
+ss7_asp_vty_test# show cs7 m3ua 2905 ?
+  <cr>  
+
+ss7_asp_vty_test# show cs7 m3ua sctp ?
+  [<0-65534>]  Local Port Number
+
+ss7_asp_vty_test# show cs7 m3ua sctp 2905 ?
+  <cr>  
 
 ss7_asp_vty_test# show cs7 instance ?
   <0-15>  An instance of the SS7 stack
@@ -96,6 +109,7 @@ ss7_asp_vty_test(config-cs7)# list
   point-code delimiter (default|dash)
   xua rkm routing-key-allocation (static-only|dynamic-permitted)
   asp NAME <0-65535> <0-65535> (sua|m3ua|ipa)
+  asp NAME <0-65535> <0-65535> (sua|m3ua|ipa) (sctp|tcp)
   no asp NAME
   as NAME (sua|m3ua|ipa)
   no as NAME
@@ -154,13 +168,17 @@ ss7_asp_vty_test(config-cs7)# xua rkm routing-key-allocation ?
 ss7_asp_vty_test(config-cs7)# asp ?
   NAME  Name of ASP
 ss7_asp_vty_test(config-cs7)# asp foo ?
-  <0-65535>  Remote SCTP port number
+  <0-65535>  Remote port number
 ss7_asp_vty_test(config-cs7)# asp foo 0 ?
-  <0-65535>  Local SCTP port number
+  <0-65535>  Local port number
 ss7_asp_vty_test(config-cs7)# asp foo 0 0 ?
   sua   SCCP User Adaptation
   m3ua  MTP3 User Adaptation
   ipa   IPA Multiplex (SCCP Lite)
+ss7_asp_vty_test(config-cs7)# asp foo 0 0 m3ua ?
+  sctp  SCTP (Stream Control Transmission Protocol)
+  tcp   TCP (Transmission Control Protocol)
+  <cr>  
 
 ss7_asp_vty_test(config-cs7)# as ?
   NAME  Name of the Application Server

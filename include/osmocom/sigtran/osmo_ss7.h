@@ -453,6 +453,9 @@ struct osmo_ss7_asp {
 			uint16_t max_attempts_value;
 			uint16_t max_init_timeo_value; /* ms */
 		} sctp_init;
+
+		/*! The underlaying transport protocol (one of IPPROTO_*) */
+		int trans_proto;
 	} cfg;
 };
 
@@ -482,11 +485,21 @@ osmo_ss7_asp_find_by_proto(struct osmo_ss7_as *as,
 struct osmo_ss7_asp *
 osmo_ss7_asp_find(struct osmo_ss7_instance *inst, const char *name,
 		  uint16_t remote_port, uint16_t local_port,
-		  enum osmo_ss7_asp_protocol proto);
+		  enum osmo_ss7_asp_protocol proto)
+	OSMO_DEPRECATED("Use osmo_ss7_asp_find2() instead");
+struct osmo_ss7_asp *
+osmo_ss7_asp_find2(struct osmo_ss7_instance *inst, const char *name,
+		   uint16_t remote_port, uint16_t local_port,
+		   int trans_proto, enum osmo_ss7_asp_protocol proto);
 struct osmo_ss7_asp *
 osmo_ss7_asp_find_or_create(struct osmo_ss7_instance *inst, const char *name,
 			    uint16_t remote_port, uint16_t local_port,
-			    enum osmo_ss7_asp_protocol proto);
+			    enum osmo_ss7_asp_protocol proto)
+	OSMO_DEPRECATED("Use osmo_ss7_asp_find_or_create2() instead");
+struct osmo_ss7_asp *
+osmo_ss7_asp_find_or_create2(struct osmo_ss7_instance *inst, const char *name,
+			     uint16_t remote_port, uint16_t local_port,
+			     int trans_proto, enum osmo_ss7_asp_protocol proto);
 void osmo_ss7_asp_destroy(struct osmo_ss7_asp *asp);
 int osmo_ss7_asp_send(struct osmo_ss7_asp *asp, struct msgb *msg);
 int osmo_ss7_asp_restart(struct osmo_ss7_asp *asp);
@@ -495,6 +508,7 @@ bool osmo_ss7_asp_active(const struct osmo_ss7_asp *asp);
 int osmo_ss7_asp_get_log_subsys(const struct osmo_ss7_asp *asp);
 const char *osmo_ss7_asp_get_name(const struct osmo_ss7_asp *asp);
 enum osmo_ss7_asp_protocol osmo_ss7_asp_get_proto(const struct osmo_ss7_asp *asp);
+int osmo_ss7_asp_get_trans_proto(const struct osmo_ss7_asp *asp);
 
 /*! Weak function to handle payload for unknown/unsupported PPID or IPA StreamID.
  *  This function can be overridden by application code to implement whatever handling
@@ -543,16 +557,32 @@ struct osmo_xua_server {
 			uint16_t num_ostreams_value;
 			uint16_t max_instreams_value;
 		} sctp_init;
+
+		/*! The underlaying transport protocol (one of IPPROTO_*) */
+		int trans_proto;
 	} cfg;
 };
 
 struct osmo_xua_server *
-osmo_ss7_xua_server_find(struct osmo_ss7_instance *inst, enum osmo_ss7_asp_protocol proto,
-			 uint16_t local_port);
+osmo_ss7_xua_server_find(struct osmo_ss7_instance *inst,
+			 enum osmo_ss7_asp_protocol proto,
+			 uint16_t local_port)
+	OSMO_DEPRECATED("Use osmo_ss7_xua_server_find2() instead");
+struct osmo_xua_server *
+osmo_ss7_xua_server_find2(struct osmo_ss7_instance *inst,
+			  int trans_proto,
+			  enum osmo_ss7_asp_protocol proto,
+			  uint16_t local_port);
 
 struct osmo_xua_server *
-osmo_ss7_xua_server_create(struct osmo_ss7_instance *inst, enum osmo_ss7_asp_protocol proto,
-			   uint16_t local_port, const char *local_host);
+osmo_ss7_xua_server_create(struct osmo_ss7_instance *inst,
+			   enum osmo_ss7_asp_protocol proto,
+			   uint16_t local_port, const char *local_host)
+	OSMO_DEPRECATED("Use osmo_ss7_xua_server_create2() instead");
+struct osmo_xua_server *
+osmo_ss7_xua_server_create2(struct osmo_ss7_instance *inst,
+			    int trans_proto, enum osmo_ss7_asp_protocol proto,
+			    uint16_t local_port, const char *local_host);
 
 int
 osmo_ss7_xua_server_bind(struct osmo_xua_server *xs);

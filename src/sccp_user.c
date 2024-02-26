@@ -515,6 +515,9 @@ osmo_sccp_simple_client_on_ss7_id(void *ctx, uint32_t ss7_id, const char *name,
 	struct osmo_ss7_asp *asp;
 	bool asp_created = false;
 	char *as_name, *asp_name = NULL;
+	int trans_proto;
+
+	trans_proto = ss7_default_trans_proto_for_asp_proto(prot);
 
 	/*! The function will examine the given CS7 instance and its sub
 	 *  components (as, asp, etc.). If necessary it will allocate
@@ -625,11 +628,10 @@ osmo_sccp_simple_client_on_ss7_id(void *ctx, uint32_t ss7_id, const char *name,
 			asp_name = talloc_asprintf(ctx, "asp-clnt-%s", name);
 			LOGP(DLSCCP, LOGL_NOTICE, "%s: No unassociated ASP for %s, creating new ASP %s\n",
 			     name, osmo_ss7_asp_protocol_name(prot), asp_name);
-			asp =
-			    osmo_ss7_asp_find_or_create(ss7, asp_name,
-							default_remote_port,
-							default_local_port,
-							prot);
+			asp = osmo_ss7_asp_find_or_create2(ss7, asp_name,
+							   default_remote_port,
+							   default_local_port,
+							   trans_proto, prot);
 			talloc_free(asp_name);
 			if (!asp)
 				goto out_rt;
@@ -678,7 +680,9 @@ osmo_sccp_simple_client_on_ss7_id(void *ctx, uint32_t ss7_id, const char *name,
 			LOGP(DLSCCP, LOGL_NOTICE,
 			     "%s: Requesting an SCCP simple client on ASP %s configured with 'sctp-role server'\n",
 			     name, asp->cfg.name);
-			xs = osmo_ss7_xua_server_find(ss7, prot, asp->cfg.local.port);
+			xs = osmo_ss7_xua_server_find2(ss7,
+						       asp->cfg.trans_proto, prot,
+						       asp->cfg.local.port);
 			if (!xs) {
 				LOGP(DLSCCP, LOGL_ERROR, "%s: Requesting an SCCP simple client on ASP %s configured "
 				     "with 'sctp-role server' but no matching xUA server was configured!\n",
@@ -755,7 +759,10 @@ osmo_sccp_simple_server_on_ss7_id(void *ctx, uint32_t ss7_id, uint32_t pc,
 {
 	struct osmo_ss7_instance *ss7;
 	struct osmo_xua_server *xs;
+	int trans_proto;
 	int rc;
+
+	trans_proto = ss7_default_trans_proto_for_asp_proto(prot);
 
 	if (local_port < 0)
 		local_port = osmo_ss7_asp_protocol_port(prot);
@@ -766,7 +773,7 @@ osmo_sccp_simple_server_on_ss7_id(void *ctx, uint32_t ss7_id, uint32_t pc,
 		return NULL;
 	ss7->cfg.primary_pc = pc;
 
-	xs = osmo_ss7_xua_server_create(ss7, prot, local_port, local_ip);
+	xs = osmo_ss7_xua_server_create2(ss7, trans_proto, prot, local_port, local_ip);
 	if (!xs)
 		goto out_ss7;
 
@@ -811,6 +818,9 @@ osmo_sccp_simple_server_add_clnt(struct osmo_sccp_instance *inst,
 	struct osmo_ss7_asp *asp;
 	struct osmo_xua_server *oxs;
 	char *as_name, *asp_name;
+	int trans_proto;
+
+	trans_proto = ss7_default_trans_proto_for_asp_proto(prot);
 
 	if (local_port < 0)
 		local_port = osmo_ss7_asp_protocol_port(prot);
@@ -831,10 +841,12 @@ osmo_sccp_simple_server_add_clnt(struct osmo_sccp_instance *inst,
 	if (!rt)
 		goto out_as;
 
-	asp = osmo_ss7_asp_find_or_create(ss7, asp_name, remote_port, local_port, prot);
+	asp = osmo_ss7_asp_find_or_create2(ss7, asp_name,
+					   remote_port, local_port,
+					   trans_proto, prot);
 	if (!asp)
 		goto out_rt;
-	oxs = osmo_ss7_xua_server_find(ss7, prot, local_port);
+	oxs = osmo_ss7_xua_server_find2(ss7, asp->cfg.trans_proto, prot, local_port);
 	if (!oxs)
 		goto out_asp;
 	if (osmo_ss7_asp_peer_set_hosts(&asp->cfg.local, asp,
