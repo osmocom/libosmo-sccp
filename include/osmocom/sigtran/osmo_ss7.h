@@ -476,9 +476,9 @@ int osmo_ss7_asp_peer_del_host(struct osmo_ss7_asp_peer *peer, const char *host)
 
 struct osmo_ss7_asp *
 osmo_ss7_asp_find_by_name(struct osmo_ss7_instance *inst, const char *name);
-struct osmo_ss7_asp
-*osmo_ss7_asp_find_by_proto(struct osmo_ss7_as *as,
-			    enum osmo_ss7_asp_protocol proto);
+struct osmo_ss7_asp *
+osmo_ss7_asp_find_by_proto(struct osmo_ss7_as *as,
+			   enum osmo_ss7_asp_protocol proto);
 struct osmo_ss7_asp *
 osmo_ss7_asp_find(struct osmo_ss7_instance *inst, const char *name,
 		  uint16_t remote_port, uint16_t local_port,

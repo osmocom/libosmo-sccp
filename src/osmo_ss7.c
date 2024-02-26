@@ -998,12 +998,13 @@ osmo_ss7_asp_find_by_name(struct osmo_ss7_instance *inst, const char *name)
 	return NULL;
 }
 
-/*! \brief Find an ASP that matches the given protocol.
+/*! \brief Find an ASP that matches the given ASP protocol (xUA variant).
  *  \param[in] as Application Server in which to look for \ref asp
+ *  \param[in] proto ASP protocol (xUA variant) to match
  *  \returns SS7 ASP in case a matching one is found; NULL otherwise */
-struct osmo_ss7_asp
-*osmo_ss7_asp_find_by_proto(struct osmo_ss7_as *as,
-			    enum osmo_ss7_asp_protocol proto)
+struct osmo_ss7_asp *
+osmo_ss7_asp_find_by_proto(struct osmo_ss7_as *as,
+			   enum osmo_ss7_asp_protocol proto)
 {
 	unsigned int i;
 
