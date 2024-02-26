@@ -915,18 +915,17 @@ struct osmo_ss7_as *osmo_ss7_as_find_by_proto(struct osmo_ss7_instance *inst,
 	/* Loop through the list with AS and try to find one where the proto
 	   matches up */
 	llist_for_each_entry(as, &inst->as_list, list) {
-		if (as->cfg.proto == proto) {
+		if (as->cfg.proto != proto)
+			continue;
 
-			/* Put down the first AS that matches the proto, just in
-			 * case we will not find any matching ASP */
-			if (!as_without_asp)
-				as_without_asp = as;
+		/* Put down the first AS that matches the proto, just in
+		 * case we will not find any matching ASP */
+		if (!as_without_asp)
+			as_without_asp = as;
 
-			/* Check if the candicate we have here has any suitable
-			 * ASP */
-			if (osmo_ss7_asp_find_by_proto(as, proto))
-				return as;
-		}
+		/* Check if the candicate we have here has any suitable ASP */
+		if (osmo_ss7_asp_find_by_proto(as, proto))
+			return as;
 	}
 
 	/* Return with the second best find, if there is any */
