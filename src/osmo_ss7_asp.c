@@ -803,9 +803,9 @@ int ss7_asp_ipa_srv_conn_rx_cb(struct osmo_stream_srv *conn, struct msgb *msg)
 
 	msg->dst = asp;
 	rate_ctr_inc2(asp->ctrg, SS7_ASP_CTR_PKT_RX_TOTAL);
-	/* we can use the 'fd' return value of osmo_stream_srv_get_fd() here unverified as all we do
-	 * is 'roll the dice' to obtain a 4-bit SLS value. */
-	return ipa_rx_msg(asp, msg, fd & 0xf);
+	/* we simply use the lower 4 bits of the asp_id, which is initialized to a pseudo-random value upon
+	 * connect */
+	return ipa_rx_msg(asp, msg, asp->asp_id & 0xf);
 }
 
 /* netif code tells us we can read something from the socket */
@@ -916,6 +916,12 @@ static int xua_cli_connect_cb(struct osmo_stream_cli *cli)
 	if (asp->cfg.trans_proto == IPPROTO_SCTP) {
 		rc = ss7_asp_apply_peer_primary_address(asp);
 		rc = ss7_asp_apply_primary_address(asp);
+	} else {
+		if (asp->cfg.proto == OSMO_SS7_ASP_PROT_IPA) {
+			/* we use the lower 4 bits of the asp_id feld as SLS; let's initialize it here from a
+			 * pseudo-random value */
+			asp->asp_id = rand() & 0xf;
+		}
 	}
 
 	if (asp->lm && asp->lm->prim_cb) {
