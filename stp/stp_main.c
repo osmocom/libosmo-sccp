@@ -213,6 +213,8 @@ int main(int argc, char **argv)
 {
 	int rc;
 
+	srand(time(NULL));
+
 	tall_stp_ctx = talloc_named_const(NULL, 1, "osmo-stp");
 	msgb_talloc_ctx_init(tall_stp_ctx, 0);
 	osmo_init_logging2(tall_stp_ctx, &log_info);
