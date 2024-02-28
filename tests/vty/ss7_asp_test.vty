@@ -423,7 +423,7 @@ cs7 instance 0
   remote-ip 127.0.0.200
   remote-ip 127.0.0.201
   role sg
-  transport-role server
+  sctp-role server
  as my-ass m3ua
   asp my-asp
   routing-key 0 3.2.1

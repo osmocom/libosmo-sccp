@@ -1726,7 +1726,10 @@ static void write_one_asp(struct vty *vty, struct osmo_ss7_asp *asp, bool show_d
 		vty_out(vty, "  qos-class %u%s", asp->cfg.qos_class, VTY_NEWLINE);
 	vty_out(vty, "  role %s%s", osmo_str_tolower(get_value_string(osmo_ss7_asp_role_names, asp->cfg.role)),
 		VTY_NEWLINE);
-	vty_out(vty, "  transport-role %s%s", asp->cfg.is_server ? "server" : "client", VTY_NEWLINE);
+	if (asp->cfg.trans_proto == IPPROTO_SCTP)
+		vty_out(vty, "  sctp-role %s%s", asp->cfg.is_server ? "server" : "client", VTY_NEWLINE);
+	else
+		vty_out(vty, "  transport-role %s%s", asp->cfg.is_server ? "server" : "client", VTY_NEWLINE);
 	if (asp->cfg.sctp_init.num_ostreams_present)
 		vty_out(vty, "  sctp-param init num-ostreams %u%s", asp->cfg.sctp_init.num_ostreams_value, VTY_NEWLINE);
 	if (asp->cfg.sctp_init.max_instreams_present)
