@@ -458,7 +458,7 @@ static void chop_v4_mapped_on_v6_prefix(char *buf)
  *  \param[in] fd socket descriptor of given socket
  *  \returns SS7 ASP in case a matching one is found; NULL otherwise */
 struct osmo_ss7_asp *
-ss7_asp_find_by_socket_addr(int fd)
+ss7_asp_find_by_socket_addr(int fd, int trans_proto)
 {
 	struct osmo_ss7_instance *inst;
 	struct sockaddr_storage sa_l, sa_r;
@@ -505,6 +505,8 @@ ss7_asp_find_by_socket_addr(int fd)
 	llist_for_each_entry(inst, &osmo_ss7_instances, list) {
 		struct osmo_ss7_asp *asp;
 		llist_for_each_entry(asp, &inst->asp_list, list) {
+			if (asp->cfg.trans_proto != trans_proto)
+				continue;
 			if (asp->cfg.local.port != local_port)
 				continue;
 			if (asp->cfg.remote.port && asp->cfg.remote.port != remote_port)

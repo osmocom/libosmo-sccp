@@ -20,7 +20,7 @@ struct osmo_ss7_asp *ss7_asp_alloc(struct osmo_ss7_instance *inst, const char *n
 bool ss7_asp_set_default_peer_hosts(struct osmo_ss7_asp *asp);
 bool ss7_asp_is_started(const struct osmo_ss7_asp *asp);
 int ss7_asp_get_fd(const struct osmo_ss7_asp *asp);
-struct osmo_ss7_asp *ss7_asp_find_by_socket_addr(int fd);
+struct osmo_ss7_asp *ss7_asp_find_by_socket_addr(int fd, int trans_proto);
 
 bool ss7_asp_protocol_check_trans_proto(enum osmo_ss7_asp_protocol proto, int trans_proto);
 int ss7_default_trans_proto_for_asp_proto(enum osmo_ss7_asp_protocol proto);

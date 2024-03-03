@@ -101,7 +101,7 @@ static int xua_accept_cb(struct osmo_stream_srv_link *link, int fd)
 		return -1;
 	}
 
-	asp = ss7_asp_find_by_socket_addr(fd);
+	asp = ss7_asp_find_by_socket_addr(fd, oxs->cfg.trans_proto);
 	if (asp) {
 		LOGP(DLSS7, LOGL_INFO, "%s: matched connection to ASP %s\n",
 			sock_name, asp->cfg.name);
