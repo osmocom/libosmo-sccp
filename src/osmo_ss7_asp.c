@@ -950,6 +950,12 @@ static int ipa_cli_read_cb(struct osmo_stream_cli *conn, struct msgb *msg)
 	int fd = osmo_stream_cli_get_fd(conn);
 	struct osmo_ss7_asp *asp = osmo_stream_cli_get_data(conn);
 
+	if (msgb_length(msg) == 0) {
+		xua_cli_close_and_reconnect(asp->client);
+		msgb_free(msg);
+		return 0;
+	}
+
 	msg->dst = asp;
 	rate_ctr_inc2(asp->ctrg, SS7_ASP_CTR_PKT_RX_TOTAL);
 	/* we can use the 'fd' return value of osmo_stream_srv_get_fd() here unverified as all we do
@@ -1000,6 +1006,12 @@ static int xua_cli_read_cb(struct osmo_stream_cli *conn, struct msgb *msg)
 		default:
 			break;
 		}
+		goto out;
+	}
+
+	if (msgb_length(msg) == 0) {
+		xua_cli_close_and_reconnect(conn);
+		rc = 0;
 		goto out;
 	}
 
