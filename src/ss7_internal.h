@@ -24,9 +24,9 @@ struct osmo_ss7_asp *ss7_asp_find_by_socket_addr(int fd, int trans_proto);
 
 bool ss7_asp_protocol_check_trans_proto(enum osmo_ss7_asp_protocol proto, int trans_proto);
 int ss7_default_trans_proto_for_asp_proto(enum osmo_ss7_asp_protocol proto);
-int ss7_asp_ipa_srv_conn_cb(struct osmo_stream_srv *conn);
-int ss7_asp_xua_srv_conn_cb(struct osmo_stream_srv *conn);
-int ss7_asp_m3ua_tcp_srv_conn_cb(struct osmo_stream_srv *conn);
+int ss7_asp_ipa_srv_conn_cb(struct osmo_stream_srv *conn, struct msgb *msg);
+int ss7_asp_xua_srv_conn_cb(struct osmo_stream_srv *conn, struct msgb *msg);
+int ss7_asp_m3ua_tcp_srv_conn_cb(struct osmo_stream_srv *conn, struct msgb *msg);
 int ss7_asp_xua_srv_conn_closed_cb(struct osmo_stream_srv *srv);
 int ss7_asp_apply_peer_primary_address(const struct osmo_ss7_asp *asp);
 int ss7_asp_apply_primary_address(const struct osmo_ss7_asp *asp);
@@ -37,6 +37,8 @@ bool ss7_asp_peer_match_host(const struct osmo_ss7_asp_peer *peer, const char *h
 int ss7_asp_peer_find_host(const struct osmo_ss7_asp_peer *peer, const char *host);
 
 bool ss7_xua_server_set_default_local_hosts(struct osmo_xua_server *oxs);
+
+int xua_segmentation_cb(struct msgb *msg);
 
 enum ss7_as_ctr {
 	SS7_AS_CTR_RX_MSU_TOTAL,
