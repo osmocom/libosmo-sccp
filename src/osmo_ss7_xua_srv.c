@@ -82,21 +82,21 @@ static int xua_accept_cb(struct osmo_stream_srv_link *link, int fd)
 
 	switch (oxs->cfg.proto) {
 	case OSMO_SS7_ASP_PROT_IPA:
-		osmo_stream_srv_set_read_cb(srv, ss7_asp_ipa_srv_conn_cb);
+		osmo_stream_srv_set_read_cb(srv, ss7_asp_ipa_srv_conn_rx_cb);
 		osmo_stream_srv_set_segmentation_cb(srv, osmo_ipa_segmentation_cb);
 		break;
 	case OSMO_SS7_ASP_PROT_M3UA:
 		if (oxs->cfg.trans_proto == IPPROTO_SCTP)
-			osmo_stream_srv_set_read_cb(srv, &ss7_asp_xua_srv_conn_cb);
+			osmo_stream_srv_set_read_cb(srv, &ss7_asp_xua_srv_conn_rx_cb);
 		else if (oxs->cfg.trans_proto == IPPROTO_TCP) {
-			osmo_stream_srv_set_read_cb(srv, &ss7_asp_m3ua_tcp_srv_conn_cb);
+			osmo_stream_srv_set_read_cb(srv, &ss7_asp_m3ua_tcp_srv_conn_rx_cb);
 			osmo_stream_srv_set_segmentation_cb(srv, xua_tcp_segmentation_cb);
 		} else
 			OSMO_ASSERT(0);
 		break;
 	default:
 		OSMO_ASSERT(oxs->cfg.trans_proto == IPPROTO_SCTP);
-		osmo_stream_srv_set_read_cb(srv, &ss7_asp_xua_srv_conn_cb);
+		osmo_stream_srv_set_read_cb(srv, &ss7_asp_xua_srv_conn_rx_cb);
 		osmo_stream_srv_set_segmentation_cb(srv, NULL);
 		break;
 	}

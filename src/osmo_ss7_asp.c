@@ -795,7 +795,7 @@ static void log_sctp_notification(struct osmo_ss7_asp *asp, const char *pfx,
 }
 
 /* netif code tells us we can read something from the socket */
-int ss7_asp_ipa_srv_conn_cb(struct osmo_stream_srv *conn, struct msgb *msg)
+int ss7_asp_ipa_srv_conn_rx_cb(struct osmo_stream_srv *conn, struct msgb *msg)
 {
 	int fd = osmo_stream_srv_get_fd(conn);
 	struct osmo_ss7_asp *asp = osmo_stream_srv_get_data(conn);
@@ -808,7 +808,7 @@ int ss7_asp_ipa_srv_conn_cb(struct osmo_stream_srv *conn, struct msgb *msg)
 }
 
 /* netif code tells us we can read something from the socket */
-int ss7_asp_xua_srv_conn_cb(struct osmo_stream_srv *conn, struct msgb *msg)
+int ss7_asp_xua_srv_conn_rx_cb(struct osmo_stream_srv *conn, struct msgb *msg)
 {
 	struct osmo_ss7_asp *asp = osmo_stream_srv_get_data(conn);
 	unsigned int ppid;
@@ -868,7 +868,7 @@ int xua_tcp_segmentation_cb(struct msgb *msg)
 }
 
 /* netif code tells us we can read something from the socket */
-int ss7_asp_m3ua_tcp_srv_conn_cb(struct osmo_stream_srv *conn, struct msgb *msg)
+int ss7_asp_m3ua_tcp_srv_conn_rx_cb(struct osmo_stream_srv *conn, struct msgb *msg)
 {
 	struct osmo_ss7_asp *asp = osmo_stream_srv_get_data(conn);
 	const struct xua_common_hdr *hdr;
