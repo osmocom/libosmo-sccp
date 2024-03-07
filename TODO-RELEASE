@@ -17,4 +17,3 @@ libosmo-sigtran	ABI change	struct osmo_xua_server: new field(s) at the end
 libosmo-sigtran	API added	osmo_ss7_asp_get_trans_proto()
 libosmo-sigtran	API added	osmo_ss7_asp_{find2,find_or_create2}()
 libosmo-sigtran	API added	osmo_ss7_xua_server_{find2,create2}()
-libosmo-netif >1.4.0	osmo_io SCTP support
