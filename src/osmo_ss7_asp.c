@@ -980,7 +980,7 @@ static int xua_cli_read_cb(struct osmo_stream_cli *conn, struct msgb *msg)
 	struct osmo_ss7_asp *asp = osmo_stream_cli_get_data(conn);
 	unsigned int ppid;
 	int flags;
-	int rc;
+	int rc = 0;
 
 	flags = msgb_sctp_msg_flags(msg);
 
