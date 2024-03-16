@@ -43,6 +43,7 @@
 #include <osmocom/core/msgb.h>
 #include <osmocom/core/socket.h>
 #include <osmocom/core/sockaddr_str.h>
+#include <osmocom/core/osmo_io.h>
 
 #include <osmocom/netif/stream.h>
 #include <osmocom/netif/ipa.h>
@@ -79,6 +80,8 @@ static int xua_accept_cb(struct osmo_stream_srv_link *link, int fd)
 		talloc_free(sock_name);
 		return -1;
 	}
+
+	osmo_iofd_set_alloc_info(osmo_stream_srv_get_iofd(srv), M3UA_MSG_SIZE, M3UA_MSG_HEADROOM);
 
 	switch (oxs->cfg.proto) {
 	case OSMO_SS7_ASP_PROT_IPA:

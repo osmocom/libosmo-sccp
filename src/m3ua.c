@@ -310,9 +310,6 @@ void m3ua_dh_to_xfer_param(struct osmo_mtp_transfer_param *param,
 		     (mdh->ni & 0x3 << 6);
 }
 
-#define M3UA_MSG_SIZE 2048
-#define M3UA_MSG_HEADROOM 512
-
 struct msgb *m3ua_msgb_alloc(const char *name)
 {
 	if (!name)

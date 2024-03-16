@@ -43,6 +43,7 @@
 #include <osmocom/core/msgb.h>
 #include <osmocom/core/socket.h>
 #include <osmocom/core/sockaddr_str.h>
+#include <osmocom/core/osmo_io.h>
 
 #include <osmocom/netif/stream.h>
 #include <osmocom/netif/ipa.h>
@@ -899,6 +900,8 @@ static int xua_cli_connect_cb(struct osmo_stream_cli *cli)
 
 	if (fd < 0)
 		return fd;
+
+	osmo_iofd_set_alloc_info(osmo_stream_cli_get_iofd(cli), M3UA_MSG_SIZE, M3UA_MSG_HEADROOM);
 
 	/* update the socket name */
 	talloc_free(asp->sock_name);

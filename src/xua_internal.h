@@ -4,6 +4,9 @@
 #include <osmocom/sigtran/osmo_ss7.h>
 #include <osmocom/sigtran/xua_msg.h>
 
+#define M3UA_MSG_SIZE 2048
+#define M3UA_MSG_HEADROOM 512
+
 struct osmo_sccp_addr;
 struct m3ua_data_hdr;
 
