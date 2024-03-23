@@ -37,6 +37,13 @@ Pre-rendered PDF version of the current "master" can be found at
 as well as the VTY reference manuals
 * [VTY Reference Manual for osmo-stp](https://ftp.osmocom.org/docs/latest/osmostp-vty-reference.pdf)
 
+Forum
+-----
+
+We welcome any libosmo-sigtran + osmo-stp related discussions in the
+[Cellular Network Infrastructure -> 2G/3G Core Network](https://discourse.osmocom.org/c/cni/2g-3g-cn/)
+section of the osmocom discourse (web based Forum).
+
 Mailing List
 ------------
 
@@ -48,6 +55,15 @@ options and the list archive.
 Please observe the [Osmocom Mailing List
 Rules](https://osmocom.org/projects/cellular-infrastructure/wiki/Mailing_List_Rules)
 when posting.
+
+Issue Tracker
+-------------
+
+We use the issue trackers of smocom.org for tracking the state of bug reports and feature requests.  Feel free
+to submit any issues you may find, or help us out by resolving existing issues.
+
+* [osmo-stp issue tracker](https://osmocom.org/projects/osmo-stp/issues)
+* [libosmo-sigtran issue tracker](https://osmocom.org/projects/libosmo-sccp/issues)
 
 Contributing
 ------------
