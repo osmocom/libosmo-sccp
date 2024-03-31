@@ -798,7 +798,6 @@ static void log_sctp_notification(struct osmo_ss7_asp *asp, const char *pfx,
 /* netif code tells us we can read something from the socket */
 int ss7_asp_ipa_srv_conn_rx_cb(struct osmo_stream_srv *conn, struct msgb *msg)
 {
-	int fd = osmo_stream_srv_get_fd(conn);
 	struct osmo_ss7_asp *asp = osmo_stream_srv_get_data(conn);
 
 	msg->dst = asp;
