@@ -769,7 +769,8 @@ struct osmo_fsm xua_asp_fsm = {
 	.allstate_event_mask = S(XUA_ASP_E_SCTP_COMM_DOWN_IND) |
 			       S(XUA_ASP_E_SCTP_RESTART_IND) |
 			       S(XUA_ASP_E_ASPSM_BEAT) |
-			       S(XUA_ASP_E_ASPSM_BEAT_ACK),
+			       S(XUA_ASP_E_ASPSM_BEAT_ACK) |
+			       S(XUA_ASP_E_AS_ASSIGNED),
 	.allstate_action = xua_asp_allstate,
 	.cleanup = xua_asp_fsm_cleanup,
 };
