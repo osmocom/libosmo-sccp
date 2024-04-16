@@ -602,9 +602,9 @@ void osmo_ss7_asp_destroy(struct osmo_ss7_asp *asp)
 	talloc_free(asp);
 }
 
-static int xua_cli_read_cb(struct osmo_stream_cli *conn, struct msgb *msg);
-static int ipa_cli_read_cb(struct osmo_stream_cli *conn, struct msgb *msg);
-static int m3ua_tcp_cli_read_cb(struct osmo_stream_cli *conn, struct msgb *msg);
+static int xua_cli_read_cb(struct osmo_stream_cli *conn, int res, struct msgb *msg);
+static int ipa_cli_read_cb(struct osmo_stream_cli *conn, int res, struct msgb *msg);
+static int m3ua_tcp_cli_read_cb(struct osmo_stream_cli *conn, int res, struct msgb *msg);
 static int xua_cli_connect_cb(struct osmo_stream_cli *cli);
 static int xua_cli_close_and_reconnect(struct osmo_stream_cli *cli);
 
@@ -796,9 +796,19 @@ static void log_sctp_notification(struct osmo_ss7_asp *asp, const char *pfx,
 }
 
 /* netif code tells us we can read something from the socket */
-int ss7_asp_ipa_srv_conn_rx_cb(struct osmo_stream_srv *conn, struct msgb *msg)
+int ss7_asp_ipa_srv_conn_rx_cb(struct osmo_stream_srv *conn, int res, struct msgb *msg)
 {
 	struct osmo_ss7_asp *asp = osmo_stream_srv_get_data(conn);
+
+	if (res <= 0) {
+		if (res == -EAGAIN) {
+			msgb_free(msg);
+			return 0;
+		}
+		msgb_free(msg);
+		osmo_stream_srv_destroy(conn);
+		return res;
+	}
 
 	msg->dst = asp;
 	rate_ctr_inc2(asp->ctrg, SS7_ASP_CTR_PKT_RX_TOTAL);
@@ -808,7 +818,7 @@ int ss7_asp_ipa_srv_conn_rx_cb(struct osmo_stream_srv *conn, struct msgb *msg)
 }
 
 /* netif code tells us we can read something from the socket */
-int ss7_asp_xua_srv_conn_rx_cb(struct osmo_stream_srv *conn, struct msgb *msg)
+int ss7_asp_xua_srv_conn_rx_cb(struct osmo_stream_srv *conn, int res, struct msgb *msg)
 {
 	struct osmo_ss7_asp *asp = osmo_stream_srv_get_data(conn);
 	unsigned int ppid;
@@ -834,7 +844,13 @@ int ss7_asp_xua_srv_conn_rx_cb(struct osmo_stream_srv *conn, struct msgb *msg)
 		default:
 			break;
 		}
-		goto out;
+		msgb_free(msg);
+		return 0;
+	}
+	if (res <= 0) {
+		msgb_free(msg);
+		osmo_stream_srv_destroy(conn);
+		return rc;
 	}
 
 	ppid = msgb_sctp_ppid(msg);
@@ -848,7 +864,6 @@ int ss7_asp_xua_srv_conn_rx_cb(struct osmo_stream_srv *conn, struct msgb *msg)
 	else
 		rc = ss7_asp_rx_unknown(asp, ppid, msg);
 
-out:
 	msgb_free(msg);
 	return rc;
 }
@@ -868,11 +883,21 @@ int xua_tcp_segmentation_cb(struct msgb *msg)
 }
 
 /* netif code tells us we can read something from the socket */
-int ss7_asp_m3ua_tcp_srv_conn_rx_cb(struct osmo_stream_srv *conn, struct msgb *msg)
+int ss7_asp_m3ua_tcp_srv_conn_rx_cb(struct osmo_stream_srv *conn, int res, struct msgb *msg)
 {
 	struct osmo_ss7_asp *asp = osmo_stream_srv_get_data(conn);
 	const struct xua_common_hdr *hdr;
 	int rc;
+
+	if (res <= 0) {
+		if (res == -EAGAIN) {
+			msgb_free(msg);
+			return 0;
+		}
+		msgb_free(msg);
+		osmo_stream_srv_destroy(conn);
+		return res;
+	}
 
 	msg->dst = asp;
 	rate_ctr_inc2(asp->ctrg, SS7_ASP_CTR_PKT_RX_TOTAL);
@@ -953,10 +978,20 @@ static int xua_cli_close_and_reconnect(struct osmo_stream_cli *cli)
 }
 
 /* read call-back for IPA/SCCPlite socket */
-static int ipa_cli_read_cb(struct osmo_stream_cli *conn, struct msgb *msg)
+static int ipa_cli_read_cb(struct osmo_stream_cli *conn, int res, struct msgb *msg)
 {
 	int fd = osmo_stream_cli_get_fd(conn);
 	struct osmo_ss7_asp *asp = osmo_stream_cli_get_data(conn);
+
+	if (res <= 0) {
+		if (res == -EAGAIN) {
+			msgb_free(msg);
+			return 0;
+		}
+		msgb_free(msg);
+		xua_cli_close_and_reconnect(conn);
+		return res;
+	}
 
 	msg->dst = asp;
 	rate_ctr_inc2(asp->ctrg, SS7_ASP_CTR_PKT_RX_TOTAL);
@@ -966,7 +1001,7 @@ static int ipa_cli_read_cb(struct osmo_stream_cli *conn, struct msgb *msg)
 }
 
 /* read call-back for M3UA-over-TCP socket */
-static int m3ua_tcp_cli_read_cb(struct osmo_stream_cli *conn, struct msgb *msg)
+static int m3ua_tcp_cli_read_cb(struct osmo_stream_cli *conn, int res, struct msgb *msg)
 {
 	const struct xua_common_hdr *hdr;
 
@@ -980,10 +1015,10 @@ static int m3ua_tcp_cli_read_cb(struct osmo_stream_cli *conn, struct msgb *msg)
 	else
 		msgb_sctp_stream(msg) = 0;
 
-	return xua_cli_read_cb(conn, msg);
+	return xua_cli_read_cb(conn, res, msg);
 }
 
-static int xua_cli_read_cb(struct osmo_stream_cli *conn, struct msgb *msg)
+static int xua_cli_read_cb(struct osmo_stream_cli *conn, int res, struct msgb *msg)
 {
 	struct osmo_ss7_asp *asp = osmo_stream_cli_get_data(conn);
 	unsigned int ppid;
@@ -1008,6 +1043,16 @@ static int xua_cli_read_cb(struct osmo_stream_cli *conn, struct msgb *msg)
 		default:
 			break;
 		}
+		if (res == 0)
+			xua_cli_close_and_reconnect(conn);
+		goto out;
+	}
+	if (res < 0) {
+		xua_cli_close_and_reconnect(conn);
+		goto out;
+	} else if (res == 0) {
+		xua_cli_close_and_reconnect(conn);
+
 		goto out;
 	}
 
