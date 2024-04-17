@@ -823,7 +823,7 @@ int ss7_asp_xua_srv_conn_rx_cb(struct osmo_stream_srv *conn, struct msgb *msg)
 
 	if (flags & OSMO_STREAM_SCTP_MSG_FLAGS_NOTIFICATION) {
 		union sctp_notification *notif = (union sctp_notification *) msgb_data(msg);
-		log_sctp_notification(asp, "xUA CLNT", notif);
+		log_sctp_notification(asp, "xUA SRV", notif);
 		asp_handle_sctp_notif_monitor_primary_address(asp, notif);
 
 		switch (notif->sn_header.sn_type) {
