@@ -158,7 +158,8 @@ chown osmocom:osmocom /etc/osmocom/osmo-stp.cfg
 chmod 0660 /etc/osmocom/osmo-stp.cfg
 chown root:osmocom /etc/osmocom
 chmod 2775 /etc/osmocom
-
+mkdir -p /var/lib/osmocom
+chown -R osmocom:osmocom /var/lib/osmocom
 
 %files -n libosmo-mtp-devel
 %dir %{_includedir}/%{name}
