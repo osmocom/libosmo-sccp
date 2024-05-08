@@ -9,7 +9,6 @@ pkgconfig_DATA = libosmo-sccp.pc libosmo-mtp.pc libosmo-sigtran.pc libosmo-xua.p
 EXTRA_DIST = \
 	     .version \
 	     README.md \
-	     contrib/libosmo-sccp.spec.in \
 	     debian \
 	     git-version-gen \
 	     osmoappdesc.py \
