@@ -1,3 +1,9 @@
+libosmo-sccp (1.8.2) unstable; urgency=medium
+
+  * ipa: Use pseudo-random number for SLS in IPA->M3UA direction
+
+ -- Harald Welte <laforge@osmocom.org>  Tue, 21 May 2024 14:28:44 +0200
+
 libosmo-sccp (1.8.1) unstable; urgency=medium
 
   * Fix counting received IPA packets in server mode
