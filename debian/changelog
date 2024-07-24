@@ -1,3 +1,84 @@
+libosmo-sccp (1.9.0) unstable; urgency=medium
+
+  [ Pau Espin Pedrol ]
+  * sccp2sua: constify params of sccp_ptr_part_consistent()
+  * xua_msg: Implement xua_msg_dump() using OSMO_STRBUF
+  * sccp2sua: remove unused msg param from sccp_{addr,data}_to_sua_ptr
+  * sscp2sua: Constify several more parameters
+  * sccp2sua: Produce smaller output if msg contains no optional section
+  * cosmetic: sccp_types.h: Fix typo in comment
+  * cosmetic: src/Makefile: reformat to one item per line
+  * asp: Factor out helper function to match host in asp_peer
+  * Split osmo_ss7_asp_peer functionalities to its own file
+  * Factor our osmo_ss7_as allocation to its own function
+  * Split osmo_ss7_as functionalities to its own file
+  * asp: Apply SCTP primary address changes after the ASP was started
+  * asp: Apply SCTP peer primary address changes after the ASP was started
+  * asp: Support adding new local addresses after the ASP was started
+  * sccp: Drop unused local variable
+  * asp: Support removing local & remote addresses
+  * xua_server: asp: Support removing local addresses
+  * sccp_demo_user: Allow initiating conns from vty in server mode
+  * sccp_scoc: Fix remote PC not assigned preventing RSLD to be sent in st WAIT_CONN_CONF
+  * ipa: Fix client setting unit_id with ASP name instead of AS
+  * vty: Retrieve IP addr set from sk when dumping xUA server
+  * vty: show cs7 instance asp: Swap columns SCTP Role and Remote Address list
+  * vty: show cs7 instance asp: Print loc and rem addr retrieved from socket
+  * vty: Introduce cmd 'show cs7 instance asp name ASP_NAME'
+  * vty: Introduce show cs7 instance asp-remaddr
+  * vty: Introduce show cs7 instance asp-assoc-status
+  * cosmetic: Fix typo in function doc
+  * ipa: Use ASP name as ipa_unit_name on dynamic ASPs
+  * xua_asp_fsm: Fix 'Event AS_ASSIGNED not permitted'
+  * Fix wrong string prefix in log line
+  * ss7_asp: Update osmo_stream read_cb2 functions to accommodate for new API param
+
+  [ Harald Welte ]
+  * sccp: Introduce initial support for SCCP LUDT + LUDTS messages
+  * Fix counting received IPA packets in server mode
+  * port from osmo_stream_*_get_ofd() to osmo_stream_srv_get_fd()
+  * xua_asp_fsm: Log ERROR message when we send a MGMT:ERR message
+  * Add new "cs7 instance <0-15> asp NAME disconnect" VTY command
+  * vty_test_runner: Avoid bogus erro messages like "AssertionError: False is not true"
+  * vty_test_runner: Don't wait for more than 10s when connecting to sockets
+  * fix regression in sctp-role / transport-role
+  * xua + ipa: Add support for I/O in OSMO_IO mode
+  * Revert "xua + ipa: Add support for I/O in OSMO_IO mode"
+  * xua + ipa: Add support for I/O in OSMO_IO mode
+  * cosmetic: rename ss7_asp_*_conn_cb to ss7_asp_*_conn_rx_cb
+  * osmo_ss7_asp: fix uninitialized return value in xua_cli_read_cb()
+  * Use same msgb allocation size like before osmo_io introduction
+  * Add funding link to github mirror
+  * README.md: Update; improve markdown syntax
+  * README.md: Add links to forum and issue tracker
+  * ipa: Use pseudo-random number for SLS in IPA->M3UA direction
+
+  [ Max ]
+  * cosmetic: add spec reference
+  * .deb/.rpm: add osmocom user during package install
+
+  [ Vadim Yanitskiy ]
+  * build: include README.md into the release tarball
+  * return CMD_WARNING if osmo_ss7_xua_server_create() fails
+  * fix xua_msg_dump(): convert message length to the host's byte order
+  * examples/sccp_demo_user: fix default ASP protocol in help
+  * cosmetic: xua_cli_connect_cb(): fix typo in a comment
+  * cosmetic: reduce nesting in osmo_ss7_as_find_by_proto()
+  * xua_asp_send_xlm_prim(): use LOGPFSML() to print more context
+  * osmo_ss7_asp_find_by_name(): improve docs and coding style
+  * Implement M3UA-over-TCP (in addition to SCTP)
+  * VTY: rename 'sctp-role' to 'transport-role', add an alias
+  * xua_accept_cb(): distinguish ASPs using different trans_proto
+  * fix log_sctp_notification(): remove unused variable
+  * README.md: cosmetic: fix a typo
+
+  [ Oliver Smith ]
+  * .deb/.rpm: various fixes related to non-root
+  * contrib: remove rpm spec file
+  * debian/postinst: add checks, be verbose
+
+ -- Oliver Smith <osmith@sysmocom.de>  Wed, 24 Jul 2024 12:19:24 +0200
+
 libosmo-sccp (1.8.0) unstable; urgency=medium
 
   [ Neels Hofmeyr ]
