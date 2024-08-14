@@ -176,11 +176,14 @@ static int handle_rkey_reg(struct osmo_ss7_asp *asp, struct xua_msg *inner,
 
 	/* We don't support routing keys with the following criteria, so
 	 * we have to reject those */
-	/* TODO: network appearance (optional) */
+	if (xua_msg_find_tag(inner, M3UA_IEI_NET_APPEAR)) {
+		LOGPASP(asp, DLSS7, LOGL_NOTICE, "RKM: Unsupported 'Network Appearance' IE.\n");
+		msgb_append_reg_res(resp, rk_id, M3UA_RKM_REG_ERR_INVAL_NET_APPEAR, 0);
+		return -1;
+	}
 	/* TODO: service indicators (optional) */
 	/* TODO: originating point code list (optional) */
-	if (xua_msg_find_tag(inner, M3UA_IEI_NET_APPEAR) ||
-	    xua_msg_find_tag(inner, M3UA_IEI_SVC_IND) ||
+	if ( xua_msg_find_tag(inner, M3UA_IEI_SVC_IND) ||
 	    xua_msg_find_tag(inner, M3UA_IEI_ORIG_PC)) {
 		LOGPASP(asp, DLSS7, LOGL_NOTICE, "RKM: Unsupported Routing Key\n");
 		msgb_append_reg_res(resp, rk_id, M3UA_RKM_REG_ERR_UNSUPP_RK_PARAM, 0);

@@ -357,17 +357,37 @@ static struct xua_msg *m3ua_gen_error(uint32_t err_code)
 	return xua;
 }
 
-static struct xua_msg *m3ua_gen_error_msg(uint32_t err_code, struct msgb *msg)
+static struct xua_msg *m3ua_gen_error_msg(struct osmo_ss7_asp *asp, uint32_t err_code, struct msgb *msg)
 {
-	struct xua_msg *xua = m3ua_gen_error(err_code);
-	unsigned int len_max_40 = msgb_length(msg);
+	struct xua_msg *err = m3ua_gen_error(err_code);
 
-	if (len_max_40 > 40)
-		len_max_40 = 40;
+	if (!err)
+		return NULL;
 
-	xua_msg_add_data(xua, M3UA_IEI_DIAG_INFO, len_max_40, msgb_data(msg));
+	switch (err_code) {
+	case M3UA_ERR_INVAL_NET_APPEAR:
+		/* Include NA IE in Error message. */
+		struct xua_msg *xua = xua_from_msg(M3UA_VERSION, msgb_length(msg), msgb_data(msg));
+		struct xua_msg_part *na_ie = xua_msg_find_tag(xua, M3UA_IEI_NET_APPEAR);
+		uint32_t na;
 
-	return xua;
+		na = xua_msg_part_get_u32(na_ie);
+		LOGPASP(asp, DLM3UA, LOGL_ERROR,
+			"Unsupported 'Network Appearance' IE '0x%08x' in message type '%s', sending 'Error'.\n",
+			na, get_value_string(m3ua_xfer_msgt_names, xua->hdr.msg_type));
+		xua_msg_add_data(err, M3UA_IEI_NET_APPEAR, na_ie->len, na_ie->dat);
+		xua_msg_free(xua);
+		break;
+	default:
+		unsigned int len_max_40 = msgb_length(msg);
+
+		if (len_max_40 > 40)
+			len_max_40 = 40;
+
+		xua_msg_add_data(err, M3UA_IEI_DIAG_INFO, len_max_40, msgb_data(msg));
+	}
+
+	return err;
 }
 
 /***********************************************************************
@@ -534,6 +554,7 @@ struct m3ua_data_hdr *data_hdr_from_m3ua(struct xua_msg *xua)
 
 static int m3ua_rx_xfer(struct osmo_ss7_asp *asp, struct xua_msg *xua)
 {
+	struct xua_msg_part *na_ie = xua_msg_find_tag(xua, M3UA_IEI_NET_APPEAR);
 	struct xua_msg_part *rctx_ie = xua_msg_find_tag(xua, M3UA_IEI_ROUTE_CTX);
 	struct m3ua_data_hdr *dh;
 	struct osmo_ss7_as *as;
@@ -547,6 +568,13 @@ static int m3ua_rx_xfer(struct osmo_ss7_asp *asp, struct xua_msg *xua)
 			__func__,
 			get_value_string(m3ua_xfer_msgt_names, xua->hdr.msg_type));
 		return M3UA_ERR_UNSUPP_MSG_TYPE;
+	}
+
+	/* Reject unsupported Network Appearance IE. */
+	if (na_ie) {
+		if (na_ie->len != 4)
+			return M3UA_ERR_PARAM_FIELD_ERR;
+		return M3UA_ERR_INVAL_NET_APPEAR;
 	}
 
 	rc = xua_find_as_for_asp(&as, asp, rctx_ie);
@@ -704,9 +732,9 @@ int m3ua_rx_msg(struct osmo_ss7_asp *asp, struct msgb *msg)
 			"M3UA message\n");
 
 		if (hdr->version != M3UA_VERSION)
-			err = m3ua_gen_error_msg(M3UA_ERR_INVALID_VERSION, msg);
+			err = m3ua_gen_error_msg(asp, M3UA_ERR_INVALID_VERSION, msg);
 		else
-			err = m3ua_gen_error_msg(M3UA_ERR_PARAM_FIELD_ERR, msg);
+			err = m3ua_gen_error_msg(asp, M3UA_ERR_PARAM_FIELD_ERR, msg);
 		goto out;
 	}
 
@@ -714,7 +742,7 @@ int m3ua_rx_msg(struct osmo_ss7_asp *asp, struct msgb *msg)
 		xua_hdr_dump(xua, &xua_dialect_m3ua));
 
 	if (!xua_dialect_check_all_mand_ies(&xua_dialect_m3ua, xua)) {
-		err = m3ua_gen_error_msg(M3UA_ERR_MISSING_PARAM, msg);
+		err = m3ua_gen_error_msg(asp, M3UA_ERR_MISSING_PARAM, msg);
 		goto out;
 	}
 
@@ -746,12 +774,12 @@ int m3ua_rx_msg(struct osmo_ss7_asp *asp, struct msgb *msg)
 	default:
 		LOGPASP(asp, DLM3UA, LOGL_NOTICE, "Received unknown M3UA "
 			"Message Class %u\n", xua->hdr.msg_class);
-		err = m3ua_gen_error_msg(M3UA_ERR_UNSUPP_MSG_CLASS, msg);
+		err = m3ua_gen_error_msg(asp, M3UA_ERR_UNSUPP_MSG_CLASS, msg);
 		break;
 	}
 
 	if (rc > 0)
-		err = m3ua_gen_error_msg(rc, msg);
+		err = m3ua_gen_error_msg(asp, rc, msg);
 
 out:
 	if (err) {
@@ -978,6 +1006,8 @@ static int m3ua_rx_snm_sg(struct osmo_ss7_asp *asp, struct xua_msg *xua)
 
 static int m3ua_rx_snm(struct osmo_ss7_asp *asp, struct xua_msg *xua)
 {
+	struct xua_msg_part *na_ie = xua_msg_find_tag(xua, M3UA_IEI_NET_APPEAR);
+
 	/* SNM only permitted in ACTIVE state */
 	if (asp->fi->state != XUA_ASP_S_ACTIVE) {
 		if (asp->fi->state == XUA_ASP_S_INACTIVE &&
@@ -989,6 +1019,13 @@ static int m3ua_rx_snm(struct osmo_ss7_asp *asp, struct xua_msg *xua)
 				"while ASP in state %s\n", osmo_fsm_inst_state_name(asp->fi));
 			return M3UA_ERR_UNEXPECTED_MSG;
 		}
+	}
+
+	/* Reject unsupported Network Appearance IE. */
+	if (na_ie) {
+		if (na_ie->len != 4)
+			return M3UA_ERR_PARAM_FIELD_ERR;
+		return M3UA_ERR_INVAL_NET_APPEAR;
 	}
 
 	switch (asp->cfg.role) {
