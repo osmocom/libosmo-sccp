@@ -436,7 +436,11 @@ int sua_addr_parse_part(struct osmo_sccp_addr *out,
 		par = (struct xua_parameter_hdr *) &param->dat[pos];
 		par_tag = ntohs(par->tag);
 		par_len = ntohs(par->len);
-		par_datalen = par_len - sizeof(*par);
+		/* sanity: check par->len received on the wire, make sure the subtraction does not wrap past zero */
+		if (par_len >= sizeof(*par))
+			par_datalen = par_len - sizeof(*par);
+		else
+			par_datalen = 0;
 
 		LOGP(DLSUA, LOGL_DEBUG, "SUA IEI 0x%04x pos %hu/%hu: subpart tag 0x%04x, len %hu\n",
 		     param->tag, pos, param->len, par_tag, par_len);
