@@ -158,9 +158,15 @@ static int copy_address(struct sccp_address *addr, uint8_t offset, struct msgb *
 static int _sccp_parse_optional_data(const int offset,
 				     struct msgb *msgb, struct sccp_optional_data *data)
 {
-	uint16_t room = msgb_l2len(msgb) - offset;
+	uint16_t room;
 	uint16_t read = 0;
 
+	/* sanity: make sure no optional_start value received on the wire (that callers typically pass as 'offset'
+	 * argument) takes us past the message buffer boundaries (CID#272968 and others) */
+	if (offset >= msgb_l2len(msgb))
+		return 0;
+
+	room = msgb_l2len(msgb) - offset;
 	while (room > read) {
 		uint8_t type = msgb->l2h[offset + read];
 		if (type == SCCP_PNC_END_OF_OPTIONAL)
