@@ -10,21 +10,13 @@ noinst_HEADERS = \
 	xua_internal.h \
 	$(NULL)
 
-# Legacy static libs
+noinst_LIBRARIES = libxua.a
 
-sccpdir = $(libdir)
-sccp_LIBRARIES = libsccp.a libmtp.a libxua.a
-
-libsccp_a_SOURCES = sccp.c
-libmtp_a_SOURCES = mtp_pcap.c
 libxua_a_SOURCES = xua_msg.c
 # ensure that the file for the static lib is built with different C
 # flags, working around automake complaining that xua_msg.o is built
 # both with libtool (below) and without (here)
 libxua_a_CPPFLAGS = $(AM_CPPFLAGS) -DDUMMY -UDUMMY
-
-
-# New shared lib
 
 lib_LTLIBRARIES = libosmo-sigtran.la
 

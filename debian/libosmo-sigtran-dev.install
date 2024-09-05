@@ -1,4 +1,5 @@
 usr/include/osmocom/sigtran
+usr/include/osmocom/sccp
 usr/lib/*/libosmo-sigtran*.a
 usr/lib/*/libosmo-sigtran*.so
 usr/lib/*/libosmo-sigtran*.la

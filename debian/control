@@ -21,19 +21,6 @@ Vcs-Git: https://gitea.osmocom.org/osmocom/libosmo-sccp
 Vcs-Browser: https://gitea.osmocom.org/osmocom/libosmo-sccp
 Homepage: https://projects.osmocom.org/projects/libosmo-sccp
 
-Package: libosmo-sccp-dev
-Architecture: any
-Depends: ${misc:Depends}
-Multi-Arch: same
-Section: libdevel
-Description: Development files for libsccp, libmtp and libxua
- SCCP is a network layer protocol that provides extended routing, flow control,
- segmentation, connection-orientation, and error correction facilities in
- Signaling System 7 telecommunications networks.
- It is heavily used in cellular networks such as GSM.
- .
- This package contains the development files for the library.
-
 Package: libosmo-sigtran10
 Section: libs
 Architecture: any

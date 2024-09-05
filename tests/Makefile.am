@@ -1,4 +1,4 @@
-SUBDIRS = xua sccp mtp m2ua ss7 vty
+SUBDIRS = xua m2ua ss7 vty
 
 # The `:;' works around a Bash 3.2 bug when the output is not writeable.
 $(srcdir)/package.m4: $(top_srcdir)/configure.ac

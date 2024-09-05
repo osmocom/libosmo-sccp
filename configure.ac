@@ -183,18 +183,12 @@ AC_MSG_RESULT([CPPFLAGS="$CPPFLAGS"])
 
 AC_OUTPUT(
     libosmo-sigtran.pc
-    libosmo-sccp.pc
-    libosmo-mtp.pc
-    libosmo-xua.pc
     include/osmocom/Makefile
     include/osmocom/sccp/Makefile
-    include/osmocom/mtp/Makefile
     include/osmocom/sigtran/Makefile
     include/Makefile
     src/Makefile
     tests/Makefile
-    tests/sccp/Makefile
-    tests/mtp/Makefile
     tests/m2ua/Makefile
     tests/xua/Makefile
     tests/ss7/Makefile

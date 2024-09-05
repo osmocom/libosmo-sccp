@@ -1,1 +1,1 @@
-SUBDIRS = mtp sccp sigtran
+SUBDIRS = sccp sigtran
